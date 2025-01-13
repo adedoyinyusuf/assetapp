@@ -1,10 +1,8 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faDollarSign, faChartLine, faPercent, faCubes, faSignOutAlt } from '@fortawesome/free-solid-svg-icons'
-import { Button } from "@/components/ui/button"
+import { faDollarSign, faChartLine, faPercent, faCubes } from '@fortawesome/free-solid-svg-icons'
 import { Bar, BarChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 
 interface ChartDataItem {
@@ -32,22 +30,9 @@ export default function DashboardClient({
   depreciationPercentage,
   chartData
 }: DashboardClientProps) {
-  const router = useRouter()
-
-  const handleLogout = () => {
-    document.cookie = 'isLoggedIn=false; path=/'
-    router.push('/login')
-  }
-
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <Button onClick={handleLogout}>
-          <FontAwesomeIcon icon={faSignOutAlt} className="mr-2" />
-          Logout
-        </Button>
-      </div>
+      <h1 className="text-3xl font-bold">Dashboard</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>

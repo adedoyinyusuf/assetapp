@@ -1,25 +1,17 @@
-import { getServerSession } from "next-auth/next"
-import { redirect } from "next/navigation"
 import { getAssets, calculateDepreciation } from '@/app/actions'
 import DashboardClient from './DashboardClient'
-import { authOptions } from "../api/[...nextauth]/route"
 
 export default async function DashboardPage() {
-  const session = await getServerSession(authOptions)
-  if (!session) {
-    redirect("/login")
-  }
-
   const assets = await getAssets()
   const currentDate = new Date()
 
   const totalAssets = assets.length
   const totalPurchaseValue = assets.reduce((sum, asset) => sum + asset.purchaseValue, 0)
-  
+
   const deprecationResults = await Promise.all(
     assets.map(asset => calculateDepreciation(asset, currentDate))
   )
-  
+
   const totalCurrentValue = deprecationResults.reduce((sum, result) => sum + result.currentValue, 0)
   const totalDepreciation = totalPurchaseValue - totalCurrentValue
   const depreciationPercentage = totalPurchaseValue !== 0 ? (totalDepreciation / totalPurchaseValue) * 100 : 0
