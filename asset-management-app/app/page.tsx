@@ -12,8 +12,8 @@ const banners = [
   { src: '/src/banner1.jpg', alt: 'Office equipment', text: 'Manage Your Office Equipment' },
   { src: '/src/banner2.jpg', alt: 'Company vehicles', text: 'Track Your Fleet' },
   { src: '/src/banner3.jpg', alt: 'IT assets', text: 'Monitor Your IT Assets' },
-  { src: '/src/banner4.jpg', alt: 'Employee health', text: 'Ensure Employee Health' },
-  { src: '/src/banner5.jpg', alt: 'Cloud services', text: 'Optimize Your Cloud Infrastructure' },
+  { src: '/src/banner4.jpg', alt: 'Fixed Assets', text: 'Keep Tab of Your Office Buildings' },
+  { src: '/src/banner5.png', alt: 'Intellectual Properties', text: 'Keep Records of Your Map Resources' },
 ]
 
 export default function Home() {
