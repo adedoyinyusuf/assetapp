@@ -1,4 +1,5 @@
 'use server'
+// Note: Asset, AssetMovement, Category, and State interfaces are already exported inline
 
 import { revalidatePath } from 'next/cache'
 

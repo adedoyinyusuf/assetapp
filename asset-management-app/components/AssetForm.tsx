@@ -38,17 +38,21 @@ export default function AssetForm({ asset }: AssetFormProps) {
 
   useEffect(() => {
     const fetchData = async () => {
-      const fetchedCategories = await getCategories()
-      const fetchedStates = await getStates()
-      setCategories(fetchedCategories)
-      setStates(fetchedStates)
+      try {
+        const fetchedCategories = await getCategories()
+        const fetchedStates = await getStates()
+        setCategories(fetchedCategories)
+        setStates(fetchedStates)
 
-      if (asset?.state) {
-        const stateObj = fetchedStates.find(s => s.name === asset.state)
-        if (stateObj) {
-          const fetchedLGAs = await getLGAs(stateObj.id)
-          setLgas(fetchedLGAs)
+        if (asset?.state) {
+          const stateObj = fetchedStates.find(s => s.name === asset.state)
+          if (stateObj) {
+            const fetchedLGAs = await getLGAs(stateObj.id)
+            setLgas(fetchedLGAs)
+          }
         }
+      } catch (error) {
+        console.error('Error fetching form data:', error)
       }
     }
     fetchData()
@@ -59,8 +63,13 @@ export default function AssetForm({ asset }: AssetFormProps) {
     setLga('')
     const selectedState = states.find(s => s.name === stateName)
     if (selectedState) {
-      const fetchedLGAs = await getLGAs(selectedState.id)
-      setLgas(fetchedLGAs)
+      try {
+        const fetchedLGAs = await getLGAs(selectedState.id)
+        setLgas(fetchedLGAs)
+      } catch (error) {
+        console.error('Error fetching LGAs:', error)
+        setLgas([])
+      }
     } else {
       setLgas([])
     }
@@ -86,6 +95,7 @@ export default function AssetForm({ asset }: AssetFormProps) {
         await addAsset(assetData)
       }
       router.push('/assets')
+      router.refresh()
     } catch (error) {
       console.error('Error submitting asset:', error)
       // Handle error (e.g., show error message to user)
