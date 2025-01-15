@@ -2,6 +2,8 @@
 // Note: Asset, AssetMovement, Category, and State interfaces are already exported inline
 
 import { revalidatePath } from 'next/cache'
+import fs from 'fs/promises';
+import path from 'path';
 
 export interface Asset {
   id: number;
@@ -37,43 +39,67 @@ export interface State {
 
 let assets: Asset[] = [];
 let assetMovements: AssetMovement[] = [];
+let categories: Category[] = [];
+let states: State[] = [];
 
-let categories: Category[] = [
-  { id: 1, name: "Fixed Assets: Buildings" },
-  { id: 2, name: "Fixed Assets: Land" },
-  { id: 3, name: "Fixed Assets: Machinery" },
-  { id: 4, name: "Fixed Assets: Vehicles" },
-  { id: 5, name: "Fixed Assets: Equipment" },
-  { id: 6, name: "IT & Digital Assets: Digital Media Files (images, videos)" },
-  { id: 7, name: "IT & Digital Assets: Computers" },
-  { id: 8, name: "IT & Digital Assets: Servers" },
-  { id: 9, name: "IT & Digital Assets: Networking Equipment" },
-  { id: 10, name: "IT & Digital Assets: Software Licenses" },
-  { id: 11, name: "IT & Digital Assets: Mobile Devices" },
-  { id: 12, name: "Financial Assets: Cash and Cash Equivalents" },
-  { id: 13, name: "Intellectual Property: geomaps" },
-  { id: 14, name: "Intellectual Property: Copyrights" },
-  { id: 15, name: "Inventory: Consumables" },
-  { id: 16, name: "Maintenance and Repair: Spare Parts" },
-  { id: 17, name: "Compliance and Licenses: Safety Certifications" },
-  { id: 18, name: "Utility Assets: Energy Systems (solar panels, generators)" },
-  { id: 19, name: "Utility Assets: HVAC Systems" },
-  { id: 20, name: "Utility Assets: Waste Management Systems" }
-];
+const dataFilePath = path.join(process.cwd(), 'data.json');
 
-let states: State[] = [
-  {
-    "id": 1,
-    "name": "ABIA",
-    "lgas": ["ABA NORTH", "ABA SOUTH", "AROCHUKWU", "BENDE", "IKWUANO", "ISIALA NGWA NORTH", "ISIALA NGWA SOUTH", "ISUIKWUATO", "OBI NGWA", "OHAFIA", "OSISIOMA", "UGWUNAGBO", "UKWA EAST", "UKWA WEST", "UMUAHIA NORTH", "UMUAHIA SOUTH", "UMU NNEOCHI"]
-  },
-  {
-    "id": 2,
-    "name": "ADAMAWA",
-    "lgas": ["DEMSA", "FUFURE", "GANYE", "GAYUK", "GOMBI", "GRIE", "HONG", "JADA", "LARMURDE", "MADAGALI", "MAIHA", "MAYO BELWA", "MICHIKA", "MUBI NORTH", "MUBI SOUTH", "NUMAN", "SHELLENG", "SONG", "TOUNGO", "YOLA NORTH", "YOLA SOUTH"]
-  },
-  // ... other states
-];
+async function loadData() {
+  try {
+    const data = await fs.readFile(dataFilePath, 'utf8');
+    const parsedData = JSON.parse(data);
+    assets = parsedData.assets || [];
+    assetMovements = parsedData.assetMovements || [];
+    categories = parsedData.categories || [];
+    states = parsedData.states || [];
+  } catch (error) {
+    console.error('Error loading data:', error);
+    // Initialize with default data if file doesn't exist
+    categories = [
+      { id: 1, name: "Fixed Assets: Buildings" },
+      { id: 2, name: "Fixed Assets: Land" },
+      { id: 3, name: "Fixed Assets: Machinery" },
+      { id: 4, name: "Fixed Assets: Vehicles" },
+      { id: 5, name: "Fixed Assets: Equipment" },
+      { id: 6, name: "IT & Digital Assets: Digital Media Files (images, videos)" },
+      { id: 7, name: "IT & Digital Assets: Computers" },
+      { id: 8, name: "IT & Digital Assets: Servers" },
+      { id: 9, name: "IT & Digital Assets: Networking Equipment" },
+      { id: 10, name: "IT & Digital Assets: Software Licenses" },
+      { id: 11, name: "IT & Digital Assets: Mobile Devices" },
+      { id: 12, name: "Financial Assets: Cash and Cash Equivalents" },
+      { id: 13, name: "Intellectual Property: geomaps" },
+      { id: 14, name: "Intellectual Property: Copyrights" },
+      { id: 15, name: "Inventory: Consumables" },
+      { id: 16, name: "Maintenance and Repair: Spare Parts" },
+      { id: 17, name: "Compliance and Licenses: Safety Certifications" },
+      { id: 18, name: "Utility Assets: Energy Systems (solar panels, generators)" },
+      { id: 19, name: "Utility Assets: HVAC Systems" },
+      { id: 20, name: "Utility Assets: Waste Management Systems" }
+    ];
+    states = [
+      {
+        "id": 1,
+        "name": "ABIA",
+        "lgas": ["ABA NORTH", "ABA SOUTH", "AROCHUKWU", "BENDE", "IKWUANO", "ISIALA NGWA NORTH", "ISIALA NGWA SOUTH", "ISUIKWUATO", "OBI NGWA", "OHAFIA", "OSISIOMA", "UGWUNAGBO", "UKWA EAST", "UKWA WEST", "UMUAHIA NORTH", "UMUAHIA SOUTH", "UMU NNEOCHI"]
+      },
+      {
+        "id": 2,
+        "name": "ADAMAWA",
+        "lgas": ["DEMSA", "FUFURE", "GANYE", "GAYUK", "GOMBI", "GRIE", "HONG", "JADA", "LARMURDE", "MADAGALI", "MAIHA", "MAYO BELWA", "MICHIKA", "MUBI NORTH", "MUBI SOUTH", "NUMAN", "SHELLENG", "SONG", "TOUNGO", "YOLA NORTH", "YOLA SOUTH"]
+      },
+    ];
+    await saveData();
+  }
+}
+
+async function saveData() {
+  const data = JSON.stringify({ assets, assetMovements, categories, states });
+  await fs.writeFile(dataFilePath, data, 'utf8');
+}
+
+// Call loadData at the start of the file
+loadData();
 
 // Keep all the existing functions as they are...
 
@@ -83,6 +109,7 @@ export async function addAsset(asset: Omit<Asset, 'id'>): Promise<Asset> {
     id: assets.length + 1,
   }
   assets.push(newAsset)
+  await saveData();
   revalidatePath('/assets')
   return newAsset
 }
@@ -91,6 +118,7 @@ export async function updateAsset(updatedAsset: Asset): Promise<void> {
   const index = assets.findIndex(asset => asset.id === updatedAsset.id)
   if (index !== -1) {
     assets[index] = updatedAsset
+    await saveData();
     revalidatePath('/assets')
   }
 }
@@ -98,6 +126,7 @@ export async function updateAsset(updatedAsset: Asset): Promise<void> {
 export async function deleteAsset(id: number): Promise<void> {
   assets = assets.filter(asset => asset.id !== id)
   assetMovements = assetMovements.filter(movement => movement.assetId !== id)
+  await saveData();
   revalidatePath('/assets')
 }
 
@@ -123,6 +152,7 @@ export async function addAssetMovement(movement: Omit<AssetMovement, 'id'>): Pro
     asset.lga = movement.toLocation.split(', ')[1]
   }
 
+  await saveData();
   revalidatePath('/assets')
   return newMovement
 }
@@ -151,6 +181,7 @@ export async function addCategory(name: string): Promise<Category> {
     name,
   }
   categories.push(newCategory)
+  await saveData();
   revalidatePath('/categories')
   return newCategory
 }
@@ -159,12 +190,14 @@ export async function updateCategory(id: number, name: string): Promise<void> {
   const index = categories.findIndex(category => category.id === id)
   if (index !== -1) {
     categories[index].name = name
+    await saveData();
     revalidatePath('/categories')
   }
 }
 
 export async function deleteCategory(id: number): Promise<void> {
   categories = categories.filter(category => category.id !== id)
+  await saveData();
   revalidatePath('/categories')
 }
 

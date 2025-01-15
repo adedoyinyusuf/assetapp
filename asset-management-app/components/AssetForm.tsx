@@ -98,7 +98,6 @@ export default function AssetForm({ asset }: AssetFormProps) {
       router.refresh()
     } catch (error) {
       console.error('Error submitting asset:', error)
-      // Handle error (e.g., show error message to user)
     }
   }
 

@@ -37,7 +37,7 @@ export default function Home() {
               className={`absolute inset-0 transition-opacity duration-1000 ${index === currentBanner ? 'opacity-100' : 'opacity-0'}`}
             >
               <Image
-                src={banner.src}
+                src={banner.src || "/placeholder.svg"}
                 alt={banner.alt}
                 layout="fill"
                 objectFit="cover"
@@ -65,3 +65,4 @@ export default function Home() {
     </div>
   )
 }
+

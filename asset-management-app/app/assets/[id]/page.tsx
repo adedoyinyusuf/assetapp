@@ -1,15 +1,65 @@
-import { getAssets, getAssetMovements } from '@/app/actions'
-import AssetMovementForm from '@/components/AssetMovementForm'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faExchangeAlt, faMapMarkerAlt } from '@fortawesome/free-solid-svg-icons'
+"use client"; // Mark this component as a client component
 
-export default async function AssetDetailsPage({ params }: { params: { id: string } }) {
-  const assets = await getAssets()
-  const asset = assets.find(a => a.id === parseInt(params.id))
-  const assetMovements = await getAssetMovements(parseInt(params.id))
+import { getAssets, getAssetMovements } from '@/app/actions';
+import AssetMovementForm from '@/components/AssetMovementForm';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faExchangeAlt } from '@fortawesome/free-solid-svg-icons';
+import { useParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
+
+// Define the types for better TypeScript support
+interface Asset {
+  id: number;
+  name: string;
+  category: string;
+  state: string;
+  lga: string;
+  purchaseValue: number;
+  purchaseDate: string;
+  usefulLife: number;
+  salvageValue: number;
+}
+
+interface AssetMovement {
+  id: number;
+  fromLocation: string;
+  toLocation: string;
+  moveDate: string;
+  notes: string;
+}
+
+export default function AssetDetailsPage() {
+  const params = useParams();
+  const { id } = params;
+
+  // Ensure 'id' is a string
+  const idString = Array.isArray(id) ? id[0] : id;
+
+  const [asset, setAsset] = useState<Asset | null>(null);
+  const [assetMovements, setAssetMovements] = useState<AssetMovement[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchAssetData(id: string) {
+      const assets = await getAssets();
+      const asset = assets.find(a => a.id === parseInt(id));
+      const assetMovements = await getAssetMovements(parseInt(id));
+      setAsset(asset || null);
+      setAssetMovements(assetMovements || []);
+      setLoading(false);
+    }
+
+    if (idString) {
+      fetchAssetData(idString);
+    }
+  }, [idString]);
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
   if (!asset) {
-    return <div>Asset not found</div>
+    return <div>Asset not found</div>;
   }
 
   return (
@@ -31,7 +81,7 @@ export default async function AssetDetailsPage({ params }: { params: { id: strin
         <h3 className="text-xl font-semibold mb-4">Movement History</h3>
         {assetMovements.length > 0 ? (
           <ul className="space-y-4">
-            {assetMovements.map((movement) => (
+            {assetMovements.map(movement => (
               <li key={movement.id} className="border-b pb-4">
                 <p>
                   <FontAwesomeIcon icon={faExchangeAlt} className="mr-2" />
@@ -49,6 +99,5 @@ export default async function AssetDetailsPage({ params }: { params: { id: strin
 
       <AssetMovementForm assetId={asset.id} currentLocation={`${asset.state}, ${asset.lga}`} />
     </div>
-  )
+  );
 }
-
