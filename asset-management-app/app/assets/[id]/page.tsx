@@ -1,13 +1,8 @@
-"use client"; // Mark this component as a client component
-
 import { getAssets, getAssetMovements } from '@/app/actions';
 import AssetMovementForm from '@/components/AssetMovementForm';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faExchangeAlt } from '@fortawesome/free-solid-svg-icons';
-import { useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
 
-// Define the types for better TypeScript support
 interface Asset {
   id: number;
   name: string;
@@ -28,35 +23,21 @@ interface AssetMovement {
   notes: string;
 }
 
-export default function AssetDetailsPage() {
-  const params = useParams();
+interface Params {
+  id: string;
+}
+
+// This function will fetch the data needed for the page
+async function fetchAssetData(id: string): Promise<{ asset: Asset | null; assetMovements: AssetMovement[] }> {
+  const assets = await getAssets();
+  const asset = assets.find(a => a.id === parseInt(id));
+  const assetMovements = await getAssetMovements(parseInt(id));
+  return { asset: asset || null, assetMovements: assetMovements || [] };
+}
+
+export default async function AssetDetailsPage({ params }: { params: Params }) {
   const { id } = params;
-
-  // Ensure 'id' is a string
-  const idString = Array.isArray(id) ? id[0] : id;
-
-  const [asset, setAsset] = useState<Asset | null>(null);
-  const [assetMovements, setAssetMovements] = useState<AssetMovement[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchAssetData(id: string) {
-      const assets = await getAssets();
-      const asset = assets.find(a => a.id === parseInt(id));
-      const assetMovements = await getAssetMovements(parseInt(id));
-      setAsset(asset || null);
-      setAssetMovements(assetMovements || []);
-      setLoading(false);
-    }
-
-    if (idString) {
-      fetchAssetData(idString);
-    }
-  }, [idString]);
-
-  if (loading) {
-    return <div>Loading...</div>;
-  }
+  const { asset, assetMovements } = await fetchAssetData(id);
 
   if (!asset) {
     return <div>Asset not found</div>;
@@ -81,7 +62,7 @@ export default function AssetDetailsPage() {
         <h3 className="text-xl font-semibold mb-4">Movement History</h3>
         {assetMovements.length > 0 ? (
           <ul className="space-y-4">
-            {assetMovements.map(movement => (
+            {assetMovements.map((movement) => (
               <li key={movement.id} className="border-b pb-4">
                 <p>
                   <FontAwesomeIcon icon={faExchangeAlt} className="mr-2" />

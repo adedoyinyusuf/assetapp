@@ -1,6 +1,6 @@
-// route.tsx
 import NextAuth, { AuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import { Pool } from "pg";
 
 // Extend the User and Session types to include 'id'
 declare module "next-auth" {
@@ -20,6 +20,15 @@ declare module "next-auth/jwt" {
   }
 }
 
+// Create a connection pool to PostgreSQL
+const pool = new Pool({
+  user: process.env.PG_USER,
+  host: process.env.PG_HOST,
+  database: process.env.PG_DATABASE,
+  password: process.env.PG_PASSWORD,
+  port: parseInt(process.env.PG_PORT ?? "5432"),
+});
+
 // Define your NextAuth options
 const authOptions: AuthOptions = {
   providers: [
@@ -30,18 +39,27 @@ const authOptions: AuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!process.env.DEFAULT_USERNAME || !process.env.DEFAULT_PASSWORD) {
-          throw new Error("Environment variables DEFAULT_USERNAME and DEFAULT_PASSWORD must be set");
+        if (!credentials?.username || !credentials?.password) {
+          throw new Error("Username and password must be provided");
         }
 
-        if (
-          credentials?.username === process.env.DEFAULT_USERNAME &&
-          credentials?.password === process.env.DEFAULT_PASSWORD
-        ) {
-          // Return user object including the id
-          return { id: "1", name: "Admin User", email: "admin@example.com" };
+        const client = await pool.connect();
+        try {
+          const res = await client.query(
+            "SELECT id, name, email FROM users WHERE username = $1 AND password = crypt($2, password)",
+            [credentials.username, credentials.password]
+          );
+
+          const user = res.rows[0];
+
+          if (user) {
+            // Return user object including the id
+            return { id: user.id, name: user.name, email: user.email };
+          }
+          return null;
+        } finally {
+          client.release();
         }
-        return null;
       },
     }),
   ],

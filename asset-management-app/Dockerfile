@@ -1,8 +1,11 @@
 # Use an official Node runtime as the parent image
 FROM node:18-alpine
 
+# Install PostgreSQL client
+RUN apk add --no-cache postgresql-client
+
 # Set the working directory in the container to /app
-WORKDIR /asset-management-app
+WORKDIR /app
 
 # Copy package.json and package-lock.json (if available)
 COPY package.json ./
