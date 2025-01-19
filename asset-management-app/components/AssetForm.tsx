@@ -12,68 +12,35 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { addAsset, updateAsset, getCategories, getStates, getLGAs, Asset, Category, State } from '@/app/actions'
+import { addAsset, updateAsset, getLGAs, Asset, Category, State, LGA } from '@/app/actions'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faSave } from '@fortawesome/free-solid-svg-icons'
 
 interface AssetFormProps {
-  asset?: Asset
+  asset?: Asset;
+  categories: Category[];
+  states: State[];
+  initialLgas: LGA[];
 }
 
-export default function AssetForm({ asset }: AssetFormProps) {
+export default function AssetForm({ asset, categories, states, initialLgas }: AssetFormProps) {
   const [name, setName] = useState(asset?.name || '')
   const [purchaseValue, setPurchaseValue] = useState(asset?.purchaseValue.toString() || '')
   const [purchaseDate, setPurchaseDate] = useState(asset?.purchaseDate || '')
   const [usefulLife, setUsefulLife] = useState(asset?.usefulLife.toString() || '')
   const [salvageValue, setSalvageValue] = useState(asset?.salvageValue.toString() || '')
-  const [category, setCategory] = useState(asset?.category || '')
-  const [state, setState] = useState(asset?.state || '')
-  const [lga, setLga] = useState(asset?.lga || '')
-
-  const [categories, setCategories] = useState<Category[]>([])
-  const [states, setStates] = useState<State[]>([])
-  const [lgas, setLgas] = useState<string[]>([])
+  const [categoryId, setCategoryId] = useState(asset?.category_id.toString() || '')
+  const [stateId, setStateId] = useState(asset?.state_id.toString() || '')
+  const [lgaId, setLgaId] = useState(asset?.lga_id.toString() || '')
+  const [lgas, setLgas] = useState<LGA[]>(initialLgas)
 
   const router = useRouter()
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const fetchedCategories = await getCategories()
-        const fetchedStates = await getStates()
-        setCategories(fetchedCategories)
-        setStates(fetchedStates)
-
-        if (asset?.state) {
-          const stateObj = fetchedStates.find(s => s.name === asset.state)
-          if (stateObj) {
-            const fetchedLGAs = await getLGAs(stateObj.id)
-            setLgas(fetchedLGAs)
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching form data:', error)
-      }
+    if (stateId) {
+      getLGAs(parseInt(stateId)).then(setLgas)
     }
-    fetchData()
-  }, [asset])
-
-  const handleStateChange = async (stateName: string) => {
-    setState(stateName)
-    setLga('')
-    const selectedState = states.find(s => s.name === stateName)
-    if (selectedState) {
-      try {
-        const fetchedLGAs = await getLGAs(selectedState.id)
-        setLgas(fetchedLGAs)
-      } catch (error) {
-        console.error('Error fetching LGAs:', error)
-        setLgas([])
-      }
-    } else {
-      setLgas([])
-    }
-  }
+  }, [stateId])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -83,9 +50,9 @@ export default function AssetForm({ asset }: AssetFormProps) {
       purchaseDate,
       usefulLife: parseInt(usefulLife),
       salvageValue: parseFloat(salvageValue),
-      category,
-      state,
-      lga
+      category_id: parseInt(categoryId),
+      state_id: parseInt(stateId),
+      lga_id: parseInt(lgaId)
     }
 
     try {
@@ -98,12 +65,12 @@ export default function AssetForm({ asset }: AssetFormProps) {
       router.refresh()
     } catch (error) {
       console.error('Error submitting asset:', error)
+      // Handle error (e.g., show error message to user)
     }
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 bg-white p-6 rounded-lg shadow">
-      <h2 className="text-2xl font-semibold mb-4">{asset ? 'Edit Asset' : 'Add New Asset'}</h2>
       <div>
         <Label htmlFor="name">Asset Name</Label>
         <Input
@@ -115,13 +82,13 @@ export default function AssetForm({ asset }: AssetFormProps) {
       </div>
       <div>
         <Label htmlFor="category">Category</Label>
-        <Select value={category} onValueChange={setCategory}>
+        <Select value={categoryId} onValueChange={setCategoryId}>
           <SelectTrigger>
             <SelectValue placeholder="Select a category" />
           </SelectTrigger>
           <SelectContent>
             {categories.map((cat) => (
-              <SelectItem key={cat.id} value={cat.name}>
+              <SelectItem key={cat.id} value={cat.id.toString()}>
                 {cat.name}
               </SelectItem>
             ))}
@@ -170,13 +137,13 @@ export default function AssetForm({ asset }: AssetFormProps) {
       </div>
       <div>
         <Label htmlFor="state">State</Label>
-        <Select value={state} onValueChange={handleStateChange}>
+        <Select value={stateId} onValueChange={setStateId}>
           <SelectTrigger>
             <SelectValue placeholder="Select a state" />
           </SelectTrigger>
           <SelectContent>
             {states.map((s) => (
-              <SelectItem key={s.id} value={s.name}>
+              <SelectItem key={s.id} value={s.id.toString()}>
                 {s.name}
               </SelectItem>
             ))}
@@ -185,14 +152,14 @@ export default function AssetForm({ asset }: AssetFormProps) {
       </div>
       <div>
         <Label htmlFor="lga">LGA</Label>
-        <Select value={lga} onValueChange={setLga}>
+        <Select value={lgaId} onValueChange={setLgaId}>
           <SelectTrigger>
             <SelectValue placeholder="Select an LGA" />
           </SelectTrigger>
           <SelectContent>
             {lgas.map((l) => (
-              <SelectItem key={l} value={l}>
-                {l}
+              <SelectItem key={l.id} value={l.id.toString()}>
+                {l.name}
               </SelectItem>
             ))}
           </SelectContent>

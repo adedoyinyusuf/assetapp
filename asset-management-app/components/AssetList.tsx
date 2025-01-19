@@ -51,13 +51,7 @@ export default function AssetList({ initialAssets }: AssetListProps) {
             <TableCell>{asset.purchaseDate}</TableCell>
             <TableCell>{`${asset.state}, ${asset.lga}`}</TableCell>
             <TableCell className="space-x-2">
-              <Link href={`/assets/${asset.id}`}>
-                <Button variant="outline" size="sm">
-                  <FontAwesomeIcon icon={faEye} className="mr-2" />
-                  View
-                </Button>
-              </Link>
-              <Link href={`/assets/edit/${asset.id}`}>
+              <Link href={`/assets/edit?id=${asset.id}`}>
                 <Button variant="outline" size="sm">
                   <FontAwesomeIcon icon={faEdit} className="mr-2" />
                   Edit
