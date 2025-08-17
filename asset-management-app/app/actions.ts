@@ -1,7 +1,8 @@
-'use server'
 
+'use server'
 import { revalidatePath } from 'next/cache'
 
+// Interfaces
 export interface Asset {
   id: number;
   name: string;
@@ -12,6 +13,9 @@ export interface Asset {
   category: string;
   state: string;
   lga: string;
+  category_id?: number;
+  state_id?: number;
+  lga_id?: number;
 }
 
 export interface AssetMovement {
@@ -39,9 +43,38 @@ export interface LGA {
   state_id: number;
 }
 
-export async function getAssets(): Promise<Asset[]> {
-  const res = await fetch('http://localhost:3000/api/assets');
+// Asset Movement functions
+export async function getAssetMovements(assetId: number): Promise<AssetMovement[]> {
+  try {
+    const res = await fetch(`http://localhost:3000/api/assets/${assetId}/movements`);
+    if (!res.ok) return [];
+    return await res.json();
+  } catch {
+    return [];
+  }
+}
+
+export async function addAssetMovement(movement: Omit<AssetMovement, 'id'>): Promise<AssetMovement> {
+  const res = await fetch('http://localhost:3000/api/asset-movements', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(movement),
+  });
+  revalidatePath('/asset-movement');
   return res.json();
+}
+
+// Asset CRUD
+export async function getAssets(): Promise<Asset[]> {
+  try {
+    const res = await fetch('http://localhost:3000/api/assets');
+    if (!res.ok) return [];
+    return await res.json();
+  } catch {
+    return [];
+  }
 }
 
 export async function addAsset(asset: Omit<Asset, 'id'>): Promise<Asset> {
@@ -74,8 +107,7 @@ export async function deleteAsset(id: number): Promise<void> {
   revalidatePath('/assets');
 }
 
-// Implement other functions (getAssetMovements, addAssetMovement, etc.) similarly
-
+// Depreciation
 export async function calculateDepreciation(asset: Asset, currentDate: Date): Promise<{ totalDepreciation: number; currentValue: number; annualDepreciation: number }> {
   const purchaseDate = new Date(asset.purchaseDate);
   const yearsElapsed = (currentDate.getTime() - purchaseDate.getTime()) / (365 * 24 * 60 * 60 * 1000);
@@ -90,13 +122,15 @@ export async function calculateDepreciation(asset: Asset, currentDate: Date): Pr
   };
 }
 
-// Implement getCategories, addCategory, updateCategory, deleteCategory
-// Implement getStates, getLGAs
-// These will be similar to the asset functions, but with different endpoints
-
+// Category CRUD
 export async function getCategories(): Promise<Category[]> {
-  const res = await fetch('http://localhost:3000/api/categories');
-  return res.json();
+  try {
+    const res = await fetch('http://localhost:3000/api/categories');
+    if (!res.ok) return [];
+    return await res.json();
+  } catch {
+    return [];
+  }
 }
 
 export async function addCategory(name: string): Promise<Category> {
@@ -129,13 +163,24 @@ export async function deleteCategory(id: number): Promise<void> {
   revalidatePath('/categories');
 }
 
+// State & LGA
 export async function getStates(): Promise<State[]> {
-  const res = await fetch('http://localhost:3000/api/states');
-  return res.json();
+  try {
+    const res = await fetch('http://localhost:3000/api/states');
+    if (!res.ok) return [];
+    return await res.json();
+  } catch {
+    return [];
+  }
 }
 
 export async function getLGAs(stateId: number): Promise<LGA[]> {
-  const res = await fetch(`http://localhost:3000/api/states/${stateId}/lgas`);
-  return res.json();
+  try {
+    const res = await fetch(`http://localhost:3000/api/states/${stateId}/lgas`);
+    if (!res.ok) return [];
+    return await res.json();
+  } catch {
+    return [];
+  }
 }
 

@@ -68,7 +68,8 @@
  
 @layer base {
   * {
-    @apply border-border;
+  @apply border;
+  border-color: theme('colors.border');
   }
   body {
     @apply bg-background text-foreground;

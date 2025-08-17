@@ -39,9 +39,8 @@ export default function Home() {
               <Image
                 src={banner.src || "/placeholder.svg"}
                 alt={banner.alt}
-                layout="fill"
-                objectFit="cover"
-                className="object-center"
+                fill
+                className="object-cover object-center"
               />
               <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
                 <div className="text-center space-y-6 px-4 sm:px-8">

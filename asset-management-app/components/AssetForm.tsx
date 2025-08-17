@@ -29,9 +29,9 @@ export default function AssetForm({ asset, categories, states, initialLgas }: As
   const [purchaseDate, setPurchaseDate] = useState(asset?.purchaseDate || '')
   const [usefulLife, setUsefulLife] = useState(asset?.usefulLife.toString() || '')
   const [salvageValue, setSalvageValue] = useState(asset?.salvageValue.toString() || '')
-  const [categoryId, setCategoryId] = useState(asset?.category_id.toString() || '')
-  const [stateId, setStateId] = useState(asset?.state_id.toString() || '')
-  const [lgaId, setLgaId] = useState(asset?.lga_id.toString() || '')
+  const [categoryId, setCategoryId] = useState(asset?.category_id?.toString() || '')
+  const [stateId, setStateId] = useState(asset?.state_id?.toString() || '')
+  const [lgaId, setLgaId] = useState(asset?.lga_id?.toString() || '')
   const [lgas, setLgas] = useState<LGA[]>(initialLgas)
 
   const router = useRouter()
@@ -44,6 +44,11 @@ export default function AssetForm({ asset, categories, states, initialLgas }: As
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    // Find the selected category, state, and lga names
+    const categoryObj = categories.find(c => c.id === parseInt(categoryId));
+    const stateObj = states.find(s => s.id === parseInt(stateId));
+    const lgaObj = lgas.find(l => l.id === parseInt(lgaId));
+
     const assetData = {
       name,
       purchaseValue: parseFloat(purchaseValue),
@@ -52,7 +57,10 @@ export default function AssetForm({ asset, categories, states, initialLgas }: As
       salvageValue: parseFloat(salvageValue),
       category_id: parseInt(categoryId),
       state_id: parseInt(stateId),
-      lga_id: parseInt(lgaId)
+      lga_id: parseInt(lgaId),
+      category: categoryObj?.name || '',
+      state: stateObj?.name || '',
+      lga: lgaObj?.name || ''
     }
 
     try {

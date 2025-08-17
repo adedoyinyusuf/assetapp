@@ -11,7 +11,7 @@ export default async function EditAssetPage({ searchParams }: { searchParams: { 
     return <div>Asset not found</div>
   }
 
-  const lgas = await getLGAs(asset.state_id)
+  const lgas = asset.state_id !== undefined ? await getLGAs(asset.state_id) : []
 
   return (
     <div className="space-y-6">

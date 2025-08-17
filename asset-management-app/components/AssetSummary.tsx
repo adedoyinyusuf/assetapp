@@ -7,11 +7,12 @@ export default async function AssetSummary() {
   const assets = await getAssets()
   const currentDate = new Date()
 
+
   const totalPurchaseValue = assets.reduce((sum, asset) => sum + asset.purchaseValue, 0)
-  const totalCurrentValue = assets.reduce((sum, asset) => {
-    const { currentValue } = calculateDepreciation(asset, currentDate)
-    return sum + currentValue
-  }, 0)
+  const depreciationResults = await Promise.all(
+    assets.map(asset => calculateDepreciation(asset, currentDate))
+  )
+  const totalCurrentValue = depreciationResults.reduce((sum, result) => sum + result.currentValue, 0)
   const totalDepreciation = totalPurchaseValue - totalCurrentValue
   const depreciationPercentage = (totalDepreciation / totalPurchaseValue) * 100
 
