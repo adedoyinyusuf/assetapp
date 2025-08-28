@@ -50,10 +50,11 @@ export default async function AssetDetailsPage({ params }: { params: { id: strin
                 <li key={movement.id} className="border-b pb-4">
                   <p>
                     <FontAwesomeIcon icon={faExchangeAlt} className="mr-2" />
-                    <strong>From:</strong> {movement.fromLocation} <strong>To:</strong> {movement.toLocation}
+                    <strong>From:</strong> {movement.from_state}, {movement.from_lga} <strong>To:</strong> {movement.to_state}, {movement.to_lga}
                   </p>
-                  <p><strong>Date:</strong> {movement.moveDate}</p>
-                  <p><strong>Notes:</strong> {movement.notes}</p>
+                  <p><strong>Date:</strong> {movement.movement_date}</p>
+                  <p><strong>Reason:</strong> {movement.reason}</p>
+                  {movement.notes && <p><strong>Notes:</strong> {movement.notes}</p>}
                 </li>
               ))}
             </ul>

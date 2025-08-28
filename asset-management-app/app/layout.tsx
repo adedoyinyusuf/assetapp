@@ -11,6 +11,8 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu"
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faBuilding, faBars, faTimes } from '@fortawesome/free-solid-svg-icons'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -37,105 +39,205 @@ export default function RootLayout({
           </div>
 
           {/* Navigation */}
-          <nav className="bg-green-700 text-white">
+          <nav className="bg-gradient-to-r from-green-700 to-green-800 text-white shadow-lg">
             <div className="container mx-auto px-4">
               <div className="flex justify-between items-center h-16">
                 {/* Logo */}
-                <Link href="/" className="flex items-center">
-                  <span className="text-xl font-bold">Welcome to the Asset Management Platform</span>
+                <Link href="/" className="flex items-center space-x-3 hover:opacity-90 transition-opacity">
+                  <div className="bg-white p-2 rounded-lg">
+                    <FontAwesomeIcon icon={faBuilding} className="h-6 w-6 text-green-700" />
+                  </div>
+                  <div>
+                    <span className="text-xl font-bold">NPC Assets</span>
+                    <p className="text-xs text-green-200 hidden sm:block">Management System</p>
+                  </div>
                 </Link>
-                <NavigationMenu>
-                  <NavigationMenuList className="flex items-center gap-6">
+                
+                {/* Desktop Navigation */}
+                <NavigationMenu className="hidden lg:block">
+                  <NavigationMenuList className="flex items-center gap-2">
                     {/* Navigation Items */}
                     <NavigationMenuItem>
                       <Link href="/" legacyBehavior passHref>
-                        <NavigationMenuLink className="text-white hover:text-green-300">
+                        <NavigationMenuLink className="px-4 py-2 rounded-lg text-white hover:bg-green-600 transition-colors">
                           Home
                         </NavigationMenuLink>
                       </Link>
                     </NavigationMenuItem>
+                    
+
                     <NavigationMenuItem>
-                      <NavigationMenuTrigger className="text-white hover:text-green-300 bg-transparent">
-                        Asset
+                      <NavigationMenuTrigger className="px-4 py-2 rounded-lg text-white hover:bg-green-600 transition-colors bg-transparent">
+                        Assets
                       </NavigationMenuTrigger>
                       <NavigationMenuContent>
-                        <ul className="grid w-[400px] gap-3 p-4 bg-white border border-green-700 rounded-md">
+                        <ul className="grid w-[450px] gap-2 p-6 bg-white shadow-xl border border-gray-200 rounded-xl">
                           <li>
                             <NavigationMenuLink asChild>
-                              <Link href="/assets/manage" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-green-100 hover:text-green-800 focus:bg-green-100 focus:text-green-800">
-                                <div className="text-sm font-medium leading-none">Manage Assets</div>
+                              <Link href="/assets/registry" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-green-100 hover:text-green-800 focus:bg-green-100 focus:text-green-800">
+                                <div className="text-sm font-medium leading-none">Asset Registry</div>
                                 <p className="line-clamp-2 text-sm leading-snug text-gray-500">
-                                  View and manage all assets
+                                  Complete asset database with search and filters
                                 </p>
                               </Link>
                             </NavigationMenuLink>
                           </li>
                           <li>
                             <NavigationMenuLink asChild>
-                              <Link href="/assets/add" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-green-100 hover:text-green-800 focus:bg-green-100 focus:text-green-800">
-                                <div className="text-sm font-medium leading-none">Add Asset</div>
+                              <Link href="/assets/register" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-green-100 hover:text-green-800 focus:bg-green-100 focus:text-green-800">
+                                <div className="text-sm font-medium leading-none">Register New Asset</div>
                                 <p className="line-clamp-2 text-sm leading-snug text-gray-500">
-                                  Add a new asset to the system
+                                  Add new assets with complete workflow
                                 </p>
                               </Link>
                             </NavigationMenuLink>
                           </li>
                           <li>
-                            <Link href="/asset-movement" legacyBehavior passHref>
-                              <NavigationMenuLink className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-green-100 hover:text-green-800 focus:bg-green-100 focus:text-green-800">
-                                <div className="text-sm font-medium leading-none">Asset Movement</div>
+                            <NavigationMenuLink asChild>
+                              <Link href="/assets/search" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-green-100 hover:text-green-800 focus:bg-green-100 focus:text-green-800">
+                                <div className="text-sm font-medium leading-none">Asset Search</div>
                                 <p className="line-clamp-2 text-sm leading-snug text-gray-500">
-                                  Track asset movements
+                                  Advanced search and filtering tools
                                 </p>
-                              </NavigationMenuLink>
-                            </Link>
+                              </Link>
+                            </NavigationMenuLink>
                           </li>
                           <li>
-                            <Link href="/depreciation" legacyBehavior passHref>
-                              <NavigationMenuLink className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-green-100 hover:text-green-800 focus:bg-green-100 focus:text-green-800">
-                                <div className="text-sm font-medium leading-none">Track Depreciation</div>
+                            <NavigationMenuLink asChild>
+                              <Link href="/assets/reports" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-green-100 hover:text-green-800 focus:bg-green-100 focus:text-green-800">
+                                <div className="text-sm font-medium leading-none">Asset Reports</div>
                                 <p className="line-clamp-2 text-sm leading-snug text-gray-500">
-                                  Monitor asset depreciation
+                                  Detailed asset reporting and analytics
                                 </p>
-                              </NavigationMenuLink>
-                            </Link>
-                          </li>
-                          <li>
-                            <Link href="/categories" legacyBehavior passHref>
-                              <NavigationMenuLink className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-green-100 hover:text-green-800 focus:bg-green-100 focus:text-green-800">
-                                <div className="text-sm font-medium leading-none">Categories</div>
-                                <p className="line-clamp-2 text-sm leading-snug text-gray-500">
-                                  Manage asset categories
-                                </p>
-                              </NavigationMenuLink>
-                            </Link>
+                              </Link>
+                            </NavigationMenuLink>
                           </li>
                         </ul>
                       </NavigationMenuContent>
                     </NavigationMenuItem>
+
                     <NavigationMenuItem>
-                      <Link href="/dashboard" legacyBehavior passHref>
-                        <NavigationMenuLink className="text-white hover:text-green-300">
-                          Dashboard
+                      <NavigationMenuTrigger className="px-4 py-2 rounded-lg text-white hover:bg-green-600 transition-colors bg-transparent">
+                        Operations
+                      </NavigationMenuTrigger>
+                      <NavigationMenuContent>
+                        <ul className="grid w-[450px] gap-2 p-6 bg-white shadow-xl border border-gray-200 rounded-xl">
+                          <li>
+                            <NavigationMenuLink asChild>
+                              <Link href="/operations/movements" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-green-100 hover:text-green-800 focus:bg-green-100 focus:text-green-800">
+                                <div className="text-sm font-medium leading-none">Asset Movements</div>
+                                <p className="line-clamp-2 text-sm leading-snug text-gray-500">
+                                  Track and manage asset relocations
+                                </p>
+                              </Link>
+                            </NavigationMenuLink>
+                          </li>
+                          <li>
+                            <NavigationMenuLink asChild>
+                              <Link href="/operations/maintenance" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-green-100 hover:text-green-800 focus:bg-green-100 focus:text-green-800">
+                                <div className="text-sm font-medium leading-none">Maintenance Records</div>
+                                <p className="line-clamp-2 text-sm leading-snug text-gray-500">
+                                  Track maintenance and service history
+                                </p>
+                              </Link>
+                            </NavigationMenuLink>
+                          </li>
+                          <li>
+                            <NavigationMenuLink asChild>
+                              <Link href="/operations/disposal" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-green-100 hover:text-green-800 focus:bg-green-100 focus:text-green-800">
+                                <div className="text-sm font-medium leading-none">Asset Disposal</div>
+                                <p className="line-clamp-2 text-sm leading-snug text-gray-500">
+                                  Manage asset retirement and disposal
+                                </p>
+                              </Link>
+                            </NavigationMenuLink>
+                          </li>
+                          <li>
+                            <NavigationMenuLink asChild>
+                              <Link href="/operations/depreciation" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-green-100 hover:text-green-800 focus:bg-green-100 focus:text-green-800">
+                                <div className="text-sm font-medium leading-none">Depreciation Tracking</div>
+                                <p className="line-clamp-2 text-sm leading-snug text-gray-500">
+                                  Monitor asset depreciation and valuation
+                                </p>
+                              </Link>
+                            </NavigationMenuLink>
+                          </li>
+                        </ul>
+                      </NavigationMenuContent>
+                    </NavigationMenuItem>
+
+                    <NavigationMenuItem>
+                      <NavigationMenuTrigger className="px-4 py-2 rounded-lg text-white hover:bg-green-600 transition-colors bg-transparent">
+                        Administration
+                      </NavigationMenuTrigger>
+                      <NavigationMenuContent>
+                        <ul className="grid w-[450px] gap-2 p-6 bg-white shadow-xl border border-gray-200 rounded-xl">
+                          <li>
+                            <NavigationMenuLink asChild>
+                              <Link href="/admin/categories" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-green-100 hover:text-green-800 focus:bg-green-100 focus:text-green-800">
+                                <div className="text-sm font-medium leading-none">Categories Management</div>
+                                <p className="line-clamp-2 text-sm leading-snug text-gray-500">
+                                  Manage asset categories and classifications
+                                </p>
+                              </Link>
+                            </NavigationMenuLink>
+                          </li>
+                          <li>
+                            <NavigationMenuLink asChild>
+                              <Link href="/admin/locations" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-green-100 hover:text-green-800 focus:bg-green-100 focus:text-green-800">
+                                <div className="text-sm font-medium leading-none">Locations Management</div>
+                                <p className="line-clamp-2 text-sm leading-snug text-gray-500">
+                                  Manage states, LGAs and office locations
+                                </p>
+                              </Link>
+                            </NavigationMenuLink>
+                          </li>
+                          <li>
+                            <NavigationMenuLink asChild>
+                              <Link href="/admin/users" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-green-100 hover:text-green-800 focus:bg-green-100 focus:text-green-800">
+                                <div className="text-sm font-medium leading-none">User Management</div>
+                                <p className="line-clamp-2 text-sm leading-snug text-gray-500">
+                                  Manage users, roles and permissions
+                                </p>
+                              </Link>
+                            </NavigationMenuLink>
+                          </li>
+                          <li>
+                            <NavigationMenuLink asChild>
+                              <Link href="/admin/settings" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-green-100 hover:text-green-800 focus:bg-green-100 focus:text-green-800">
+                                <div className="text-sm font-medium leading-none">System Settings</div>
+                                <p className="line-clamp-2 text-sm leading-snug text-gray-500">
+                                  Configure system preferences and settings
+                                </p>
+                              </Link>
+                            </NavigationMenuLink>
+                          </li>
+                        </ul>
+                      </NavigationMenuContent>
+                    </NavigationMenuItem>
+
+                    <NavigationMenuItem>
+                      <Link href="/reports" legacyBehavior passHref>
+                        <NavigationMenuLink className="px-4 py-2 rounded-lg text-white hover:bg-green-600 transition-colors">
+                          Reports
                         </NavigationMenuLink>
                       </Link>
                     </NavigationMenuItem>
-                    <NavigationMenuItem>
-                      <Link href="/about" legacyBehavior passHref>
-                        <NavigationMenuLink className="text-white hover:text-green-300">
-                          About
-                        </NavigationMenuLink>
-                      </Link>
-                    </NavigationMenuItem>
+
                     <NavigationMenuItem>
                       <Link href="/help" legacyBehavior passHref>
-                        <NavigationMenuLink className="text-white hover:text-green-300">
-                          Help
+                        <NavigationMenuLink className="px-4 py-2 rounded-lg text-white hover:bg-green-600 transition-colors">
+                          Help & Support
                         </NavigationMenuLink>
                       </Link>
                     </NavigationMenuItem>
                   </NavigationMenuList>
                 </NavigationMenu>
+
+                {/* Mobile Menu Button */}
+                <button className="lg:hidden text-white p-2">
+                  <FontAwesomeIcon icon={faBars} className="h-6 w-6" />
+                </button>
               </div>
             </div>
           </nav>
@@ -158,4 +260,3 @@ export default function RootLayout({
     </html>
   )
 }
-

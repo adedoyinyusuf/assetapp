@@ -25,11 +25,20 @@ export default function AssetMovementForm({ assetId, currentLocation }: AssetMov
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     await addAssetMovement({
-      assetId,
-      fromLocation,
-      toLocation,
-      moveDate,
-      notes
+      asset_id: assetId,
+      asset_name: '',
+      from_state_id: 1,
+      from_lga_id: 1,
+      to_state_id: 1,
+      to_lga_id: 1,
+      from_state: fromLocation.split(',')[0] || '',
+      from_lga: fromLocation.split(',')[1] || '',
+      to_state: toLocation.split(',')[0] || '',
+      to_lga: toLocation.split(',')[1] || '',
+      movement_date: moveDate,
+      reason: 'Manual Entry',
+      notes,
+      moved_by: 'System User'
     })
     router.refresh()
   }

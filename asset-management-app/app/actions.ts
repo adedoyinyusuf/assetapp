@@ -20,11 +20,20 @@ export interface Asset {
 
 export interface AssetMovement {
   id: number;
-  assetId: number;
-  fromLocation: string;
-  toLocation: string;
-  moveDate: string;
-  notes: string;
+  asset_id: number;
+  asset_name: string;
+  from_state_id: number;
+  from_lga_id: number;
+  to_state_id: number;
+  to_lga_id: number;
+  from_state: string;
+  from_lga: string;
+  to_state: string;
+  to_lga: string;
+  movement_date: string;
+  reason: string;
+  notes?: string;
+  moved_by?: string;
 }
 
 export interface Category {
@@ -44,9 +53,10 @@ export interface LGA {
 }
 
 // Asset Movement functions
-export async function getAssetMovements(assetId: number): Promise<AssetMovement[]> {
+export async function getAssetMovements(assetId?: number): Promise<AssetMovement[]> {
   try {
-    const res = await fetch(`http://localhost:3000/api/assets/${assetId}/movements`);
+    const url = assetId ? `http://localhost:3000/api/assets/${assetId}/movements` : 'http://localhost:3000/api/asset-movements';
+    const res = await fetch(url);
     if (!res.ok) return [];
     return await res.json();
   } catch {
@@ -54,7 +64,7 @@ export async function getAssetMovements(assetId: number): Promise<AssetMovement[
   }
 }
 
-export async function addAssetMovement(movement: Omit<AssetMovement, 'id'>): Promise<AssetMovement> {
+export async function addAssetMovement(movement: Omit<AssetMovement, 'id' | 'asset_name' | 'from_state' | 'from_lga' | 'to_state' | 'to_lga'>): Promise<AssetMovement> {
   const res = await fetch('http://localhost:3000/api/asset-movements', {
     method: 'POST',
     headers: {
@@ -63,6 +73,7 @@ export async function addAssetMovement(movement: Omit<AssetMovement, 'id'>): Pro
     body: JSON.stringify(movement),
   });
   revalidatePath('/asset-movement');
+  revalidatePath('/operations/movements');
   return res.json();
 }
 
@@ -182,5 +193,16 @@ export async function getLGAs(stateId: number): Promise<LGA[]> {
   } catch {
     return [];
   }
+}
+
+export async function initializeLocations(): Promise<{ message: string }> {
+  const res = await fetch('http://localhost:3000/api/initialize-locations', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+  revalidatePath('/admin/locations');
+  return res.json();
 }
 

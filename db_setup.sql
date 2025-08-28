@@ -1,5 +1,5 @@
 -- Create assets table
-CREATE TABLE assets (
+CREATE TABLE IF NOT EXISTS assets (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     purchase_date DATE NOT NULL,
@@ -12,19 +12,19 @@ CREATE TABLE assets (
 );
 
 -- Create categories table
-CREATE TABLE categories (
+CREATE TABLE IF NOT EXISTS categories (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL UNIQUE
 );
 
 -- Create states table
-CREATE TABLE states (
+CREATE TABLE IF NOT EXISTS states (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL UNIQUE
 );
 
 -- Create LGAs table
-CREATE TABLE lgas (
+CREATE TABLE IF NOT EXISTS lgas (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     state_id INTEGER NOT NULL,
@@ -32,7 +32,7 @@ CREATE TABLE lgas (
 );
 
 -- Create asset_movements table
-CREATE TABLE asset_movements (
+CREATE TABLE IF NOT EXISTS asset_movements (
     id SERIAL PRIMARY KEY,
     asset_id INTEGER NOT NULL,
     from_location VARCHAR(255) NOT NULL,
@@ -42,30 +42,40 @@ CREATE TABLE asset_movements (
 );
 
 -- Add foreign key constraints
-ALTER TABLE assets
-ADD CONSTRAINT fk_category
-FOREIGN KEY (category_id)
-REFERENCES categories(id);
+DO $$ BEGIN
+  ALTER TABLE assets
+    ADD CONSTRAINT fk_category FOREIGN KEY (category_id)
+    REFERENCES categories(id) ON DELETE RESTRICT;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
-ALTER TABLE assets
-ADD CONSTRAINT fk_state
-FOREIGN KEY (state_id)
-REFERENCES states(id);
+DO $$ BEGIN
+  ALTER TABLE assets
+    ADD CONSTRAINT fk_state FOREIGN KEY (state_id)
+    REFERENCES states(id) ON DELETE RESTRICT;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
-ALTER TABLE assets
-ADD CONSTRAINT fk_lga
-FOREIGN KEY (lga_id)
-REFERENCES lgas(id);
+DO $$ BEGIN
+  ALTER TABLE assets
+    ADD CONSTRAINT fk_lga FOREIGN KEY (lga_id)
+    REFERENCES lgas(id) ON DELETE RESTRICT;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
-ALTER TABLE lgas
-ADD CONSTRAINT fk_state
-FOREIGN KEY (state_id)
-REFERENCES states(id);
+DO $$ BEGIN
+  ALTER TABLE lgas
+    ADD CONSTRAINT fk_state FOREIGN KEY (state_id)
+    REFERENCES states(id) ON DELETE RESTRICT;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
-ALTER TABLE asset_movements
-ADD CONSTRAINT fk_asset
-FOREIGN KEY (asset_id)
-REFERENCES assets(id);
+DO $$ BEGIN
+  ALTER TABLE asset_movements
+    ADD CONSTRAINT fk_asset FOREIGN KEY (asset_id)
+    REFERENCES assets(id) ON DELETE RESTRICT;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- Helpful indexes
+CREATE INDEX IF NOT EXISTS idx_lgas_state_id ON lgas(state_id);
+CREATE INDEX IF NOT EXISTS idx_assets_state_id ON assets(state_id);
+CREATE INDEX IF NOT EXISTS idx_assets_lga_id ON assets(lga_id);
 
 -- Insert some initial data
 
