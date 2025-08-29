@@ -1,0 +1,203 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User Authentication Models
+model UserRole {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  description String?
+  users       User[]
+  permissions RolePermission[]
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@map("user_roles")
+}
+
+model User {
+  id              Int             @id @default(autoincrement())
+  email           String          @unique
+  hashedPassword  String          @map("hashed_password")
+  firstName       String?         @map("first_name")
+  lastName        String?         @map("last_name")
+  roleId          Int             @map("role_id")
+  isActive        Boolean         @default(true) @map("is_active")
+  lastLogin       DateTime?       @map("last_login")
+  refreshTokens   RefreshToken[]
+  sessions        UserSession[]
+  auditLogs       AuditLog[]
+  role            UserRole        @relation(fields: [roleId], references: [id])
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  revokedAt DateTime? @map("revoked_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model Permission {
+  id          Int              @id @default(autoincrement())
+  name        String           @unique
+  description String?
+  resource    String
+  action      String
+  roles       RolePermission[]
+  createdAt   DateTime         @default(now()) @map("created_at")
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       Int        @map("role_id")
+  permissionId Int        @map("permission_id")
+  role         UserRole   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now()) @map("created_at")
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model UserSession {
+  id           Int      @id @default(autoincrement())
+  userId       Int      @map("user_id")
+  sessionToken String   @unique @map("session_token")
+  expiresAt    DateTime @map("expires_at")
+  userAgent    String?  @map("user_agent")
+  ipAddress    String?  @map("ip_address")
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("user_sessions")
+}
+
+model AuditLog {
+  id         Int       @id @default(autoincrement())
+  userId     Int?      @map("user_id")
+  action     String
+  entityType String?   @map("entity_type")
+  entityId   Int?      @map("entity_id")
+  oldValues  Json?     @map("old_values")
+  newValues  Json?     @map("new_values")
+  ipAddress  String?   @map("ip_address")
+  userAgent  String?   @map("user_agent")
+  user       User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  @@map("audit_logs")
+}
+
+// Existing Asset Management Models
+model Category {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  assets      Asset[]
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("categories")
+}
+
+model State {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  code      String   @unique
+  lgas      LGA[]
+  assets    Asset[]
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("states")
+}
+
+model LGA {
+  id        Int      @id @default(autoincrement())
+  name      String
+  stateId   Int      @map("state_id")
+  state     State    @relation(fields: [stateId], references: [id])
+  assets    Asset[]
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("lgas")
+  @@unique([name, stateId])
+}
+
+model Asset {
+  id             Int       @id @default(autoincrement())
+  name           String
+  description    String?
+  purchaseValue  Float     @map("purchase_value")
+  purchaseDate   DateTime  @map("purchase_date")
+  usefulLife     Int       @map("useful_life")
+  salvageValue   Float     @map("salvage_value")
+  currentValue   Float     @map("current_value")
+  categoryId     Int       @map("category_id")
+  stateId        Int       @map("state_id")
+  lgaId          Int       @map("lga_id")
+  category       Category  @relation(fields: [categoryId], references: [id])
+  state          State     @relation(fields: [stateId], references: [id])
+  lga            LGA       @relation(fields: [lgaId], references: [id])
+  movements      AssetMovement[]
+  depreciation   Depreciation[]
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  @@map("assets")
+}
+
+model AssetMovement {
+  id           Int       @id @default(autoincrement())
+  assetId      Int       @map("asset_id")
+  fromStateId  Int       @map("from_state_id")
+  fromLgaId    Int       @map("from_lga_id")
+  toStateId    Int       @map("to_state_id")
+  toLgaId      Int       @map("to_lga_id")
+  movementDate DateTime  @map("movement_date")
+  reason       String
+  notes        String?
+  movedBy      String    @map("moved_by")
+  asset        Asset     @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  fromState    State     @relation("FromState", fields: [fromStateId], references: [id])
+  fromLga      LGA       @relation("FromLGA", fields: [fromLgaId], references: [id])
+  toState      State     @relation("ToState", fields: [toStateId], references: [id])
+  toLga        LGA       @relation("ToLGA", fields: [toLgaId], references: [id])
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  @@map("asset_movements")
+}
+
+model Depreciation {
+  id             Int      @id @default(autoincrement())
+  assetId        Int      @map("asset_id")
+  year           Int
+  depreciation   Float
+  currentValue   Float    @map("current_value")
+  asset          Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@map("depreciations")
+  @@unique([assetId, year])
+}
