@@ -1,24 +1,8 @@
-import NextAuth, { AuthOptions } from "next-auth";
+import NextAuth, { type AuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { Pool } from "pg";
-
-// Extend the User and Session types to include 'id'
-declare module "next-auth" {
-  interface Session {
-    user: {
-      id: string;
-      name?: string | null;
-      email?: string | null;
-      image?: string | null;
-    };
-  }
-}
-
-declare module "next-auth/jwt" {
-  interface JWT {
-    id?: string;
-  }
-}
+import { UserRole } from '@/lib/auth/roles';
+import type { User } from 'next-auth';
 
 // Create a connection pool to PostgreSQL
 const pool = new Pool({
@@ -46,15 +30,40 @@ const authOptions: AuthOptions = {
         const client = await pool.connect();
         try {
           const res = await client.query(
-            "SELECT id, name, email FROM users WHERE username = $1 AND password = crypt($2, password)",
+            `SELECT 
+              id, 
+              email, 
+              first_name as "firstName", 
+              last_name as "lastName",
+              UPPER(role) as role,
+              permissions,
+              is_active as "isActive",
+              last_login as "lastLogin"
+            FROM users 
+            WHERE username = $1 
+            AND password = crypt($2, password)`,
             [credentials.username, credentials.password]
           );
 
           const user = res.rows[0];
 
           if (user) {
-            // Return user object including the id
-            return { id: user.id, name: user.name, email: user.email };
+            // Validate that the role from DB matches our enum
+            const userRole = Object.values(UserRole).includes(user.role as UserRole) 
+              ? user.role as UserRole 
+              : UserRole.VIEWER; // fallback to VIEWER if role is invalid
+
+            return {
+              id: user.id,
+              email: user.email,
+              firstName: user.firstName,
+              lastName: user.lastName,
+              role: userRole,
+              permissions: user.permissions || [],
+              isActive: user.isActive,
+              lastLogin: user.lastLogin,
+              name: `${user.firstName} ${user.lastName}`.trim() || undefined
+            };
           }
           return null;
         } finally {
@@ -64,22 +73,48 @@ const authOptions: AuthOptions = {
     }),
   ],
   pages: {
-    signIn: "/login",
+    signIn: "/auth/signin",
+    error: "/auth/error",
   },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        // Add the 'id' property to the token
-        token.id = user.id ?? null;
-        token.name = user.name;
-        token.email = user.email;
+        // Cast user to our User type
+        const typedUser = user as User;
+        
+        token.id = typedUser.id;
+        token.email = typedUser.email;
+        token.firstName = typedUser.firstName;
+        token.lastName = typedUser.lastName;
+        token.role = typedUser.role as UserRole;
+        token.permissions = typedUser.permissions;
+        token.isActive = typedUser.isActive;
+        token.lastLogin = typedUser.lastLogin;
+        token.name = typedUser.name;
       }
       return token;
     },
     async session({ session, token }) {
-      // Ensure session includes the 'id' property
-      session.user.id = token.id ?? ""; // Default to empty string if 'id' is not available
-      return session;
+      // Ensure we have a valid role or default to VIEWER
+      const role = token.role && Object.values(UserRole).includes(token.role as UserRole)
+        ? token.role as UserRole
+        : UserRole.VIEWER;
+
+      return {
+        ...session,
+        user: {
+          ...session.user,
+          id: token.id || '',
+          email: token.email || '',
+          firstName: token.firstName || null,
+          lastName: token.lastName || null,
+          role: role,
+          permissions: token.permissions || [],
+          isActive: token.isActive || false,
+          lastLogin: token.lastLogin || null,
+          name: token.name || null,
+        }
+      };
     },
   },
 };

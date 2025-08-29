@@ -1,0 +1,15 @@
+{
+  "css.validate": false,
+  "scss.validate": false,
+  "less.validate": false,
+  "files.associations": {
+    "*.css": "postcss"
+  },
+  "editor.quickSuggestions": {
+    "strings": true
+  },
+  "tailwindCSS.includeLanguages": {
+    "plaintext": "html"
+  },
+  "tailwindCSS.validate": true
+}

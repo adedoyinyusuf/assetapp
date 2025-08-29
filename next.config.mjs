@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Enable standalone output for production
+  // Configure output
   output: 'standalone',
   
   // Configure images
@@ -14,9 +14,16 @@ const nextConfig = {
   
   // Configure TypeScript
   typescript: {
-    // Ignore TypeScript errors during build
     ignoreBuildErrors: true,
   },
+  
+  // Configure ESLint
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  
+  // Configure directory for Next.js build output
+  distDir: 'next-build',
   
   // Configure ESLint
   eslint: {

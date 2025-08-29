@@ -2,6 +2,8 @@ import './globals.css'
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import { Providers } from './providers'
+import { Header } from '@/components/Header'
+import { type ReactNode, Fragment } from 'react'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -13,16 +15,23 @@ export const metadata: Metadata = {
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: ReactNode
 }) {
+  const content = (
+    <Fragment>
+      <div className="relative flex min-h-screen flex-col">
+        <Header />
+        <main className="flex-1">
+          {children}
+        </main>
+      </div>
+    </Fragment>
+  );
+
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <Providers>
-          <div className="flex flex-col min-h-screen">
-            {children}
-          </div>
-        </Providers>
+        <Providers children={content} />
       </body>
     </html>
   )

@@ -1,14 +1,58 @@
-import { PrismaAdapter } from "@auth/prisma-adapter";
 import { PrismaClient } from "@prisma/client";
 import { compare } from "bcryptjs";
-import { AuthOptions } from "next-auth";
+import { type AuthOptions } from "next-auth";
+import type { DefaultSession, DefaultUser } from "next-auth";
+import type { DefaultJWT } from "next-auth/jwt";
 import CredentialsProvider from "next-auth/providers/credentials";
+import { UserRole } from "./roles";
+
+declare module "next-auth" {
+  interface User extends DefaultUser {
+    firstName: string | null;
+    lastName: string | null;
+    role: UserRole;
+    isActive: boolean;
+    lastLogin: Date | null;
+    permissions: string[];
+  }
+  
+  interface Session extends DefaultSession {
+    user: User;
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT extends DefaultJWT {
+    firstName?: string | null;
+    lastName?: string | null;
+    role?: UserRole;
+    isActive?: boolean;
+    lastLogin?: Date | null;
+    permissions?: string[];
+  }
+}
+
+interface UserWithPermissions {
+  id: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  role: {
+    name: UserRole;
+    permissions: {
+      permission: {
+        name: string;
+      }
+    }[];
+  };
+  isActive: boolean;
+  lastLogin: Date | null;
+  password: string;
+}
 
 const prisma = new PrismaClient();
 
 export const authOptions: AuthOptions = {
-  // Configure one or more authentication providers
-  adapter: PrismaAdapter(prisma),
   providers: [
     CredentialsProvider({
       name: 'credentials',
@@ -35,7 +79,7 @@ export const authOptions: AuthOptions = {
                 }
               }
             }
-          });
+          }) as UserWithPermissions | null;
 
           if (!user || !user.isActive) {
             throw new Error('Invalid email or password');
@@ -59,10 +103,10 @@ export const authOptions: AuthOptions = {
             email: user.email,
             firstName: user.firstName,
             lastName: user.lastName,
-            role: user.role.name,
+            role: user.role.name as UserRole,
             isActive: user.isActive,
             lastLogin: user.lastLogin,
-            permissions: user.role.permissions.map(p => p.permission.name),
+            permissions: user.role.permissions.map((p: { permission: { name: string } }) => p.permission.name),
           };
         } catch (error) {
           console.error('Authentication error:', error);
@@ -80,7 +124,7 @@ export const authOptions: AuthOptions = {
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
-          role: user.role,
+          role: user.role as UserRole,
           isActive: user.isActive,
           lastLogin: user.lastLogin,
           permissions: user.permissions,
@@ -96,7 +140,7 @@ export const authOptions: AuthOptions = {
           email: token.email as string,
           firstName: token.firstName as string | null,
           lastName: token.lastName as string | null,
-          role: token.role as string,
+          role: token.role as UserRole,
           isActive: token.isActive as boolean,
           lastLogin: token.lastLogin as Date | null,
           permissions: token.permissions as string[],
@@ -105,13 +149,15 @@ export const authOptions: AuthOptions = {
       return session;
     },
   },
-  session: {
-    strategy: 'jwt',
-    maxAge: 30 * 24 * 60 * 60, // 30 days
-  },
   pages: {
     signIn: '/auth/signin',
+    signOut: '/auth/signout',
     error: '/auth/error',
+  },
+  session: {
+    strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+    updateAge: 24 * 60 * 60, // 24 hours
   },
   secret: process.env.NEXTAUTH_SECRET,
   debug: process.env.NODE_ENV === 'development',

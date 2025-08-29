@@ -120,25 +120,29 @@ model Category {
 }
 
 model State {
-  id        Int      @id @default(autoincrement())
-  name      String   @unique
-  code      String   @unique
-  lgas      LGA[]
-  assets    Asset[]
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id              Int      @id @default(autoincrement())
+  name            String   @unique
+  code            String   @unique
+  lgas            LGA[]
+  assets          Asset[]
+  fromMovements   AssetMovement[] @relation("FromState")
+  toMovements     AssetMovement[] @relation("ToState")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
 
   @@map("states")
 }
 
 model LGA {
-  id        Int      @id @default(autoincrement())
-  name      String
-  stateId   Int      @map("state_id")
-  state     State    @relation(fields: [stateId], references: [id])
-  assets    Asset[]
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id              Int      @id @default(autoincrement())
+  name            String
+  stateId         Int      @map("state_id")
+  state           State    @relation(fields: [stateId], references: [id])
+  assets          Asset[]
+  fromMovements   AssetMovement[] @relation("FromLGA")
+  toMovements     AssetMovement[] @relation("ToLGA")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
 
   @@map("lgas")
   @@unique([name, stateId])

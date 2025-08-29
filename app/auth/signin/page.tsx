@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSignInAlt, faSpinner } from '@fortawesome/free-solid-svg-icons';
-import Link from 'next/link';
+import Image from 'next/image';
 
 export default function SignInPage() {
   const [email, setEmail] = useState('');
@@ -18,9 +18,9 @@ export default function SignInPage() {
   const { login } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get('callbackUrl') || '/';
+  const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
     setLoading(true);
@@ -37,119 +37,140 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-md">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sign in to your account
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Or{' '}
-            <Link href="/" className="font-medium text-green-600 hover:text-green-500">
-              return to the homepage
-            </Link>
-          </p>
+    <div className="min-h-screen flex flex-col md:flex-row">
+      {/* Left Side - Image/Branding */}
+      <div className="hidden md:flex md:w-1/2 bg-green-600 text-white items-center justify-center p-12">
+        <div className="max-w-lg">
+          <div className="mb-8">
+            <Image
+              src="/src/logo.png"
+              alt="Logo"
+              width={160}
+              height={40}
+              priority
+            />
+          </div>
+          <h1 className="text-4xl font-bold mb-6">Asset Management System</h1>
+          <p className="text-xl mb-8">Efficiently manage and track your organization's assets with our comprehensive asset management solution.</p>
+          <div className="grid grid-cols-2 gap-6 mt-12">
+            <div className="text-center">
+              <div className="text-3xl font-bold mb-2">500+</div>
+              <div className="text-sm opacity-80">Assets Tracked</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold mb-2">99%</div>
+              <div className="text-sm opacity-80">Accuracy Rate</div>
+            </div>
+          </div>
         </div>
-        
-        {error && (
-          <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <p className="text-sm text-red-700">{error}</p>
-              </div>
-            </div>
-          </div>
-        )}
-        
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm space-y-4">
-            <div>
-              <Label htmlFor="email-address">Email address</Label>
-              <Input
-                id="email-address"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-green-500 focus:border-green-500 focus:z-10 sm:text-sm"
-                placeholder="Email address"
-              />
-            </div>
-            <div>
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-green-500 focus:border-green-500 focus:z-10 sm:text-sm"
-                placeholder="Password"
-              />
-            </div>
-          </div>
+      </div>
 
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <input
-                id="remember-me"
-                name="remember-me"
-                type="checkbox"
-                className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-              />
-              <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
-                Remember me
-              </label>
-            </div>
-
-            <div className="text-sm">
-              <a href="#" className="font-medium text-green-600 hover:text-green-500">
-                Forgot your password?
-              </a>
-            </div>
-          </div>
-
+      {/* Right Side - Login Form */}
+      <div className="flex-1 flex items-center justify-center p-8 bg-white">
+        <div className="max-w-md w-full space-y-8">
           <div>
-            <Button
-              type="submit"
-              disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-            >
-              <span className="absolute left-0 inset-y-0 flex items-center pl-3">
-                {loading ? (
-                  <FontAwesomeIcon icon={faSpinner} className="h-5 w-5 text-green-500 group-hover:text-green-400 animate-spin" />
-                ) : (
-                  <FontAwesomeIcon icon={faSignInAlt} className="h-5 w-5 text-green-500 group-hover:text-green-400" />
-                )}
-              </span>
-              {loading ? 'Signing in...' : 'Sign in'}
-            </Button>
-          </div>
-        </form>
-        
-        <div className="mt-6">
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">Need help?</span>
-            </div>
+            <h2 className="text-3xl font-extrabold text-gray-900 text-center">
+              Welcome Back
+            </h2>
+            <p className="mt-2 text-center text-sm text-gray-600">
+              Sign in to manage your assets
+            </p>
           </div>
           
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
-              Contact the system administrator if you need assistance with your account.
-            </p>
+          {error && (
+            <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm text-red-700">{error}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+            <div className="rounded-md shadow-sm space-y-4">
+              <div>
+                <Label htmlFor="email-address">Email address</Label>
+                <Input
+                  id="email-address"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={email}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
+                  className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-green-500 focus:border-green-500 focus:z-10 sm:text-sm"
+                  placeholder="Email address"
+                />
+              </div>
+              <div>
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  value={password}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
+                  className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-green-500 focus:border-green-500 focus:z-10 sm:text-sm"
+                  placeholder="Password"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <input
+                  id="remember-me"
+                  name="remember-me"
+                  type="checkbox"
+                  className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                />
+                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
+                  Remember me
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <Button
+                type="submit"
+                disabled={loading}
+                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+              >
+                <span className="absolute left-0 inset-y-0 flex items-center pl-3">
+                  {loading ? (
+                    <FontAwesomeIcon icon={faSpinner} className="h-5 w-5 text-green-500 group-hover:text-green-400 animate-spin" />
+                  ) : (
+                    <FontAwesomeIcon icon={faSignInAlt} className="h-5 w-5 text-green-500 group-hover:text-green-400" />
+                  )}
+                </span>
+                {loading ? 'Signing in...' : 'Sign in'}
+              </Button>
+            </div>
+          </form>
+          
+          <div className="mt-6">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">Need help?</span>
+              </div>
+            </div>
+            
+            <div className="mt-6 text-center">
+              <p className="text-sm text-gray-600">
+                Contact the system administrator if you need assistance with your account.
+              </p>
+            </div>
           </div>
         </div>
       </div>

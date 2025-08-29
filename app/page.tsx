@@ -28,20 +28,22 @@ export default function Home() {
   }, [])
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
+    <div className="flex flex-col min-h-[calc(100vh-3.5rem)] bg-gray-50">
       <div className="flex-grow flex items-center justify-center">
-        <div className="relative w-full max-w-7xl h-[100vh] overflow-hidden rounded-xl shadow-xl">
+        <div className="relative w-full max-w-7xl h-[calc(100vh-3.5rem)] overflow-hidden rounded-xl shadow-xl">
           {banners.map((banner, index) => (
             <div
               key={index}
               className={`absolute inset-0 transition-opacity duration-1000 ${index === currentBanner ? 'opacity-100' : 'opacity-0'}`}
             >
-              <Image
-                src={banner.src || "/placeholder.svg"}
-                alt={banner.alt}
-                fill
-                className="object-cover object-center"
-              />
+              <div className="relative w-full h-full">
+                <Image
+                  src={banner.src || "/placeholder.svg"}
+                  alt={banner.alt}
+                  fill
+                  priority={index === 0}
+                />
+              </div>
               <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
                 <div className="text-center space-y-6 px-4 sm:px-8">
                   <h1 className="text-4xl font-extrabold text-white sm:text-5xl md:text-6xl lg:text-7xl">
@@ -49,9 +51,11 @@ export default function Home() {
                   </h1>
                   <div>
                     <Link href="/assets">
-                      <Button size="lg" variant="secondary" className="font-semibold">
-                        <FontAwesomeIcon icon={faList} className="mr-2" />
-                        View Assets
+                      <Button size="lg" variant="secondary">
+                        <span className="font-semibold inline-flex items-center">
+                          <FontAwesomeIcon icon={faList} className="mr-2" />
+                          View Assets
+                        </span>
                       </Button>
                     </Link>
                   </div>
