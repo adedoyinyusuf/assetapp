@@ -93,7 +93,7 @@ export const authOptions: AuthOptions = {
 
           // Update last login time
           await prisma.user.update({
-            where: { id: user.id },
+            where: { id: parseInt(user.id) },
             data: { lastLogin: new Date() },
           });
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -8,17 +8,28 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSignInAlt, faSpinner } from '@fortawesome/free-solid-svg-icons';
-import Image from 'next/image';
+import { AssetCategoryAnimation } from '../../components/animations/SlideAnimations';
 
 export default function SignInPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [currentScene, setCurrentScene] = useState(1);
   const { login } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
+
+  useEffect(() => {
+    const animationInterval = setInterval(() => {
+      setCurrentScene((prev: number) => (prev % 4) + 1);
+    }, 5000);
+
+    return () => {
+      clearInterval(animationInterval);
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -38,31 +49,15 @@ export default function SignInPage() {
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
-      {/* Left Side - Image/Branding */}
-      <div className="hidden md:flex md:w-1/2 bg-green-600 text-white items-center justify-center p-12">
-        <div className="max-w-lg">
-          <div className="mb-8">
-            <Image
-              src="/src/logo.png"
-              alt="Logo"
-              width={160}
-              height={40}
-              priority
-            />
-          </div>
-          <h1 className="text-4xl font-bold mb-6">Asset Management System</h1>
-          <p className="text-xl mb-8">Efficiently manage and track your organization's assets with our comprehensive asset management solution.</p>
-          <div className="grid grid-cols-2 gap-6 mt-12">
-            <div className="text-center">
-              <div className="text-3xl font-bold mb-2">500+</div>
-              <div className="text-sm opacity-80">Assets Tracked</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold mb-2">99%</div>
-              <div className="text-sm opacity-80">Accuracy Rate</div>
-            </div>
-          </div>
-        </div>
+      {/* Left Side - Animations */}
+      <div className="hidden md:block md:w-1/2 bg-white relative overflow-hidden">
+        {[1, 2, 3, 4].map((scene) => (
+          <AssetCategoryAnimation
+            key={`asset-${scene}`}
+            scene={scene}
+            isActive={currentScene === scene}
+          />
+        ))}
       </div>
 
       {/* Right Side - Login Form */}
