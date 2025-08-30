@@ -1,4 +1,11 @@
 {
   "/_not-found/page": "app/_not-found/page.js",
-  "/auth/signin/page": "app/auth/signin/page.js"
+  "/auth/signin/page": "app/auth/signin/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/assets/manage/page": "app/assets/manage/page.js",
+  "/depreciation/page": "app/depreciation/page.js",
+  "/reports/page": "app/reports/page.js",
+  "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
+  "/api/[...nextauth]/route": "app/api/[...nextauth]/route.js",
+  "/asset-movement/page": "app/asset-movement/page.js"
 }

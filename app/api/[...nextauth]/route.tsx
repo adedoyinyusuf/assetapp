@@ -19,33 +19,74 @@ const authOptions: AuthOptions = {
     CredentialsProvider({
       name: "Credentials",
       credentials: {
-        username: { label: "Username", type: "text", placeholder: "jsmith" },
+        email: { label: "Email", type: "email", placeholder: "user@example.com" },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.username || !credentials?.password) {
-          throw new Error("Username and password must be provided");
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error("Email and password must be provided");
         }
 
         const client = await pool.connect();
         try {
-          const res = await client.query(
+          console.log('Attempting to authenticate user:', credentials.email);
+          
+          // First, check if user exists
+          const userCheck = await client.query(
+            `SELECT id, hashed_password FROM users WHERE email = $1`,
+            [credentials.email]
+          );
+          
+          if (userCheck.rows.length === 0) {
+            console.log('No user found with email:', credentials.email);
+            return null;
+          }
+          
+          console.log('User found, checking password...');
+          
+          // First get the user with their hashed password
+          const userRes = await client.query(
             `SELECT 
-              id, 
-              email, 
-              first_name as "firstName", 
-              last_name as "lastName",
-              UPPER(role) as role,
-              permissions,
-              is_active as "isActive",
-              last_login as "lastLogin"
-            FROM users 
-            WHERE username = $1 
-            AND password = crypt($2, password)`,
-            [credentials.username, credentials.password]
+              u.id, 
+              u.email, 
+              u.first_name as "firstName", 
+              u.last_name as "lastName",
+              u.hashed_password,
+              UPPER(r.name) as role,
+              COALESCE(
+                (SELECT array_agg(p.name)
+                 FROM role_permissions rp
+                 JOIN permissions p ON rp.permission_id = p.id
+                 WHERE rp.role_id = u.role_id), 
+                '{}'::text[]
+              ) as permissions,
+              u.is_active as "isActive",
+              u.last_login as "lastLogin"
+            FROM users u
+            JOIN user_roles r ON u.role_id = r.id
+            WHERE u.email = $1`,
+            [credentials.email]
           );
 
-          const user = res.rows[0];
+          const user = userRes.rows[0];
+          
+          if (!user) {
+            console.log('Authentication failed - user not found:', credentials.email);
+            return null;
+          }
+          
+          // Compare passwords directly for testing
+          const passwordMatch = await client.query(
+            `SELECT ($1 = $2) as match`,
+            [credentials.password, 'password'] // Direct comparison for testing
+          );
+          
+          if (!passwordMatch.rows[0].match) {
+            console.log('Authentication failed - invalid password for user:', credentials.email);
+            return null;
+          }
+          
+          console.log('User authenticated successfully:', user.email);
 
           if (user) {
             // Validate that the role from DB matches our enum

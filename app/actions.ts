@@ -10,14 +10,16 @@ export interface Asset {
   purchaseValue: number;
   salvageValue: number;
   usefulLife: number;
-  category_id: number;
-  state_id: number;
-  lga_id: number;
+  categoryId: number;
+  stateId: number;
+  lgaId: number;
   category?: {
     id: number;
     name: string;
-    defaultUsefulLifeYears: number;
-    description?: string;
+    defaultUsefulLifeYears?: number; // Made optional to match Prisma schema
+    description?: string | null; // Updated to handle null from Prisma
+    createdAt?: Date;
+    updatedAt?: Date;
   };
   state?: {
     id: number;
@@ -26,12 +28,16 @@ export interface Asset {
   lga?: {
     id: number;
     name: string;
-    state_id: number;
+    stateId: number;
   };
   // Legacy fields for backward compatibility
   category_name?: string;
   state_name?: string;
   lga_name?: string;
+  // Alias fields for compatibility
+  category_id?: number;
+  state_id?: number;
+  lga_id?: number;
 }
 
 export interface AssetMovement {
@@ -98,13 +104,39 @@ export async function addAssetMovement(movement: Omit<AssetMovement, 'id' | 'ass
   return res.json();
 }
 
+import { prisma } from '@/lib/prisma';
+
 // Asset CRUD
 export async function getAssets(): Promise<Asset[]> {
   try {
-    const res = await fetch('http://localhost:3000/api/assets');
-    if (!res.ok) return [];
-    return await res.json();
-  } catch {
+    const assets = await prisma.asset.findMany({
+      include: {
+        category: true,
+        state: true,
+        lga: true,
+        movements: true
+      }
+    });
+    
+    // Map to the expected asset format
+    return assets.map(asset => ({
+      ...asset,
+      // Ensure date is in string format
+      purchaseDate: asset.purchaseDate instanceof Date 
+        ? asset.purchaseDate.toISOString() 
+        : typeof asset.purchaseDate === 'string' 
+          ? asset.purchaseDate 
+          : new Date().toISOString(),
+      // Add legacy fields for backward compatibility
+      category_id: asset.categoryId,
+      state_id: asset.stateId,
+      lga_id: asset.lgaId,
+      state_name: asset.state?.name || '',
+      lga_name: asset.lga?.name || '',
+      category_name: asset.category?.name || ''
+    }));
+  } catch (error) {
+    console.error('Error fetching assets:', error);
     return [];
   }
 }

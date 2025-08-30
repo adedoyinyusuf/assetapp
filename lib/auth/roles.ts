@@ -3,8 +3,9 @@ export enum UserRole {
   VIEWER = 'VIEWER',        // Can view assets and reports
   OPERATOR = 'OPERATOR',    // Can manage assets and operations
   MANAGER = 'MANAGER',      // Can manage assets, operations, and view reports
+  AUDITOR = 'AUDITOR',      // Can view and audit all assets and reports
   ADMIN = 'ADMIN',          // Full access including user management
-  SUPER_ADMIN = 'SUPER_ADMIN' // System owner with all permissions
+  SUPER_ADMIN = 'SUPERADMIN' // System owner with all permissions (note: no underscore to match database)
 }
 
 // Available resources in the system
@@ -25,6 +26,7 @@ export enum Action {
   CREATE = 'CREATE',
   READ = 'READ',
   UPDATE = 'UPDATE',
+  AUDIT = 'AUDIT',
   DELETE = 'DELETE',
   MANAGE = 'MANAGE',  // Special action that includes all CRUD operations
   EXPORT = 'EXPORT',
@@ -42,6 +44,15 @@ const basePermissions: Record<UserRole, Permission[]> = {
     `${Action.READ}_${Resource.ASSET}`,
     `${Action.READ}_${Resource.REPORT}`,
     `${Action.READ}_${Resource.DASHBOARD}`
+  ],
+  [UserRole.AUDITOR]: [
+    `${Action.READ}_${Resource.ASSET}`,
+    `${Action.READ}_${Resource.ASSET_MOVEMENT}`,
+    `${Action.READ}_${Resource.REPORT}`,
+    `${Action.READ}_${Resource.DASHBOARD}`,
+    `${Action.EXPORT}_${Resource.REPORT}`,
+    `${Action.AUDIT}_${Resource.ASSET}`,
+    `${Action.AUDIT}_${Resource.ASSET_MOVEMENT}`
   ],
   [UserRole.OPERATOR]: [
     `${Action.CREATE}_${Resource.ASSET}`,
@@ -99,6 +110,7 @@ const defaultPermissions: Record<UserRole, Permission[]> = {
   [UserRole.VIEWER]: getAccumulatedPermissions(UserRole.VIEWER),
   [UserRole.OPERATOR]: getAccumulatedPermissions(UserRole.OPERATOR),
   [UserRole.MANAGER]: getAccumulatedPermissions(UserRole.MANAGER),
+  [UserRole.AUDITOR]: getAccumulatedPermissions(UserRole.AUDITOR),
   [UserRole.ADMIN]: getAccumulatedPermissions(UserRole.ADMIN),
   [UserRole.SUPER_ADMIN]: getAccumulatedPermissions(UserRole.SUPER_ADMIN)
 };

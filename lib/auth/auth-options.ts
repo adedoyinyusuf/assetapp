@@ -1,6 +1,6 @@
-import { PrismaClient } from "@prisma/client";
-import { compare } from "bcryptjs";
 import { type AuthOptions } from "next-auth";
+import { compare } from "bcryptjs";
+import { prisma } from "@/lib/prisma";  // Our enhanced Prisma client with middleware
 import type { DefaultSession, DefaultUser } from "next-auth";
 import type { DefaultJWT } from "next-auth/jwt";
 import CredentialsProvider from "next-auth/providers/credentials";
@@ -33,7 +33,7 @@ declare module "next-auth/jwt" {
 }
 
 interface UserWithPermissions {
-  id: string;
+  id: number;  // Changed from string to number to match Prisma schema
   email: string;
   firstName: string | null;
   lastName: string | null;
@@ -47,10 +47,8 @@ interface UserWithPermissions {
   };
   isActive: boolean;
   lastLogin: Date | null;
-  password: string;
+  hashedPassword: string;
 }
-
-const prisma = new PrismaClient();
 
 export const authOptions: AuthOptions = {
   providers: [
@@ -85,25 +83,37 @@ export const authOptions: AuthOptions = {
             throw new Error('Invalid email or password');
           }
 
-          const isPasswordValid = await compare(credentials.password, user.password);
-          
+          // Verify password with bcrypt
+          const isPasswordValid = await compare(credentials.password, user.hashedPassword);
           if (!isPasswordValid) {
             throw new Error('Invalid email or password');
           }
 
           // Update last login time
           await prisma.user.update({
-            where: { id: parseInt(user.id) },
+            where: { id: user.id },
             data: { lastLogin: new Date() },
           });
 
+          // Convert ID to string for NextAuth compatibility
+          const userId = user.id.toString();
+          
+          // Normalize role name and validate against UserRole enum
+          const roleName = user.role.name.toUpperCase().replace(/_/g, '');
+          const validRole = Object.values(UserRole).find(r => r === roleName) as UserRole;
+          
+          if (!validRole) {
+            console.error('Invalid role:', user.role.name, 'Normalized to:', roleName, 'Valid roles:', Object.values(UserRole));
+            throw new Error('Invalid user role');
+          }
+          
           // Return user data for the session
           return {
-            id: user.id,
+            id: userId,
             email: user.email,
             firstName: user.firstName,
             lastName: user.lastName,
-            role: user.role.name as UserRole,
+            role: validRole, // Use the validated role
             isActive: user.isActive,
             lastLogin: user.lastLogin,
             permissions: user.role.permissions.map((p: { permission: { name: string } }) => p.permission.name),
@@ -118,13 +128,22 @@ export const authOptions: AuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
+        // Ensure role is properly typed and normalized
+        const roleName = (user.role as unknown as string).toUpperCase().replace(/_/g, '');
+        const validRole = Object.values(UserRole).find(r => r === roleName);
+        
+        if (!validRole) {
+          console.error('Invalid role in JWT callback:', user.role);
+          throw new Error('Invalid user role');
+        }
+
         return {
           ...token,
           id: user.id,
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
-          role: user.role as UserRole,
+          role: validRole,
           isActive: user.isActive,
           lastLogin: user.lastLogin,
           permissions: user.permissions,
@@ -134,13 +153,22 @@ export const authOptions: AuthOptions = {
     },
     async session({ session, token }) {
       if (token) {
+        // Ensure role is properly typed
+        const roleName = (token.role as unknown as string)?.toUpperCase().replace(/_/g, '');
+        const validRole = Object.values(UserRole).find(r => r === roleName);
+        
+        if (!validRole) {
+          console.error('Invalid role in session callback:', token.role);
+          throw new Error('Invalid user role in session');
+        }
+
         session.user = {
           ...session.user,
           id: token.id as string,
           email: token.email as string,
           firstName: token.firstName as string | null,
           lastName: token.lastName as string | null,
-          role: token.role as UserRole,
+          role: validRole,
           isActive: token.isActive as boolean,
           lastLogin: token.lastLogin as Date | null,
           permissions: token.permissions as string[],

@@ -8,14 +8,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSignInAlt, faSpinner } from '@fortawesome/free-solid-svg-icons';
-import { AssetCategoryAnimation } from '../../components/animations/SlideAnimations';
+import { SignInAnimation } from './SignInAnimation';
 
 export default function SignInPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [currentScene, setCurrentScene] = useState(1);
+  const [currentScene, setCurrentScene] = useState(0);
   const { login } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -23,7 +23,7 @@ export default function SignInPage() {
 
   useEffect(() => {
     const animationInterval = setInterval(() => {
-      setCurrentScene((prev: number) => (prev % 4) + 1);
+      setCurrentScene((prev: number) => (prev + 1) % 4);
     }, 5000);
 
     return () => {
@@ -51,13 +51,9 @@ export default function SignInPage() {
     <div className="min-h-screen flex flex-col md:flex-row">
       {/* Left Side - Animations */}
       <div className="hidden md:block md:w-1/2 bg-white relative overflow-hidden">
-        {[1, 2, 3, 4].map((scene) => (
-          <AssetCategoryAnimation
-            key={`asset-${scene}`}
-            scene={scene}
-            isActive={currentScene === scene}
-          />
-        ))}
+        <div className="relative w-full h-full">
+          <SignInAnimation currentScene={currentScene} />
+        </div>
       </div>
 
       {/* Right Side - Login Form */}
