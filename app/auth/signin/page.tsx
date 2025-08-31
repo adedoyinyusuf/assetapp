@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -48,17 +49,25 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row">
-      {/* Left Side - Animations */}
-      <div className="hidden md:block md:w-1/2 bg-white relative overflow-hidden">
-        <div className="relative w-full h-full">
-          <SignInAnimation currentScene={currentScene} />
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-gray-50 p-4">
+      <div className="w-full max-w-5xl bg-white rounded-xl shadow-lg overflow-hidden flex flex-col md:flex-row relative">
+        {/* Home Link */}
+        <Link 
+          href="/" 
+          className="absolute top-4 left-4 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors z-10"
+        >
+          ← Back to Home
+        </Link>
+        {/* Left Side - Animations */}
+        <div className="hidden md:block md:w-1/2 bg-white relative overflow-hidden">
+          <div className="relative w-full h-full">
+            <SignInAnimation currentScene={currentScene} />
+          </div>
         </div>
-      </div>
 
-      {/* Right Side - Login Form */}
-      <div className="flex-1 flex items-center justify-center p-8 bg-white">
-        <div className="max-w-md w-full space-y-8">
+        {/* Right Side - Login Form */}
+        <div className="flex-1 flex items-center justify-center p-8 bg-white">
+          <div className="max-w-md w-full space-y-8">
           <div>
             <h2 className="text-3xl font-extrabold text-gray-900 text-center">
               Welcome Back
@@ -147,20 +156,21 @@ export default function SignInPage() {
             </div>
           </form>
           
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300"></div>
+            <div className="mt-6">
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white text-gray-500">Need help?</span>
+                </div>
               </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">Need help?</span>
+              
+              <div className="mt-6 text-center">
+                <p className="text-sm text-gray-600">
+                  Contact the system administrator if you need assistance with your account.
+                </p>
               </div>
-            </div>
-            
-            <div className="mt-6 text-center">
-              <p className="text-sm text-gray-600">
-                Contact the system administrator if you need assistance with your account.
-              </p>
             </div>
           </div>
         </div>

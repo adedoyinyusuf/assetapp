@@ -8,7 +8,7 @@
     ],
     "types": ["node"],
     "allowJs": true,
-      "skipLibCheck": true,
+    "skipLibCheck": true,
     "strict": true,
     "forceConsistentCasingInFileNames": true,
     "noEmit": true,
@@ -25,13 +25,9 @@
       }
     ],
     "paths": {
-      "@/*": [
-        "./*"
-      ]
+      "@/*": ["./*"]
     },
     "baseUrl": ".",
-    "allowImportingTsExtensions": true,
-    "noEmitOnError": false,
     "noImplicitAny": true,
     "strictNullChecks": true,
     "strictFunctionTypes": true,
@@ -54,7 +50,9 @@
     "next-build/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "dist",
+    "coverage"
   ],
   "ts-node": {
     "compilerOptions": {

@@ -53,17 +53,14 @@ export default withAuth(
     const { pathname } = req.nextUrl;
     const { token } = req.nextauth;
 
-    // Redirect root path to signin
-    if (pathname === '/') {
-      if (token) {
-        return NextResponse.redirect(new URL('/dashboard', req.url));
-      }
-      return NextResponse.redirect(new URL('/auth/signin', req.url));
+    // Allow access to root path and auth routes without authentication
+    if (pathname === '/' || pathname.startsWith('/auth/')) {
+      return NextResponse.next();
     }
 
-    // Skip auth check for public routes
-    if (pathname.startsWith('/auth/')) {
-      return NextResponse.next();
+    // Redirect to dashboard if already authenticated and trying to access root
+    if (pathname === '/' && token) {
+      return NextResponse.redirect(new URL('/dashboard', req.url));
     }
 
     // Check role-based access

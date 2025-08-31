@@ -188,43 +188,153 @@ export async function calculateDepreciation(asset: Asset, currentDate: Date): Pr
 
 // Category CRUD
 export async function getCategories(): Promise<Category[]> {
+  console.log('=== getCategories() called ===');
+  
   try {
-    const res = await fetch('http://localhost:3000/api/categories');
-    if (!res.ok) return [];
-    return await res.json();
-  } catch {
-    return [];
+    // 1. First, check if prisma is defined
+    if (!prisma) {
+      console.error('Prisma client is not initialized');
+      throw new Error('Prisma client is not initialized');
+    }
+    
+    console.log('Prisma client is available');
+    
+    // 2. Try to get categories using raw SQL query with proper typing
+    console.log('Attempting to fetch categories...');
+    const categories = await prisma.$queryRaw<Array<{
+      id: number;
+      name: string;
+      description: string | null;
+      created_at: Date;
+      updated_at: Date;
+    }>>`
+      SELECT id, name, description, created_at, updated_at 
+      FROM categories 
+      ORDER BY name ASC
+    `;
+    
+    console.log('Successfully fetched categories:', JSON.stringify(categories, null, 2));
+    
+    return categories.map((cat: any) => ({
+      id: cat.id,
+      name: cat.name,
+      description: cat.description || undefined,
+      defaultUsefulLifeYears: 0,
+      parent_id: undefined,
+      created_at: new Date(cat.created_at).toISOString(),
+      updated_at: new Date(cat.updated_at).toISOString()
+    } as Category));
+    
+  } catch (error: unknown) {
+    console.error('Error in getCategories:', error);
+    throw error;
   }
 }
 
 export async function addCategory(name: string): Promise<Category> {
-  const res = await fetch('http://localhost:3000/api/categories', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ name }),
-  });
-  revalidatePath('/categories');
-  return res.json();
+  try {
+    // First check if category with same name already exists
+    const existing = await prisma.$queryRaw`
+      SELECT id FROM categories WHERE name = ${name} LIMIT 1
+    `;
+    
+    if (existing && (existing as any[]).length > 0) {
+      throw new Error('A category with this name already exists');
+    }
+    
+    // Create the new category
+    const result = await prisma.$queryRaw<Array<{
+      id: number;
+      name: string;
+      description: string | null;
+      created_at: Date;
+      updated_at: Date;
+    }>>`
+      INSERT INTO categories (name, description, created_at, updated_at)
+      VALUES (${name}, '', NOW(), NOW())
+      RETURNING *
+    `;
+    
+    const newCategory = result[0];
+    
+    // Return the new category in the expected format
+    return {
+      id: newCategory.id,
+      name: newCategory.name,
+      description: newCategory.description || undefined,
+      defaultUsefulLifeYears: 0,
+      parent_id: undefined,
+      created_at: newCategory.created_at.toISOString(),
+      updated_at: newCategory.updated_at.toISOString()
+    };
+  } catch (error) {
+    console.error('Error adding category:', error);
+    throw new Error('Failed to add category');
+  }
 }
 
 export async function updateCategory(id: number, name: string): Promise<void> {
-  await fetch(`http://localhost:3000/api/categories/${id}`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ name }),
-  });
-  revalidatePath('/categories');
+  try {
+    // First check if category exists
+    const categoryExists = await prisma.$queryRaw<Array<{id: number}>>`
+      SELECT id FROM categories WHERE id = ${id}
+    `;
+    
+    if (!categoryExists || categoryExists.length === 0) {
+      throw new Error('Category not found');
+    }
+    
+    // Check if another category with the same name already exists
+    const nameExists = await prisma.$queryRaw<Array<{id: number}>>`
+      SELECT id FROM categories WHERE name = ${name} AND id != ${id} LIMIT 1
+    `;
+    
+    if (nameExists && nameExists.length > 0) {
+      throw new Error('A category with this name already exists');
+    }
+    
+    // Update the category
+    await prisma.$executeRaw`
+      UPDATE categories 
+      SET name = ${name}, updated_at = NOW() 
+      WHERE id = ${id}
+    `;
+    
+  } catch (error: any) {
+    console.error('Error updating category:', error);
+    throw new Error(error.message || 'Failed to update category');
+  }
 }
 
 export async function deleteCategory(id: number): Promise<void> {
-  await fetch(`http://localhost:3000/api/categories/${id}`, {
-    method: 'DELETE',
-  });
-  revalidatePath('/categories');
+  try {
+    // First check if category exists
+    const categoryExists = await prisma.$queryRaw<Array<{id: number}>>`
+      SELECT id FROM categories WHERE id = ${id}
+    `;
+    
+    if (!categoryExists || categoryExists.length === 0) {
+      throw new Error('Category not found');
+    }
+    
+    // Check if any assets are using this category
+    const assetsUsingCategory = await prisma.$queryRaw<Array<{count: number}>>`
+      SELECT COUNT(*) as count FROM assets WHERE category_id = ${id}
+    `;
+    
+    if (assetsUsingCategory && assetsUsingCategory[0].count > 0) {
+      throw new Error('Cannot delete category: There are assets using this category');
+    }
+    
+    // Delete the category
+    await prisma.$executeRaw`
+      DELETE FROM categories WHERE id = ${id}
+    `;
+    
+  } catch (error: any) {
+    console.error('Error deleting category:', error);
+    throw new Error(error.message || 'Failed to delete category');
+  }
 }
 
 // State & LGA

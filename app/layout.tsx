@@ -5,6 +5,7 @@ import { Providers } from './providers';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { type ReactNode } from 'react';
+import { headers } from 'next/headers';
 
 // Load Inter font with optimized settings
 const inter = Inter({
@@ -57,24 +58,44 @@ export const viewport: Viewport = {
   userScalable: true,
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+function AuthWrapper({ children }: { children: ReactNode }) {
+  const headersList = headers();
+  const pathname = headersList.get('x-invoke-path') || '';
+  const isAuthPage = pathname === '/' || pathname.startsWith('/auth') || pathname.startsWith('/api/auth');
+  
+  if (isAuthPage) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        {children}
+      </div>
+    );
+  }
+
   return (
-    <html 
-      lang="en" 
-      suppressHydrationWarning 
-      className={`${inter.variable} font-sans`}
-    >
-      <body className="min-h-screen bg-background text-foreground antialiased">
+    <div className="min-h-screen flex flex-col">
+      <Header />
+      <main className="flex-1 py-6 md:py-8">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          {children}
+        </div>
+      </main>
+      <Footer />
+    </div>
+  );
+}
+
+export default function RootLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  return (
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${inter.variable} font-sans antialiased min-h-screen bg-background text-foreground flex flex-col`}>
         <Providers>
-          <div className="relative flex min-h-screen flex-col">
-            <Header />
-            <main className="flex-1 py-6 md:py-8">
-              <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-                {children}
-              </div>
-            </main>
-            <Footer />
-          </div>
+          <AuthWrapper>
+            {children}
+          </AuthWrapper>
         </Providers>
       </body>
     </html>

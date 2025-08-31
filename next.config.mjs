@@ -14,22 +14,16 @@ const nextConfig = {
   
   // Configure TypeScript
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false, // Enable type checking in builds
   },
   
   // Configure ESLint
   eslint: {
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: false, // Enable ESLint in builds
   },
   
   // Configure directory for Next.js build output
   distDir: 'next-build',
-  
-  // Configure ESLint
-  eslint: {
-    // Don't fail build on ESLint errors
-    ignoreDuringBuilds: true,
-  },
   
   // Enable file system routing
   useFileSystemPublicRoutes: true,
@@ -39,9 +33,6 @@ const nextConfig = {
   
   // Disable source maps in production
   productionBrowserSourceMaps: false,
-  
-  // Use default .next directory for development
-  // distDir: 'next-build',
   
   // Webpack configuration
   webpack: (config, { isServer }) => {
@@ -80,9 +71,18 @@ const nextConfig = {
             key: 'X-XSS-Protection',
             value: '1; mode=block',
           },
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin',
+          },
         ],
       },
     ];
+  },
+  
+  // Experimental features
+  experimental: {
+    serverComponentsExternalPackages: ['bcryptjs'],
   },
 };
 

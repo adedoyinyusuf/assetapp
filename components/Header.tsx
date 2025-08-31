@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
 import { motion } from 'framer-motion';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, FileText, BarChart2, Download, Home, Package, Move, TrendingDown, Plus } from 'lucide-react';
 import { UserRole } from '@/lib/auth/roles';
 import { Action, Resource, can } from '@/lib/auth/roles';
 import { cn } from '@/lib/utils';
@@ -70,10 +70,24 @@ interface MenuItem {
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
   const { data: session } = useSession();
   const userRole = session?.user?.role as UserRole || UserRole.VIEWER;
+
+  // Add shadow when scrolling
+  useEffect(() => {
+    const handleScroll = () => {
+      const isScrolled = window.scrollY > 10;
+      if (isScrolled !== scrolled) {
+        setScrolled(isScrolled);
+      }
+    };
+    
+    document.addEventListener('scroll', handleScroll);
+    return () => document.removeEventListener('scroll', handleScroll);
+  }, [scrolled]);
 
   // Close mobile menu when route changes
   useEffect(() => {
@@ -108,15 +122,22 @@ export function Header() {
     
     const linkContent = (
       <>
-        {item.icon && <span className="mr-2">{item.icon}</span>}
+        {item.icon && (
+          <span className={cn(
+            'mr-2.5 flex-shrink-0',
+            isActive ? 'opacity-100' : 'opacity-70 group-hover:opacity-100'
+          )}>
+            {item.icon}
+          </span>
+        )}
         <span>{item.title}</span>
         {isActive && (
           <motion.span 
-            className="absolute bottom-0 left-0 h-0.5 bg-primary w-full"
+            className="absolute -bottom-px left-1/2 h-0.5 w-4 -translate-x-1/2 bg-primary rounded-full"
             layoutId="activeIndicator"
             transition={{
               type: 'spring',
-              stiffness: 380,
+              stiffness: 500,
               damping: 30,
             }}
           />
@@ -125,11 +146,14 @@ export function Header() {
     );
 
     const className = cn(
-      'relative flex items-center px-3 py-2.5 text-sm font-medium transition-colors',
+      'relative flex items-center px-3 py-2.5 text-sm font-medium transition-all duration-200',
+      'group hover:bg-gray-50/80 rounded-lg',
       isActive 
-        ? 'text-primary' 
-        : 'text-muted-foreground hover:text-foreground',
-      isMobile ? 'w-full px-4 py-3' : ''
+        ? 'text-primary font-semibold' 
+        : 'text-gray-700 hover:text-gray-900',
+      isMobile 
+        ? 'w-full px-4 py-3 text-left hover:bg-gray-50' 
+        : 'mx-0.5 px-3 py-2'
     );
 
     if (item.onClick) {
@@ -234,6 +258,27 @@ export function Header() {
     );
   };
 
+  const renderNavigation = () => {
+    const navItems: MenuItem[] = [
+      ...mainMenuItems,
+      {
+        href: '/dashboard',
+        title: 'Dashboard',
+        icon: <Home className="h-4 w-4" />,
+        requiredPermission: { action: Action.READ, resource: Resource.DASHBOARD },
+      },
+    ];
+
+    return (
+      <nav className="hidden md:flex md:items-center md:space-x-1">
+        {navItems.map((item) => isAllowed(item) && renderNavigationItem(item))}
+        {hasPermission(Action.READ, Resource.ASSET) && renderDropdownMenu('Assets', assetOperations)}
+        {hasPermission(Action.READ, Resource.REPORT) && renderDropdownMenu('Reports', reports)}
+        {hasPermission(Action.READ, Resource.USER) && renderDropdownMenu('Admin', administration)}
+      </nav>
+    );
+  };
+
   // Define menu items with required permissions
   const mainMenuItems: MenuItem[] = [
     { href: '/', title: 'Home', description: 'Return to the home page' },
@@ -252,26 +297,54 @@ export function Header() {
       href: '/assets/manage',
       title: 'Manage Assets',
       description: 'View and manage all assets in the system',
+      icon: <Package className="h-4 w-4" />,
       requiredPermission: { action: Action.READ, resource: Resource.ASSET }
     },
     {
       href: '/assets/add',
       title: 'Add Asset',
       description: 'Register a new asset',
+      icon: <Plus className="h-4 w-4" />,
       requiredPermission: { action: Action.CREATE, resource: Resource.ASSET }
     },
     {
       href: '/asset-movement',
       title: 'Asset Movement',
       description: 'Track and manage asset movements',
+      icon: <Move className="h-4 w-4" />,
       requiredPermission: { action: Action.READ, resource: Resource.ASSET_MOVEMENT }
     },
     {
       href: '/depreciation',
       title: 'Track Depreciation',
       description: 'View and manage asset depreciation',
+      icon: <TrendingDown className="h-4 w-4" />,
       requiredPermission: { action: Action.READ, resource: Resource.REPORT }
     },
+  ];
+
+  const reports: MenuItem[] = [
+    {
+      href: '/reports',
+      title: 'Asset Reports',
+      description: 'Generate and view asset reports',
+      icon: <FileText className="h-4 w-4" />,
+      requiredPermission: { action: Action.READ, resource: Resource.REPORT }
+    },
+    {
+      href: '/reports/depreciation',
+      title: 'Depreciation Reports',
+      description: 'View asset depreciation reports',
+      icon: <BarChart2 className="h-4 w-4" />,
+      requiredPermission: { action: Action.READ, resource: Resource.REPORT }
+    },
+    {
+      href: '/reports/export',
+      title: 'Export Data',
+      description: 'Export asset data in various formats',
+      icon: <Download className="h-4 w-4" />,
+      requiredPermission: { action: Action.EXPORT, resource: Resource.REPORT }
+    }
   ];
 
   const administration: MenuItem[] = [
@@ -311,73 +384,76 @@ export function Header() {
       requiredPermission: { action: Action.MANAGE, resource: Resource.ASSET },
       allowedRoles: [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.MANAGER]
     },
-    {
-      href: '/reports',
-      title: 'Reports',
-      description: 'Generate and view reports',
-      requiredPermission: { action: Action.READ, resource: Resource.REPORT }
-    },
   ];
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-      <div className="container flex h-16 items-center justify-between">
-        <div className="flex items-center gap-6 md:gap-10">
-          <Link href="/" className="flex items-center space-x-2">
-            <span className="inline-block text-xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-              NPC Assets
-            </span>
-          </Link>
+    <header 
+      className={`sticky top-0 z-50 w-full bg-white/80 backdrop-blur-md transition-shadow duration-300 ${
+        scrolled ? 'shadow-sm' : ''
+      }`}
+    >
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="flex h-16 items-center justify-between">
+          <div className="flex items-center">
+            <Link href="/" className="flex items-center">
+              <span className="text-xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+                AssetHub
+              </span>
+            </Link>
+          </div>
           
-          {/* Desktop Navigation */}
-          <nav className="hidden items-center space-x-1 text-sm font-medium md:flex">
-            {mainMenuItems.map((item) => renderNavigationItem(item))}
-            {renderDropdownMenu('Assets', assetOperations)}
-            {hasPermission(Action.READ, Resource.DASHBOARD) && renderNavigationItem(dashboardItem)}
-            {hasPermission(Action.READ, Resource.ASSET) && renderDropdownMenu('Management', management)}
-            {hasPermission(Action.READ, Resource.USER) && renderDropdownMenu('Admin', administration)}
-          </nav>
-        </div>
+          <div className="flex items-center gap-4">
+            {/* Desktop Navigation */}
+            {session && renderNavigation()}
 
-        <div className="flex items-center gap-4">
-          {/* Desktop User Menu */}
-          <div className="hidden md:flex items-center gap-4">
-            {session ? (
-              <div className="flex items-center gap-4">
-                <div className="text-right hidden md:block">
-                  <p className="text-sm font-medium">{session.user?.name || session.user?.email}</p>
-                  <p className="text-xs text-muted-foreground capitalize">
-                    {userRole.toLowerCase().replace('_', ' ')}
-                  </p>
+            {/* User Menu / Sign In */}
+            <div className="hidden md:flex items-center gap-4">
+              {session ? (
+                <div className="flex items-center gap-4">
+                  <div className="text-right hidden md:block">
+                    <p className="text-sm font-medium">{session.user?.name || session.user?.email}</p>
+                    <p className="text-xs text-muted-foreground capitalize">
+                      {userRole.toLowerCase().replace('_', ' ')}
+                    </p>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleSignOut}
+                    className="text-sm border-primary/20 text-foreground hover:bg-primary/10 hover:text-primary transition-colors"
+                  >
+                    Sign Out
+                  </Button>
                 </div>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleSignOut}
-                  className="text-sm border-primary/20 text-foreground hover:bg-primary/10 hover:text-primary transition-colors"
+              ) : (
+                <Link 
+                  href="/auth/signin" 
+                  className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2"
                 >
-                  Sign Out
-                </Button>
-              </div>
-            ) : (
-              <Link 
-                href="/auth/signin" 
-                className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2"
-              >
-                Sign In
-              </Link>
-            )}
+                  Sign In
+                </Link>
+              )}
+            </div>
           </div>
 
           {/* Mobile menu button */}
-          <button
-            type="button"
-            className="inline-flex items-center justify-center rounded-md p-2 text-muted-foreground hover:bg-primary/10 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/50 md:hidden transition-colors"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            <span className="sr-only">Toggle menu</span>
-            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
+          <div className="flex md:hidden items-center">
+            <button
+              type="button"
+              className="inline-flex items-center justify-center p-2 rounded-lg text-gray-700 hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-colors"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-expanded={mobileMenuOpen}
+            >
+              <span className="sr-only">
+                {mobileMenuOpen ? 'Close menu' : 'Open menu'}
+              </span>
+              {mobileMenuOpen ? (
+                <X className="h-6 w-6" aria-hidden="true" />
+              ) : (
+                <Menu className="h-6 w-6" aria-hidden="true" />
+              )}
+            </button>
+          </div>
         </div>
       </div>
 

@@ -1,34 +1,27 @@
-import { PrismaClient } from '@prisma/client/edge';
+import { PrismaClient } from '@prisma/client';
 import { hash } from 'bcryptjs';
 
-const prisma = new PrismaClient();
-
-// Type for Prisma middleware params
-type Params = {
-  model?: string;
-  action: string;
-  args: any;
-  dataPath: string[];
-  runInTransaction: boolean;
-};
-
-prisma.$use(async (params: Params, next: (params: Params) => Promise<any>) => {
-  // Hash passwords before creating or updating a user
-  if ((params.model === 'User') && (params.action === 'create' || params.action === 'update')) {
-    const user = params.args.data || params.args?.data?.data || params.args;
-    
-    // Only hash if the password is being set/updated
-    if (user?.hashedPassword) {
-      // Skip hashing if it's already hashed (starts with $2a$ or $2b$)
-      if (typeof user.hashedPassword === 'string' && 
-          !user.hashedPassword.startsWith('$2a$') && 
-          !user.hashedPassword.startsWith('$2b$')) {
-        user.hashedPassword = await hash(user.hashedPassword, 12);
+// Create a new Prisma Client with extensions
+const prisma = new PrismaClient().$extends({
+  query: {
+    user: {
+      async $allOperations({ operation, args, query }) {
+        // Hash password before create or update
+        if ((operation === 'create' || operation === 'update') && args?.data?.hashedPassword) {
+          const password = args.data.hashedPassword;
+          
+          // Skip hashing if already hashed
+          if (typeof password === 'string' && 
+              !password.startsWith('$2a$') && 
+              !password.startsWith('2b$')) {
+            args.data.hashedPassword = await hash(password, 12);
+          }
+        }
+        
+        return query(args);
       }
     }
   }
-  
-  return next(params);
 });
 
 export default prisma;
