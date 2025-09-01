@@ -2,23 +2,11 @@ import { Suspense } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  DollarSign, 
-  Package, 
-  Users, 
-  MapPin,
-  Activity,
-  BarChart3,
-  Search,
-  Settings
-} from 'lucide-react';
+import { Settings } from 'lucide-react';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { redirect } from 'next/navigation';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/server-prisma';
 import { can, canPerformTask } from '@/lib/auth/roles';
 import { Action, Resource, Task } from '@/lib/auth/roles';
 import DashboardClient from './DashboardClient';

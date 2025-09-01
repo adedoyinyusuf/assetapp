@@ -1,4 +1,4 @@
-import { prisma } from './prisma';
+import { prisma } from './server-prisma';
 
 export interface AnalyticsData {
   assetMetrics: AssetMetrics;
@@ -237,7 +237,7 @@ export class AnalyticsService {
       },
     } : {};
 
-    const [movements, assets] = await Promise.all([
+    const [movements, assetCount] = await Promise.all([
       prisma.assetMovement.count({ where: whereClause }),
       prisma.asset.count({ where: whereClause }),
     ]);
@@ -248,7 +248,7 @@ export class AnalyticsService {
       assetAvailability: 95, // Placeholder - would need availability tracking
       movementFrequency: movements,
       disposalRate: 0, // Placeholder - would need disposal tracking
-      acquisitionRate: assets.length, // New assets in period
+      acquisitionRate: assetCount, // New assets in period
     };
   }
 

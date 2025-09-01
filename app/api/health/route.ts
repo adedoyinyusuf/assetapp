@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/server-prisma';
 
 export async function GET() {
   const startTime = Date.now();
@@ -22,7 +22,9 @@ export async function GET() {
         api: 'healthy'
       }
     });
-  } catch (error) {
+  } catch (error: unknown) {
+    console.error('Health check failed:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     const responseTime = Date.now() - startTime;
     
     return NextResponse.json({
@@ -36,7 +38,7 @@ export async function GET() {
         database: 'unhealthy',
         api: 'healthy'
       },
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Database connection failed'
+      error: process.env.NODE_ENV === 'development' ? errorMessage : 'Database connection failed'
     }, { status: 503 });
   }
 }

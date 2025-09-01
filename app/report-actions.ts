@@ -1,182 +1,180 @@
-import { prisma } from './db';
+import { prisma } from '@/lib/db';
 
-export interface AssetReport {
-  totalCount: number;
-  totalValue: number;
-  byCategory: Array<{
-    category: string;
-    count: number;
-    value: number;
-    percentage: number;
-  }>;
-  byLocation: Array<{
-    state: string;
-    lga: string;
-    count: number;
-    value: number;
-  }>;
-  recentAdditions: Array<{
-    id: number;
+interface Asset {
+  id: string;
+  name: string;
+  purchaseValue: number;
+  purchaseDate: string;
+  usefulLife: number;
+  salvageValue: number;
+  category: string;
+  state: string;
+  lga: string;
+  currentValue: number;
+  totalDepreciation: number;
+  depreciationPercentage: number;
+  yearsElapsed: number;
+}
+
+interface PrismaAsset {
+  id: number;
+  name: string;
+  purchaseValue: number;
+  purchaseDate: Date;
+  usefulLife: number;
+  salvageValue: number;
+  currentValue: number;
+  category: {
     name: string;
-    purchaseValue: number;
-    purchaseDate: string;
-    category: string;
-  }>;
+  };
+  lga: {
+    name: string;
+    state: {
+      name: string;
+    };
+  };
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ReportData {
+  assets: Asset[];
+  summary: {
+    totalAssets: number;
+    totalValue: number;
+    totalDepreciation: number;
+  };
   depreciationSummary: {
     totalDepreciation: number;
     averageDepreciation: number;
     mostDepreciated: Array<{
-      id: number;
+      id: string;
       name: string;
       depreciation: number;
     }>;
   };
+  stateBreakdown: Array<{
+    state: string;
+    count: number;
+    totalValue: number;
+  }>;
+  categoryBreakdown: Array<{
+    category: string;
+    count: number;
+    totalValue: number;
+  }>;
 }
 
-export async function generateAssetReport(): Promise<AssetReport> {
+
+export async function generateAssetReport(): Promise<ReportData> {
   try {
-    // 1. Get total count and value of all assets
-    const totalStats = await prisma.$queryRaw<Array<{
-      total_count: bigint;
-      total_value: number;
-    }>>`
-      SELECT 
-        COUNT(*) as total_count,
-        COALESCE(SUM(purchase_value), 0) as total_value
-      FROM assets
-      WHERE deleted_at IS NULL
-    `;
+    // 1. Get all assets with their details
+    const assets = await prisma.asset.findMany({
+      include: {
+        category: {
+          select: { name: true }
+        },
+        lga: {
+          include: {
+            state: {
+              select: { name: true }
+            }
+          }
+        }
+      }
+    }) as unknown as PrismaAsset[];
 
-    // 2. Get assets grouped by category
-    const byCategory = await prisma.$queryRaw<Array<{
-      category: string;
-      count: bigint;
-      value: number;
-    }>>`
-      SELECT 
-        c.name as category,
-        COUNT(a.id) as count,
-        COALESCE(SUM(a.purchase_value), 0) as value
-      FROM assets a
-      JOIN categories c ON a.category_id = c.id
-      WHERE a.deleted_at IS NULL
-      GROUP BY c.name
-      ORDER BY value DESC
-    `;
+    // 2. Calculate current values and depreciation
+    const now = new Date();
+    const processedAssets = assets.map(asset => {
+      const purchaseDate = new Date(asset.purchaseDate);
+      const yearsElapsed = (now.getFullYear() - purchaseDate.getFullYear()) + 
+                         (now.getMonth() - purchaseDate.getMonth()) / 12;
+      
+      const annualDepreciation = (asset.purchaseValue - asset.salvageValue) / asset.usefulLife;
+      const totalDepreciation = Math.min(
+        yearsElapsed * annualDepreciation,
+        asset.purchaseValue - asset.salvageValue
+      );
+      const currentValue = Math.max(
+        asset.purchaseValue - totalDepreciation,
+        asset.salvageValue
+      );
+      const depreciationPercentage = (totalDepreciation / asset.purchaseValue) * 100;
 
-    // 3. Get assets grouped by location
-    const byLocation = await prisma.$queryRaw<Array<{
-      state: string;
-      lga: string;
-      count: bigint;
-      value: number;
-    }>>`
-      SELECT 
-        s.name as state,
-        l.name as lga,
-        COUNT(a.id) as count,
-        COALESCE(SUM(a.purchase_value), 0) as value
-      FROM assets a
-      JOIN lgas l ON a.lga_id = l.id
-      JOIN states s ON l.state_id = s.id
-      WHERE a.deleted_at IS NULL
-      GROUP BY s.name, l.name
-      ORDER BY s.name, l.name
-    `;
+      return {
+        id: String(asset.id),
+        name: asset.name,
+        purchaseValue: asset.purchaseValue,
+        purchaseDate: asset.purchaseDate.toISOString(),
+        usefulLife: asset.usefulLife,
+        salvageValue: asset.salvageValue,
+        category: asset.category.name,
+        state: asset.lga.state.name,
+        lga: asset.lga.name,
+        currentValue,
+        totalDepreciation,
+        depreciationPercentage,
+        yearsElapsed: Math.min(yearsElapsed, asset.usefulLife)
+      };
+    });
 
-    // 4. Get recently added assets
-    const recentAdditions = await prisma.$queryRaw<Array<{
-      id: number;
-      name: string;
-      purchase_value: number;
-      purchase_date: Date;
-      category: string;
-    }>>`
-      SELECT 
-        a.id,
-        a.name,
-        a.purchase_value,
-        a.purchase_date,
-        c.name as category
-      FROM assets a
-      JOIN categories c ON a.category_id = c.id
-      WHERE a.deleted_at IS NULL
-      ORDER BY a.created_at DESC
-      LIMIT 5
-    `;
+    // 3. Calculate summary
+    const totalValue = processedAssets.reduce((sum, asset) => sum + asset.purchaseValue, 0);
+    const totalDepreciation = processedAssets.reduce(
+      (sum, asset) => sum + asset.totalDepreciation, 0
+    );
 
-    // 5. Calculate depreciation summary
-    const depreciationSummary = await prisma.$queryRaw<Array<{
-      total_depreciation: number;
-      average_depreciation: number;
-    }>>`
-      WITH asset_depreciation AS (
-        SELECT 
-          id,
-          name,
-          purchase_value,
-          purchase_date,
-          useful_life_years,
-          (purchase_value * EXTRACT(YEAR FROM AGE(NOW(), purchase_date)) / GREATEST(useful_life_years, 1)) as depreciation
-        FROM assets
-        WHERE deleted_at IS NULL
-      )
-      SELECT 
-        COALESCE(SUM(depreciation), 0) as total_depreciation,
-        COALESCE(AVG(depreciation), 0) as average_depreciation
-      FROM asset_depreciation
-    `;
+    // 4. Group by state
+    const stateBreakdown = Object.values(
+      processedAssets.reduce((acc, asset) => {
+        if (!acc[asset.state]) {
+          acc[asset.state] = { state: asset.state, count: 0, totalValue: 0 };
+        }
+        acc[asset.state].count += 1;
+        acc[asset.state].totalValue += asset.purchaseValue;
+        return acc;
+      }, {} as Record<string, { state: string; count: number; totalValue: number }>)
+    );
+
+    // 5. Group by category
+    const categoryBreakdown = Object.values(
+      processedAssets.reduce((acc, asset) => {
+        if (!acc[asset.category]) {
+          acc[asset.category] = { category: asset.category, count: 0, totalValue: 0 };
+        }
+        acc[asset.category].count += 1;
+        acc[asset.category].totalValue += asset.purchaseValue;
+        return acc;
+      }, {} as Record<string, { category: string; count: number; totalValue: number }>)
+    );
 
     // 6. Get most depreciated assets
-    const mostDepreciated = await prisma.$queryRaw<Array<{
-      id: number;
-      name: string;
-      depreciation: number;
-    }>>`
-      SELECT 
-        id,
-        name,
-        (purchase_value * EXTRACT(YEAR FROM AGE(NOW(), purchase_date)) / GREATEST(useful_life_years, 1)) as depreciation
-      FROM assets
-      WHERE deleted_at IS NULL
-      ORDER BY depreciation DESC
-      LIMIT 5
-    `;
-
-    const totalCount = Number(totalStats[0]?.total_count || 0);
-    const totalValue = Number(totalStats[0]?.total_value || 0);
+    const mostDepreciated = [...processedAssets]
+      .sort((a, b) => b.depreciationPercentage - a.depreciationPercentage)
+      .slice(0, 5)
+      .map(asset => ({
+        id: asset.id,
+        name: asset.name,
+        depreciation: asset.depreciationPercentage
+      }));
 
     return {
-      totalCount,
-      totalValue,
-      byCategory: byCategory.map(item => ({
-        category: item.category,
-        count: Number(item.count),
-        value: Number(item.value),
-        percentage: totalValue > 0 ? (Number(item.value) / totalValue) * 100 : 0
-      })),
-      byLocation: byLocation.map(item => ({
-        state: item.state,
-        lga: item.lga,
-        count: Number(item.count),
-        value: Number(item.value)
-      })),
-      recentAdditions: recentAdditions.map(item => ({
-        id: item.id,
-        name: item.name,
-        purchaseValue: Number(item.purchase_value),
-        purchaseDate: item.purchase_date.toISOString(),
-        category: item.category
-      })),
+      assets: processedAssets,
+      summary: {
+        totalAssets: processedAssets.length,
+        totalValue,
+        totalDepreciation
+      },
       depreciationSummary: {
-        totalDepreciation: Number(depreciationSummary[0]?.total_depreciation || 0),
-        averageDepreciation: Number(depreciationSummary[0]?.average_depreciation || 0),
-        mostDepreciated: mostDepreciated.map(item => ({
-          id: item.id,
-          name: item.name,
-          depreciation: Number(item.depreciation)
-        }))
-      }
+        totalDepreciation,
+        averageDepreciation: processedAssets.length > 0 
+          ? processedAssets.reduce((sum, a) => sum + a.depreciationPercentage, 0) / processedAssets.length
+          : 0,
+        mostDepreciated
+      },
+      stateBreakdown,
+      categoryBreakdown
     };
   } catch (error) {
     console.error('Error generating asset report:', error);
@@ -190,15 +188,15 @@ export async function exportAssetReport(format: 'csv' | 'pdf' = 'csv'): Promise<
     
     if (format === 'csv') {
       // Generate CSV content
-      let csvContent = 'Category,Count,Value,Percentage\n';
+      let csvContent = 'ID,Name,Category,State,LGA,Purchase Value,Current Value,Depreciation %\n';
       
-      // Add category data
-      report.byCategory.forEach(item => {
-        csvContent += `"${item.category}",${item.count},${item.value},${item.percentage.toFixed(2)}%\n`;
+      // Add asset data
+      report.assets.forEach(asset => {
+        csvContent += `"${asset.id}","${asset.name}","${asset.category}","${asset.state}","${asset.lga}",${asset.purchaseValue},${asset.currentValue},${asset.depreciationPercentage.toFixed(2)}%\n`;
       });
       
       // Add summary
-      csvContent += `\nTotal Assets,${report.totalCount},${report.totalValue},100%\n`;
+      csvContent += `\nTotal Assets,${report.summary.totalAssets},${report.summary.totalValue},100%\n`;
       
       return csvContent;
     } else {

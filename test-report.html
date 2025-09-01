@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asset Report Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            margin-top: 20px;
+        }
+        pre {
+            background: #f4f4f4;
+            padding: 10px;
+            border-radius: 5px;
+            max-height: 400px;
+            overflow: auto;
+        }
+        button {
+            padding: 10px 15px;
+            background: #0070f3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #005bb5;
+        }
+    </style>
+</head>
+<body>
+    <h1>Asset Report Test</h1>
+    <div>
+        <button onclick="testReport()">Test Report API</button>
+        <button onclick="testAssets()">Test Assets API</button>
+    </div>
+    <div class="container">
+        <h3>Response:</h3>
+        <pre id="response">Click a button to test an endpoint</pre>
+    </div>
+
+    <script>
+        const responseEl = document.getElementById('response');
+        
+        async function testReport() {
+            try {
+                responseEl.textContent = 'Fetching report data...';
+                const response = await fetch('/api/report');
+                const data = await response.json();
+                responseEl.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                responseEl.textContent = 'Error: ' + error.message;
+            }
+        }
+
+        async function testAssets() {
+            try {
+                responseEl.textContent = 'Fetching assets...';
+                const response = await fetch('/api/assets');
+                const data = await response.json();
+                responseEl.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                responseEl.textContent = 'Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>

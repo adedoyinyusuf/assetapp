@@ -1,5 +1,5 @@
-import { prisma } from './prisma';
-import { Asset, Category, State, LGA } from '@/app/actions';
+import { prisma } from './server-prisma';
+import type { Asset } from '@/app/actions';
 
 export interface SearchResult {
   id: number;
@@ -45,23 +45,13 @@ export class AdvancedSearchService {
   /**
    * Perform advanced search with filters and AI-powered relevance scoring
    */
-  static async search(options: SearchOptions): Promise<SearchResult[]> {
-    const { query, filters, limit = 20, offset = 0, sortBy = 'relevance', sortOrder = 'desc' } = options;
-
+  static async search({ query = '', filters, limit = 10, offset = 0, sortBy = 'relevance', sortOrder = 'desc' }: SearchOptions): Promise<SearchResult[]> {
     try {
-      // Build search query
-      const searchQuery = this.buildSearchQuery(query, filters);
+      const whereClause = this.buildSearchQuery(query, filters);
+      const assets = await this.executeSearch(whereClause, limit, offset);
+      const scoredResults = await this.scoreResults(assets, query);
       
-      // Execute search
-      const results = await this.executeSearch(searchQuery, limit, offset);
-      
-      // Apply AI-powered relevance scoring
-      const scoredResults = await this.scoreResults(results, query);
-      
-      // Sort results
-      const sortedResults = this.sortResults(scoredResults, sortBy, sortOrder);
-      
-      return sortedResults;
+      return this.sortResults(scoredResults, sortBy, sortOrder);
     } catch (error) {
       console.error('Search error:', error);
       return [];
@@ -72,7 +62,9 @@ export class AdvancedSearchService {
    * Get search suggestions based on user input
    */
   static async getSuggestions(query: string, limit: number = 10): Promise<SearchSuggestion[]> {
-    if (!query || query.length < 2) return [];
+    if (!query.trim()) {
+      return [];
+    }
 
     try {
       const suggestions: SearchSuggestion[] = [];
@@ -158,42 +150,6 @@ export class AdvancedSearchService {
   }
 
   /**
-   * Get trending searches and popular assets
-   */
-  static async getTrendingSearches(limit: number = 10): Promise<SearchSuggestion[]> {
-    try {
-      // This would typically come from analytics/logging
-      // For now, return popular categories and locations
-      const popularCategories = await prisma.category.findMany({
-        take: limit,
-        orderBy: {
-          assets: {
-            _count: 'desc',
-          },
-        },
-        select: {
-          name: true,
-          _count: {
-            select: {
-              assets: true,
-            },
-          },
-        },
-      });
-
-      return popularCategories.map(category => ({
-        text: category.name,
-        type: 'category',
-        count: category._count.assets,
-        relevance: 0.8,
-      }));
-    } catch (error) {
-      console.error('Error getting trending searches:', error);
-      return [];
-    }
-  }
-
-  /**
    * Get related assets based on current asset
    */
   static async getRelatedAssets(assetId: number, limit: number = 5): Promise<Asset[]> {
@@ -230,7 +186,28 @@ export class AdvancedSearchService {
         },
       });
 
-      return relatedAssets;
+      // Convert dates to strings for the frontend
+      return relatedAssets.map(asset => ({
+        ...asset,
+        purchaseDate: asset.purchaseDate ? new Date(asset.purchaseDate).toISOString() : '',
+        createdAt: asset.createdAt ? new Date(asset.createdAt).toISOString() : '',
+        updatedAt: asset.updatedAt ? new Date(asset.updatedAt).toISOString() : '',
+        category: asset.category ? {
+          ...asset.category,
+          created_at: asset.category.created_at ? new Date(asset.category.created_at).toISOString() : null,
+          updated_at: asset.category.updated_at ? new Date(asset.category.updated_at).toISOString() : null
+        } : undefined,
+        state: asset.state ? {
+          ...asset.state,
+          createdAt: asset.state.createdAt ? new Date(asset.state.createdAt).toISOString() : '',
+          updatedAt: asset.state.updatedAt ? new Date(asset.state.updatedAt).toISOString() : ''
+        } : undefined,
+        lga: asset.lga ? {
+          ...asset.lga,
+          createdAt: asset.lga.createdAt ? new Date(asset.lga.createdAt).toISOString() : '',
+          updatedAt: asset.lga.updatedAt ? new Date(asset.lga.updatedAt).toISOString() : ''
+        } : undefined
+      }));
     } catch (error) {
       console.error('Error getting related assets:', error);
       return [];
@@ -304,21 +281,22 @@ export class AdvancedSearchService {
   private static async scoreResults(assets: any[], query: string): Promise<SearchResult[]> {
     return assets.map(asset => {
       const relevance = this.calculateRelevance(query, asset.name, asset);
+      const highlights = this.generateHighlights(query, asset);
       
       return {
         id: asset.id,
-        type: 'asset' as const,
+        type: 'asset',
         title: asset.name,
-        description: asset.description || `Asset in ${asset.category?.name || 'Unknown'} category`,
+        description: asset.description || '',
         relevance,
         metadata: {
-          category: asset.category?.name,
-          location: `${asset.state?.name}, ${asset.lga?.name}`,
-          value: asset.purchaseValue,
           purchaseDate: asset.purchaseDate,
-          currentValue: asset.currentValue,
+          purchaseValue: asset.purchaseValue,
+          category: asset.category?.name,
+          state: asset.state?.name,
+          lga: asset.lga?.name,
         },
-        highlights: this.generateHighlights(query, asset),
+        highlights,
       };
     });
   }
@@ -327,6 +305,8 @@ export class AdvancedSearchService {
    * Calculate relevance score for search results
    */
   private static calculateRelevance(query: string, text: string, asset?: any): number {
+    if (!query) return 0;
+    
     let score = 0;
     const queryLower = query.toLowerCase();
     const textLower = text.toLowerCase();
@@ -360,9 +340,11 @@ export class AdvancedSearchService {
     // Boost score based on asset properties
     if (asset) {
       // Newer assets get slight boost
-      const age = (new Date().getTime() - new Date(asset.purchaseDate).getTime()) / (1000 * 60 * 60 * 24 * 365);
-      if (age < 1) score += 10;
-      else if (age < 3) score += 5;
+      if (asset.purchaseDate) {
+        const age = (new Date().getTime() - new Date(asset.purchaseDate).getTime()) / (1000 * 60 * 60 * 24 * 365);
+        if (age < 1) score += 10;
+        else if (age < 3) score += 5;
+      }
 
       // Higher value assets get slight boost
       if (asset.purchaseValue > 1000000) score += 5;
@@ -404,7 +386,7 @@ export class AdvancedSearchService {
    * Sort search results
    */
   private static sortResults(results: SearchResult[], sortBy: string, sortOrder: string): SearchResult[] {
-    return results.sort((a, b) => {
+    return [...results].sort((a, b) => {
       let comparison = 0;
 
       switch (sortBy) {
@@ -415,10 +397,12 @@ export class AdvancedSearchService {
           comparison = a.title.localeCompare(b.title);
           break;
         case 'value':
-          comparison = (a.metadata.value || 0) - (b.metadata.value || 0);
+          comparison = (a.metadata.purchaseValue || 0) - (b.metadata.purchaseValue || 0);
           break;
         case 'date':
-          comparison = new Date(a.metadata.purchaseDate).getTime() - new Date(b.metadata.purchaseDate).getTime();
+          const dateA = a.metadata.purchaseDate ? new Date(a.metadata.purchaseDate).getTime() : 0;
+          const dateB = b.metadata.purchaseDate ? new Date(b.metadata.purchaseDate).getTime() : 0;
+          comparison = dateA - dateB;
           break;
         default:
           comparison = a.relevance - b.relevance;
@@ -446,12 +430,7 @@ export class AdvancedSearchService {
   /**
    * Get search analytics and insights
    */
-  static async getSearchAnalytics(): Promise<{
-    totalSearches: number;
-    popularQueries: Array<{ query: string; count: number }>;
-    searchTrends: Array<{ date: string; count: number }>;
-    noResultsQueries: Array<{ query: string; count: number }>;
-  }> {
+  static async getSearchAnalytics() {
     // This would typically come from a search analytics table
     // For now, return placeholder data
     return {

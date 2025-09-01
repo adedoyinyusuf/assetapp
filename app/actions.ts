@@ -104,7 +104,7 @@ export async function addAssetMovement(movement: Omit<AssetMovement, 'id' | 'ass
   return res.json();
 }
 
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/server-prisma';
 
 // Asset CRUD
 export async function getAssets(): Promise<Asset[]> {

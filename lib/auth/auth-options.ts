@@ -1,6 +1,6 @@
 import { type AuthOptions } from "next-auth";
 import { compare } from "bcryptjs";
-import { prisma } from "@/lib/prisma";  // Our enhanced Prisma client with middleware
+import { prisma } from "@/lib/server-prisma";  // Our enhanced Prisma client with middleware
 import type { DefaultSession, DefaultUser } from "next-auth";
 import type { DefaultJWT } from "next-auth/jwt";
 import CredentialsProvider from "next-auth/providers/credentials";
