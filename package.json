@@ -1,5 +1,5 @@
 {
-  "$schema": "https://json.schemastore.org/package",
+  "$schema": "./package.schema.json",
   "name": "assetapp",
   "version": "1.0.0",
   "description": "Asset Management Web Application",

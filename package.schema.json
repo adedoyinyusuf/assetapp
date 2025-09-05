@@ -1,0 +1,122 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "package.json",
+  "description": "Schema for Node.js package.json files",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "The name of the package.",
+      "pattern": "^(@[a-z0-9-~][a-z0-9-._~]*/)?[a-z0-9-~][a-z0-9-._~]*$"
+    },
+    "version": {
+      "type": "string",
+      "description": "Version must be parseable by node-semver",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(-[a-zA-Z0-9._-]+)?$"
+    },
+    "description": {
+      "type": "string"
+    },
+    "main": {
+      "type": "string"
+    },
+    "scripts": {
+      "type": "object",
+      "properties": {
+        "dev": { "type": "string" },
+        "build": { "type": "string" },
+        "start": { "type": "string" },
+        "lint": { "type": "string" },
+        "lint:fix": { "type": "string" },
+        "type-check": { "type": "string" },
+        "test": { "type": "string" },
+        "test:watch": { "type": "string" },
+        "test:coverage": { "type": "string" },
+        "test:ci": { "type": "string" },
+        "prisma:generate": { "type": "string" },
+        "prisma:push": { "type": "string" },
+        "prisma:migrate": { "type": "string" },
+        "prisma:migrate:deploy": { "type": "string" },
+        "prisma:seed": { "type": "string" },
+        "prisma:studio": { "type": "string" },
+        "db:reset": { "type": "string" },
+        "db:setup": { "type": "string" },
+        "clean": { "type": "string" },
+        "format": { "type": "string" },
+        "format:check": { "type": "string" },
+        "postinstall": { "type": "string" }
+      },
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "dependencies": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "devDependencies": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "peerDependencies": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "private": {
+      "type": "boolean"
+    },
+    "license": {
+      "type": "string"
+    },
+    "author": {
+      "type": ["string", "object"],
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "url": { "type": "string", "format": "uri" }
+      }
+    },
+    "repository": {
+      "type": ["string", "object"],
+      "properties": {
+        "type": { "type": "string" },
+        "url": { "type": "string" }
+      }
+    },
+    "keywords": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "engines": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "browserslist": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "jest": {
+      "type": "object"
+    },
+    "prettier": {
+      "type": "object"
+    },
+    "eslintConfig": {
+      "type": "object"
+    }
+  },
+  "required": ["name", "version"],
+  "additionalProperties": true
+}

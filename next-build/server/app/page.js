@@ -12,7 +12,7 @@ exports.id = "app/page";
 exports.ids = ["app/page"];
 exports.modules = {
 
-/***/ "./request-async-storage.external?93d0":
+/***/ "./request-async-storage.external":
 /*!*****************************************************************************!*\
   !*** external "next/dist/client/components/request-async-storage.external" ***!
   \*****************************************************************************/
@@ -23,7 +23,7 @@ module.exports = require("next/dist/client/components/request-async-storage.exte
 
 /***/ }),
 
-/***/ "./static-generation-async-storage.external?d822":
+/***/ "./static-generation-async-storage.external":
 /*!***************************************************************************************!*\
   !*** external "next/dist/client/components/static-generation-async-storage.external" ***!
   \***************************************************************************************/
@@ -45,7 +45,7 @@ module.exports = require("next/dist/compiled/next-server/app-page.runtime.dev.js
 
 /***/ }),
 
-/***/ "./action-async-storage.external":
+/***/ "../../client/components/action-async-storage.external":
 /*!**********************************************************************************!*\
   !*** external "next/dist\\client\\components\\action-async-storage.external.js" ***!
   \**********************************************************************************/
@@ -56,7 +56,7 @@ module.exports = require("next/dist\\client\\components\\action-async-storage.ex
 
 /***/ }),
 
-/***/ "./request-async-storage.external?0211":
+/***/ "../../client/components/request-async-storage.external":
 /*!***********************************************************************************!*\
   !*** external "next/dist\\client\\components\\request-async-storage.external.js" ***!
   \***********************************************************************************/
@@ -67,7 +67,7 @@ module.exports = require("next/dist\\client\\components\\request-async-storage.e
 
 /***/ }),
 
-/***/ "./static-generation-async-storage.external?137c":
+/***/ "../../client/components/static-generation-async-storage.external":
 /*!*********************************************************************************************!*\
   !*** external "next/dist\\client\\components\\static-generation-async-storage.external.js" ***!
   \*********************************************************************************************/
