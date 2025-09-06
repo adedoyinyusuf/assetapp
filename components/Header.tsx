@@ -209,6 +209,22 @@ export function Header() {
     );
   }, [pathname, isAllowed, closeMobileMenu]);
 
+  const [dropdownStates, setDropdownStates] = useState<Record<string, boolean>>({});
+
+  const toggleDropdown = useCallback((title: string) => {
+    setDropdownStates(prev => ({
+      ...prev,
+      [title]: !prev[title]
+    }));
+  }, []);
+
+  const closeDropdown = useCallback((title: string) => {
+    setDropdownStates(prev => ({
+      ...prev,
+      [title]: false
+    }));
+  }, []);
+
   const renderDropdownMenu = useCallback((title: string, items: (MenuItem & { icon?: React.ReactNode; isExternal?: boolean; onClick?: () => void })[], isMobile = false) => {
     const filteredItems = items.filter(isAllowed);
     if (filteredItems.length === 0) return null;
@@ -217,6 +233,8 @@ export function Header() {
       pathname === item.href || 
       (item.href !== '/' && pathname.startsWith(item.href))
     );
+
+    const isOpen = dropdownStates[title] || false;
 
     if (isMobile) {
       return (
@@ -227,43 +245,57 @@ export function Header() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.3, delay: 0.1 }}
         >
-          <div className={cn(
-            'flex items-center justify-between w-full px-4 py-3.5 text-sm font-semibold rounded-lg',
-            'bg-gradient-to-r from-gray-50 to-gray-100/50',
-            isActive ? 'text-primary from-primary/5 to-primary/10' : 'text-gray-700'
-          )}>
-            {title}
-            <ChevronDown className="h-4 w-4 opacity-50" />
-          </div>
-          <motion.div 
-            className="mt-2 space-y-1 pl-2 border-l-2 border-gray-100"
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            transition={{ duration: 0.3, delay: 0.2 }}
+          <button
+            onClick={() => toggleDropdown(title)}
+            className={cn(
+              'flex items-center justify-between w-full px-4 py-3.5 text-sm font-semibold rounded-lg transition-all duration-200',
+              'bg-gradient-to-r from-gray-50 to-gray-100/50 hover:from-gray-100 hover:to-gray-150',
+              isActive ? 'text-primary from-primary/5 to-primary/10' : 'text-gray-700'
+            )}
           >
-            {filteredItems.map((item, index) => (
-              <motion.div
-                key={item.href}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.2, delay: 0.1 * index }}
+            {title}
+            <motion.div
+              animate={{ rotate: isOpen ? 180 : 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <ChevronDown className="h-4 w-4 opacity-50" />
+            </motion.div>
+          </button>
+          <AnimatePresence>
+            {isOpen && (
+              <motion.div 
+                className="mt-2 space-y-1 pl-2 border-l-2 border-gray-100 overflow-hidden"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
               >
-                {renderNavigationItem({ ...item, title: item.title }, true)}
+                {filteredItems.map((item, index) => (
+                  <motion.div
+                    key={item.href}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.2, delay: 0.1 * index }}
+                  >
+                    {renderNavigationItem({ ...item, title: item.title }, true)}
+                  </motion.div>
+                ))}
               </motion.div>
-            ))}
-          </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
       );
     }
 
-    // Desktop dropdown with enhanced animations
+    // Desktop dropdown with click functionality
     return (
-      <div key={title} className="relative group">
+      <div key={title} className="relative" data-dropdown={title}>
         <motion.button
+          onClick={() => toggleDropdown(title)}
           className={cn(
             'flex items-center h-full px-4 py-2.5 text-sm font-medium transition-all duration-200',
             'hover:bg-gradient-to-r hover:from-gray-50 hover:to-gray-100/50 rounded-xl',
-            'hover:scale-105 hover:shadow-sm',
+            'hover:scale-105 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20',
             isActive 
               ? 'text-primary bg-gradient-to-r from-primary/5 to-primary/10 font-semibold' 
               : 'text-gray-600 hover:text-gray-900'
@@ -273,34 +305,42 @@ export function Header() {
         >
           <span>{title}</span>
           <motion.div
-            animate={{ rotate: 0 }}
-            whileHover={{ rotate: 180 }}
+            animate={{ rotate: isOpen ? 180 : 0 }}
             transition={{ duration: 0.2 }}
           >
             <ChevronDown className="ml-2 h-4 w-4" />
           </motion.div>
         </motion.button>
         
-        <motion.div 
-          className="absolute left-0 mt-2 w-64 origin-top-left rounded-2xl bg-white shadow-xl ring-1 ring-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 ease-out transform translate-y-2 group-hover:translate-y-0 z-50 backdrop-blur-sm"
-        >
-          <div className="p-2">
-            {filteredItems.map((item, index) => (
-              <motion.div
-                key={item.href}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.2, delay: 0.05 * index }}
-                className="p-1"
-              >
-                {renderNavigationItem(item)}
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: -10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -10 }}
+              transition={{ duration: 0.2 }}
+              className="absolute left-0 mt-2 w-64 origin-top-left rounded-2xl bg-white shadow-xl ring-1 ring-gray-200 z-50 backdrop-blur-sm"
+            >
+              <div className="p-2">
+                {filteredItems.map((item, index) => (
+                  <motion.div
+                    key={item.href}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.2, delay: 0.05 * index }}
+                    className="p-1"
+                    onClick={() => closeDropdown(title)}
+                  >
+                    {renderNavigationItem(item)}
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     );
-  }, [pathname, isAllowed, renderNavigationItem]);
+  }, [pathname, isAllowed, renderNavigationItem, dropdownStates, toggleDropdown, closeDropdown]);
 
   // Enhanced user menu component
   const UserMenu = useCallback(() => {
@@ -350,7 +390,7 @@ export function Header() {
                 
                 <motion.button
                   onClick={() => {
-                    // Add profile navigation here
+                    router.push('/profile');
                     setUserMenuOpen(false);
                   }}
                   className="flex items-center gap-3 w-full px-3 py-2.5 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all duration-200"
@@ -362,7 +402,7 @@ export function Header() {
                 
                 <motion.button
                   onClick={() => {
-                    // Add settings navigation here
+                    router.push('/admin/settings');
                     setUserMenuOpen(false);
                   }}
                   className="flex items-center gap-3 w-full px-3 py-2.5 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all duration-200"
@@ -527,16 +567,26 @@ export function Header() {
         {navItems.map((item) => isAllowed(item) && renderNavigationItem(item))}
         {hasPermission(Action.READ, Resource.ASSET) && renderDropdownMenu('Assets', assetOperations)}
         {hasPermission(Action.READ, Resource.REPORT) && renderDropdownMenu('Reports', reports)}
+        {management.filter(isAllowed).length > 0 && renderDropdownMenu('Management', management)}
         {hasPermission(Action.READ, Resource.USER) && renderDropdownMenu('Admin', administration)}
       </nav>
     );
   }, [mainMenuItems, assetOperations, reports, administration, isAllowed, renderNavigationItem, hasPermission, renderDropdownMenu]);
 
-  // Click outside handler for user menu
+  // Click outside handler for user menu and dropdowns
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (userMenuOpen && !(event.target as Element).closest('[data-user-menu]')) {
+      const target = event.target as Element;
+      
+      // Close user menu if clicking outside
+      if (userMenuOpen && !target.closest('[data-user-menu]')) {
         setUserMenuOpen(false);
+      }
+      
+      // Close dropdowns if clicking outside
+      const clickedDropdown = target.closest('[data-dropdown]');
+      if (!clickedDropdown) {
+        setDropdownStates({});
       }
     };
 
