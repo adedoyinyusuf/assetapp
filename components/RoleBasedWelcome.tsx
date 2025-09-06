@@ -17,7 +17,6 @@ import {
   Settings, 
   Activity,
   FileText,
-  MapPin,
   TrendingUp,
   Shield,
   Eye

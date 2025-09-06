@@ -9,7 +9,6 @@ export interface WebSocketEvent {
 
 class WebSocketService {
   private socket: Socket | null = null;
-  private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectDelay = 1000;
   private eventListeners: Map<string, Set<(event: WebSocketEvent) => void>> = new Map();
@@ -39,7 +38,6 @@ class WebSocketService {
 
     this.socket.on('connect', () => {
       console.log('WebSocket connected');
-      this.reconnectAttempts = 0;
     });
 
     this.socket.on('disconnect', (reason) => {

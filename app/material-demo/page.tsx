@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { MaterialButton } from '@/components/ui/material-button';
 import { MaterialCard, MaterialCardHeader, MaterialCardTitle, MaterialCardContent, MaterialCardDescription } from '@/components/ui/material-card';
 import { MaterialDashboard } from '@/components/MaterialDashboard';
@@ -10,12 +10,8 @@ import {
   Heart,
   Download,
   Settings,
-  Play,
-  Pause,
-  Star,
-  Share,
-  Bookmark,
   MoreHorizontal,
+  Star,
   Palette
 } from 'lucide-react';
 
@@ -34,7 +30,6 @@ const mockDashboardData = {
 };
 
 export default function MaterialDemoPage() {
-  const [activeTab, setActiveTab] = useState('overview');
 
   return (
     <div className="min-h-screen bg-md-surface">

@@ -230,7 +230,7 @@ export class AdvancedSearchService {
         },
       });
 
-      return relatedAssets;
+      return relatedAssets as unknown as Asset[];
     } catch (error) {
       console.error('Error getting related assets:', error);
       return [];
@@ -302,29 +302,25 @@ export class AdvancedSearchService {
    * Score search results using AI-powered relevance algorithm
    */
   private static async scoreResults(assets: any[], query: string): Promise<SearchResult[]> {
-    return assets.map(asset => ({
-      ...asset,
-      purchaseDate: asset.purchaseDate ? new Date(asset.purchaseDate).toISOString() : '',
-      createdAt: asset.createdAt ? new Date(asset.createdAt).toISOString() : '',
-      updatedAt: asset.updatedAt ? new Date(asset.updatedAt).toISOString() : '',
-      category: asset.category ? {
-        ...asset.category,
-        created_at: asset.category.created_at ? new Date(asset.category.created_at).toISOString() : null,
-        updated_at: asset.category.updated_at ? new Date(asset.category.updated_at).toISOString() : null
-      } : undefined,
-      state: asset.state ? {
-        ...asset.state,
-        createdAt: asset.state.createdAt ? new Date(asset.state.createdAt).toISOString() : '',
-        updatedAt: asset.state.updatedAt ? new Date(asset.state.updatedAt).toISOString() : ''
-      } : undefined,
-      lga: asset.lga ? {
-        ...asset.lga,
-        createdAt: asset.lga.createdAt ? new Date(asset.lga.createdAt).toISOString() : '',
-        updatedAt: asset.lga.updatedAt ? new Date(asset.lga.updatedAt).toISOString() : ''
-      } : undefined
-    }));.currentValue,
+    return assets.map(asset => {
+      const relevanceScore = this.calculateRelevance(query, `${asset.name} ${asset.description || ''}`, asset);
+      
+      return {
+        id: asset.id,
+        type: 'asset' as const,
+        title: asset.name,
+        description: asset.description || '',
+        url: `/assets/${asset.id}`,
+        relevance: relevanceScore,
+        metadata: {
+          category: asset.category?.name,
+          state: asset.state?.name,
+          lga: asset.lga?.name,
+          value: asset.purchaseValue,
+          purchaseDate: asset.purchaseDate ? new Date(asset.purchaseDate).toISOString() : '',
+          currentValue: asset.currentValue || asset.purchaseValue
         },
-        highlights: this.generateHighlights(query, asset),
+        highlights: this.generateHighlights(query, asset)
       };
     });
   }

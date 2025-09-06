@@ -1,6 +1,6 @@
 import { type AuthOptions } from "next-auth";
 import { compare } from "bcryptjs";
-import { prisma } from "@/lib/server-prisma";  // Our enhanced Prisma client with middleware
+import { prisma } from "@/lib/prisma.server";
 import type { DefaultSession, DefaultUser } from "next-auth";
 import type { DefaultJWT } from "next-auth/jwt";
 import CredentialsProvider from "next-auth/providers/credentials";
@@ -110,6 +110,7 @@ export const authOptions: AuthOptions = {
           // Return user data for the session
           return {
             id: userId,
+            name: user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.email,
             email: user.email,
             firstName: user.firstName,
             lastName: user.lastName,
@@ -117,6 +118,7 @@ export const authOptions: AuthOptions = {
             isActive: user.isActive,
             lastLogin: user.lastLogin,
             permissions: user.role.permissions.map((p: { permission: { name: string } }) => p.permission.name),
+            tasks: [], // Add empty tasks array to satisfy User interface
           };
         } catch (error) {
           console.error('Authentication error:', error);

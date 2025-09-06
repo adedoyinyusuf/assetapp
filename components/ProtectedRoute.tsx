@@ -5,9 +5,11 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { Loader2 } from 'lucide-react';
 
+import { UserRole } from '@/lib/auth/roles';
+
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRole?: string;
+  requiredRole?: UserRole;
   requiredPermission?: [string, string];
 }
 

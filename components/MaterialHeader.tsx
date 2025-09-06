@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
 import { motion } from 'framer-motion';
-import { Menu, X, FileText, BarChart2, Download, Home, Package, Move, TrendingDown, Plus } from 'lucide-react';
+import { Menu, X, FileText, BarChart2, Download, Home, Package, Move, Plus } from 'lucide-react';
 import { UserRole } from '@/lib/auth/roles';
 import { Action, Resource, can } from '@/lib/auth/roles';
 import { cn } from '@/lib/utils';

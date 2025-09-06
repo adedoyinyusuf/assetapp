@@ -2,7 +2,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
-import { prisma } from "@/lib/server-prisma";
+import { prisma } from "@/lib/db";
 import { getPermissionsForRole, UserRole } from "@/lib/auth/roles";
 import type { Permission } from "@/types/permissions";
 
@@ -43,7 +43,7 @@ export async function GET() {
       : UserRole.VIEWER;
 
     // Get permissions for the user's role
-    const permissions: Permission[] = getPermissionsForRole(validRole);
+    const permissions: Permission[] = getPermissionsForRole(validRole).map(name => ({ name }));
 
     return NextResponse.json({
       ...user,

@@ -11,7 +11,6 @@ import {
   DollarSign, 
   Package, 
   Download,
-  Calendar,
   Filter
 } from 'lucide-react';
 import { ClientAnalyticsService as AnalyticsService, AnalyticsData } from '@/lib/client-analytics';
@@ -25,15 +24,13 @@ import {
   YAxis, 
   CartesianGrid, 
   Tooltip, 
-  Legend, 
   ResponsiveContainer,
   LineChart,
   Line,
   AreaChart,
   Area
 } from 'recharts';
-import { formatCurrency, formatDate } from '@/lib/utils';
-import { PermissionGate, AnalyticsPermissionGate } from './PermissionGate';
+import { AnalyticsPermissionGate } from './PermissionGate';
 import { Task } from '@/lib/auth/roles';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
@@ -254,7 +251,7 @@ export default function AdvancedAnalytics() {
                     fill="#8884d8"
                     dataKey="count"
                   >
-                    {analyticsData.assetMetrics.assetDistribution.byCategory.map((entry, index) => (
+                    {analyticsData.assetMetrics.assetDistribution.byCategory.map((_, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>

@@ -1,4 +1,4 @@
-import { prisma } from './server-prisma';
+import { prisma } from './db';
 import type { Asset } from '@/app/actions';
 
 export interface SearchResult {

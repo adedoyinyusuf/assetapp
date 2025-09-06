@@ -11,7 +11,6 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faSearch, faFilter, faEdit, faEye, faTrash, faPlus } from '@fortawesome/free-solid-svg-icons'
 import { getAssets, getCategories, getStates, deleteAsset, Asset, Category, State } from '@/app/actions'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 
 export default function AssetRegistryPage() {
   const [assets, setAssets] = useState<Asset[]>([])
@@ -19,7 +18,6 @@ export default function AssetRegistryPage() {
   const [categories, setCategories] = useState<Category[]>([])
   const [states, setStates] = useState<State[]>([])
   const [loading, setLoading] = useState(true)
-  const router = useRouter()
 
   // Filter states
   const [searchTerm, setSearchTerm] = useState('')
@@ -63,12 +61,12 @@ export default function AssetRegistryPage() {
 
     // Filter by category
     if (selectedCategory && selectedCategory !== 'all') {
-      filtered = filtered.filter(asset => asset.category === selectedCategory)
+      filtered = filtered.filter(asset => asset.category?.name === selectedCategory)
     }
 
     // Filter by state
     if (selectedState && selectedState !== 'all') {
-      filtered = filtered.filter(asset => asset.state === selectedState)
+      filtered = filtered.filter(asset => asset.state?.name === selectedState)
     }
 
     // Filter by value range
@@ -285,10 +283,10 @@ export default function AssetRegistryPage() {
                 {filteredAssets.map((asset) => (
                   <TableRow key={asset.id}>
                     <TableCell className="font-medium">{asset.name}</TableCell>
-                    <TableCell>{asset.category}</TableCell>
+                    <TableCell>{asset.category?.name}</TableCell>
                     <TableCell>${asset.purchaseValue.toLocaleString()}</TableCell>
                     <TableCell>{new Date(asset.purchaseDate).toLocaleDateString()}</TableCell>
-                    <TableCell>{asset.state}, {asset.lga}</TableCell>
+                    <TableCell>{asset.state?.name}, {asset.lga?.name}</TableCell>
                     <TableCell>
                       <div className="flex space-x-2">
                         <Link href={`/assets/${asset.id}`}>

@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faPlus, faArrowRight, faCalendar } from '@fortawesome/free-solid-svg-icons'
+import { faPlus, faArrowRight } from '@fortawesome/free-solid-svg-icons'
 import { getAssets, getStates, getLGAs, getAssetMovements, addAssetMovement, Asset, State, LGA, AssetMovement } from '@/app/actions'
 
 export default function AssetMovementsPage() {
@@ -156,7 +156,7 @@ export default function AssetMovementsPage() {
                     <SelectContent>
                       {assets.map((asset) => (
                         <SelectItem key={asset.id} value={asset.id.toString()}>
-                          {asset.name} - {asset.state}, {asset.lga}
+                          {asset.name} - {asset.state?.name}, {asset.lga?.name}
                         </SelectItem>
                       ))}
                     </SelectContent>

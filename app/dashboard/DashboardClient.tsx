@@ -1,14 +1,11 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { 
   Package,
   TrendingUp,
   LineChart,
-  RefreshCw,
-  Bell,
-  BellOff,
   Plus,
   Move,
   Download,
@@ -33,7 +30,7 @@ import { WebSocketPermissionGate } from '@/components/PermissionGate';
 
 interface Activity {
   id: string;
-  type: string;
+  type: 'success' | 'warning' | 'error' | 'info';
   title: string;
   description: string;
   timestamp: Date;
@@ -60,11 +57,15 @@ interface Asset {
   lastUpdated: Date;
 }
 
-export default function DashboardClient() {
+interface DashboardClientProps {
+  initialData?: any;
+}
+
+export default function DashboardClient({}: DashboardClientProps) {
   const [realTimeUpdates, setRealTimeUpdates] = useState<RealTimeUpdate[]>([]);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [, setSearchQuery] = useState('');
   const [dateRange, setDateRange] = useState('month');
   
   // Mock data - in a real app, this would come from your context/API
@@ -79,9 +80,9 @@ export default function DashboardClient() {
       { id: '3', name: 'Office Chair', status: 'active', category: 'Furniture', location: 'Lagos', value: 250, lastUpdated: new Date() },
     ] as Asset[],
     recentActivities: [
-      { id: '1', type: 'update', title: 'Asset Updated', description: 'Laptop Dell XPS was updated', timestamp: new Date(), status: 'info' },
-      { id: '2', type: 'maintenance', title: 'Maintenance Required', description: 'Projector Epson needs maintenance', timestamp: new Date(), status: 'warning' },
-      { id: '3', type: 'create', title: 'New Asset Added', description: 'Office Chair was added', timestamp: new Date(), status: 'success' },
+      { id: '1', type: 'info', title: 'Asset Updated', description: 'Laptop Dell XPS was updated', timestamp: new Date(), status: 'info' },
+      { id: '2', type: 'warning', title: 'Maintenance Required', description: 'Projector Epson needs maintenance', timestamp: new Date(), status: 'warning' },
+      { id: '3', type: 'success', title: 'New Asset Added', description: 'Office Chair was added', timestamp: new Date(), status: 'success' },
     ] as Activity[],
     assetDistribution: {
       byCategory: [
@@ -101,7 +102,6 @@ export default function DashboardClient() {
 
   // Formatting functions
   const formatCurrency = (value: number) => `₦${value.toLocaleString()}`;
-  const formatDate = (date: Date) => date.toLocaleDateString();
   const formatNumber = (value: number) => value.toLocaleString();
   
   // Handlers
@@ -148,14 +148,12 @@ export default function DashboardClient() {
         assetName: 'Sample Asset'
       };
       
-      const newUpdate: Activity = {
+      const newUpdate: RealTimeUpdate = {
         id: Date.now().toString(),
         type: 'info',
-        title: 'Asset Updated',
-        description: `${mockData.name} has been updated`,
-        timestamp: new Date(),
-        user: 'System',
-        status: 'info'
+        message: `${mockData.name} has been updated`,
+        status: 'info',
+        timestamp: new Date()
       };
       
       setRealTimeUpdates(prev => [newUpdate, ...prev.slice(0, 4)]);
@@ -178,19 +176,6 @@ export default function DashboardClient() {
     };
   }, [notificationsEnabled]);
   
-  // Get status badge color
-  const getStatusBadgeColor = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'bg-green-100 text-green-800';
-      case 'inactive':
-        return 'bg-gray-100 text-gray-800';
-      case 'maintenance':
-        return 'bg-yellow-100 text-yellow-800';
-      default:
-        return 'bg-blue-100 text-blue-800';
-    }
-  };
   
   // Get status icon
   const getStatusIcon = (status: string) => {
@@ -207,65 +192,7 @@ export default function DashboardClient() {
   };
   
   // Main render
-  // Toggle notifications handler
-  const handleSystemNotification = useCallback((notification: any) => {
-    setRealTimeUpdates(prev => [{
-      id: Date.now().toString(),
-      type: notification.type || 'info',
-      title: 'System Notification',
-      description: notification.message,
-      timestamp: new Date()
-    }, ...prev.slice(0, 19)]);
-    
-    if (notification.type === 'error') {
-      toast.error(notification.message);
-    } else if (notification.type === 'success') {
-      toast.success(notification.message);
-    } else {
-      toast(notification.message);
-    }
-  }, []);
 
-  const handleDepreciationUpdate = useCallback((depreciationData: any) => {
-    addUpdate('depreciation', `Depreciation calculated for ${depreciationData.assetName}`, 'info');
-  });
-
-  const addUpdate = (type: string, message: string, status: 'success' | 'warning' | 'error' | 'info' = 'info') => {
-    const update: RealTimeUpdate = {
-      id: Date.now().toString(),
-      type: type as any,
-      message,
-      status,
-      timestamp: new Date()
-    };
-
-    setRealTimeUpdates(prev => [update, ...prev.slice(0, 19)]); // Keep last 20 updates
-  };
-
-  const clearUpdates = useCallback(() => {
-    setRealTimeUpdates([]);
-    toast.info('Cleared all notifications');
-  }, []);
-
-  const refreshData = useCallback(async () => {
-    toast.loading('Refreshing dashboard data...');
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      toast.success('Dashboard data refreshed successfully');
-      
-      setRealTimeUpdates(prev => [{
-        id: Date.now().toString(),
-        type: 'success',
-        title: 'Data Refreshed',
-        description: 'Dashboard data has been refreshed',
-        timestamp: new Date()
-      }, ...prev.slice(0, 19)]);
-    } catch (error) {
-      toast.error('Failed to refresh data');
-      console.error('Refresh error:', error);
-    }
-  }, []);
 
 
   const getStatusColor = (status: string) => {

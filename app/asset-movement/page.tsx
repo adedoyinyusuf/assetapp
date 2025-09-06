@@ -27,13 +27,13 @@ export default async function AssetMovementPage() {
             </TableHeader>
             <TableBody>
               {movements.map((movement) => {
-                const asset = assets.find(a => a.id === movement.assetId)
+                const asset = assets.find(a => a.id === movement.asset_id)
                 return (
                   <TableRow key={movement.id}>
                     <TableCell>{asset?.name}</TableCell>
-                    <TableCell>{movement.fromLocation}</TableCell>
-                    <TableCell>{movement.toLocation}</TableCell>
-                    <TableCell>{movement.moveDate}</TableCell>
+                    <TableCell>{movement.from_state}, {movement.from_lga}</TableCell>
+                    <TableCell>{movement.to_state}, {movement.to_lga}</TableCell>
+                    <TableCell>{movement.movement_date}</TableCell>
                     <TableCell>{movement.notes}</TableCell>
                   </TableRow>
                 )

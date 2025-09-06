@@ -17,8 +17,6 @@ import {
   Move,
   Settings
 } from 'lucide-react';
-import { PermissionGate } from './PermissionGate';
-import { Task } from '@/lib/auth/roles';
 
 interface ApprovalRequest {
   id: string;
@@ -53,7 +51,7 @@ interface ApprovalWorkflowProps {
   userId: string;
 }
 
-export default function ApprovalWorkflow({ userRole, userId }: ApprovalWorkflowProps) {
+export default function ApprovalWorkflow({ userId }: ApprovalWorkflowProps) {
   const [approvalRequests, setApprovalRequests] = useState<ApprovalRequest[]>([]);
   const [selectedRequest, setSelectedRequest] = useState<ApprovalRequest | null>(null);
   const [showApprovalModal, setShowApprovalModal] = useState(false);
@@ -211,7 +209,7 @@ export default function ApprovalWorkflow({ userRole, userId }: ApprovalWorkflowP
               if (approver.id === userId) {
                 return {
                   ...approver,
-                  status: approved ? 'approved' : 'rejected',
+                  status: (approved ? 'approved' : 'rejected') as 'approved' | 'rejected',
                   comment: approvalComment,
                   timestamp: new Date()
                 };
@@ -220,8 +218,9 @@ export default function ApprovalWorkflow({ userRole, userId }: ApprovalWorkflowP
             });
             
             const currentApprovals = updatedApprovers.filter(a => a.status === 'approved').length;
-            const status = currentApprovals >= req.requiredApprovals ? 'approved' : 
-                         updatedApprovers.some(a => a.status === 'rejected') ? 'rejected' : 'pending';
+            const status: 'pending' | 'approved' | 'rejected' | 'cancelled' = 
+              currentApprovals >= req.requiredApprovals ? 'approved' : 
+              updatedApprovers.some(a => a.status === 'rejected') ? 'rejected' : 'pending';
             
             return {
               ...req,
@@ -229,7 +228,7 @@ export default function ApprovalWorkflow({ userRole, userId }: ApprovalWorkflowP
               currentApprovals,
               status,
               updatedAt: new Date()
-            };
+            } as ApprovalRequest;
           }
           return req;
         })

@@ -4,7 +4,9 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { useAuth } from '@/lib/auth/AuthContext';
 
-export function useProtectedRoute(requiredRole?: string, requiredPermission?: [string, string]) {
+import { UserRole } from '@/lib/auth/roles';
+
+export function useProtectedRoute(requiredRole?: UserRole, requiredPermission?: [string, string]) {
   const { user, loading, isAuthorized, hasPermission } = useAuth();
   const router = useRouter();
   const pathname = usePathname();

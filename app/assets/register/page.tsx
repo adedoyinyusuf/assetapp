@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faSave, faPlus, faArrowLeft } from '@fortawesome/free-solid-svg-icons'
+import { faSave, faArrowLeft } from '@fortawesome/free-solid-svg-icons'
 import { addAsset, getCategories, getStates, getLGAs, Category, State, LGA } from '@/app/actions'
 import Link from 'next/link'
 
@@ -111,10 +111,7 @@ export default function AssetRegisterPage() {
 
     setLoading(true)
     try {
-      // Find the selected category, state, and lga names
-      const categoryObj = categories.find(c => c.id === parseInt(formData.category_id))
-      const stateObj = states.find(s => s.id === parseInt(formData.state_id))
-      const lgaObj = lgas.find(l => l.id === parseInt(formData.lga_id))
+      // Prepare asset data for submission
 
       const assetData = {
         name: formData.name,
@@ -122,12 +119,9 @@ export default function AssetRegisterPage() {
         purchaseDate: formData.purchaseDate,
         usefulLife: parseInt(formData.usefulLife),
         salvageValue: parseFloat(formData.salvageValue || '0'),
-        category_id: parseInt(formData.category_id),
-        state_id: parseInt(formData.state_id),
-        lga_id: parseInt(formData.lga_id),
-        category: categoryObj?.name || '',
-        state: stateObj?.name || '',
-        lga: lgaObj?.name || ''
+        categoryId: parseInt(formData.category_id),
+        stateId: parseInt(formData.state_id),
+        lgaId: parseInt(formData.lga_id)
       }
 
       await addAsset(assetData)

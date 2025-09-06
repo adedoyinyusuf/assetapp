@@ -113,6 +113,7 @@ export const authOptions: AuthOptions = {
 
           return {
             id: user.id.toString(),
+            name: user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.email,
             email: user.email,
             firstName: user.firstName,
             lastName: user.lastName,
@@ -120,6 +121,7 @@ export const authOptions: AuthOptions = {
             isActive: user.isActive,
             lastLogin: user.lastLogin,
             permissions: permissions,
+            tasks: [], // Add empty tasks array to satisfy User interface
           };
         } catch (error) {
           console.error('Authentication error:', error);

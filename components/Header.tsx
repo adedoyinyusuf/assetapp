@@ -26,50 +26,6 @@ import { UserRole } from '@/lib/auth/roles';
 import { Action, Resource, can } from '@/lib/auth/roles';
 import { cn } from '@/lib/utils';
 
-// Modern button component with enhanced design
-const Button = ({
-  children,
-  className = '',
-  variant = 'default',
-  size = 'default',
-  ...props
-}: {
-  children: React.ReactNode;
-  className?: string;
-  variant?: 'default' | 'outline' | 'ghost' | 'link' | 'secondary';
-  size?: 'default' | 'sm' | 'lg' | 'icon';
-} & React.ButtonHTMLAttributes<HTMLButtonElement>) => {
-  const baseStyles = 'inline-flex items-center justify-center rounded-lg text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none shadow-sm hover:shadow-md active:scale-95';
-  
-  const variants = {
-    default: 'bg-gradient-to-r from-primary to-primary/90 text-primary-foreground hover:from-primary/90 hover:to-primary/80 shadow-primary/20',
-    outline: 'border border-gray-200 bg-white hover:bg-gray-50 hover:border-gray-300 text-gray-700 hover:text-gray-900',
-    ghost: 'hover:bg-gray-100/80 text-gray-600 hover:text-gray-900',
-    link: 'underline-offset-4 hover:underline text-primary p-0 h-auto shadow-none',
-    secondary: 'bg-gray-100 text-gray-900 hover:bg-gray-200'
-  };
-
-  const sizes = {
-    default: 'h-10 py-2 px-4',
-    sm: 'h-8 px-3 text-xs',
-    lg: 'h-12 px-6 text-base',
-    icon: 'h-10 w-10 p-0'
-  };
-
-  return (
-    <button
-      className={cn(
-        baseStyles,
-        variants[variant],
-        sizes[size],
-        className
-      )}
-      {...props}
-    >
-      {children}
-    </button>
-  );
-};
 
 interface MenuItem {
   href: string;
@@ -326,14 +282,6 @@ export function Header() {
         </motion.button>
         
         <motion.div 
-          className="absolute left-0 mt-2 w-64 origin-top-left rounded-2xl bg-white shadow-xl ring-1 ring-gray-200 z-50"
-          initial={{ opacity: 0, scale: 0.9, y: -10 }}
-          whileHover={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ duration: 0.2, ease: 'easeOut' }}
-          style={{
-            opacity: 0,
-            pointerEvents: 'none',
-          }}
           className="absolute left-0 mt-2 w-64 origin-top-left rounded-2xl bg-white shadow-xl ring-1 ring-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 ease-out transform translate-y-2 group-hover:translate-y-0 z-50 backdrop-blur-sm"
         >
           <div className="p-2">

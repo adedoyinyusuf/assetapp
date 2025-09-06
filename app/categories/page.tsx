@@ -8,7 +8,7 @@ import { CategoryManager } from '@/components/CategoryManager';
 import { Category, getCategories, addCategory } from '@/app/actions';
 
 export default function CategoriesPage() {
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [, setCategories] = useState<Category[]>([])
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [newCategoryName, setNewCategoryName] = useState('');

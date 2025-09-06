@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faSearch, faFilter, faSave } from '@fortawesome/free-solid-svg-icons'
+import { faSearch, faSave } from '@fortawesome/free-solid-svg-icons'
 import { getAssets, getCategories, getStates, Asset, Category, State } from '@/app/actions'
 import Link from 'next/link'
 
@@ -55,18 +55,18 @@ export default function AssetSearchPage() {
       if (searchTerm) {
         filtered = filtered.filter(asset => 
           asset.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          asset.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          asset.state.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          asset.lga.toLowerCase().includes(searchTerm.toLowerCase())
+          (asset.category?.name?.toLowerCase() ?? '').includes(searchTerm.toLowerCase()) ||
+          (asset.state?.name?.toLowerCase() ?? '').includes(searchTerm.toLowerCase()) ||
+          (asset.lga?.name?.toLowerCase() ?? '').includes(searchTerm.toLowerCase())
         )
       }
 
       if (selectedCategory && selectedCategory !== 'all') {
-        filtered = filtered.filter(asset => asset.category === selectedCategory)
+        filtered = filtered.filter(asset => asset.category?.name === selectedCategory)
       }
 
       if (selectedState && selectedState !== 'all') {
-        filtered = filtered.filter(asset => asset.state === selectedState)
+        filtered = filtered.filter(asset => asset.state?.name === selectedState)
       }
 
       if (minValue) {
@@ -329,10 +329,10 @@ export default function AssetSearchPage() {
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-2 text-sm">
-                          <div><strong>Category:</strong> {asset.category}</div>
+                          <div><strong>Category:</strong> {asset.category?.name}</div>
                           <div><strong>Value:</strong> ${asset.purchaseValue.toLocaleString()}</div>
                           <div><strong>Purchase Date:</strong> {new Date(asset.purchaseDate).toLocaleDateString()}</div>
-                          <div><strong>Location:</strong> {asset.state}, {asset.lga}</div>
+                          <div><strong>Location:</strong> {asset.state?.name}, {asset.lga?.name}</div>
                           <div><strong>Useful Life:</strong> {asset.usefulLife} years</div>
                         </div>
                         <div className="mt-4">

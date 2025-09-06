@@ -164,13 +164,6 @@ export default function DisposalPage() {
   }
 
   const getStatusBadge = (status: DisposalRecord['status']) => {
-    const variants = {
-      'Pending Approval': 'secondary',
-      'Approved': 'default',
-      'Disposed': 'default',
-      'Cancelled': 'destructive'
-    } as const
-
     const colors = {
       'Pending Approval': 'bg-yellow-100 text-yellow-800',
       'Approved': 'bg-blue-100 text-blue-800',
@@ -275,7 +268,7 @@ export default function DisposalPage() {
                     <SelectContent>
                       {assets.map((asset) => (
                         <SelectItem key={asset.id} value={asset.id.toString()}>
-                          {asset.name} - {asset.category}
+                          {asset.name} - {asset.category?.name}
                         </SelectItem>
                       ))}
                     </SelectContent>

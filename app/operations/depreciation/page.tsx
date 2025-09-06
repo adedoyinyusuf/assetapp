@@ -80,7 +80,7 @@ export default async function DepreciationPage() {
                   return (
                     <TableRow key={asset.id}>
                       <TableCell className="font-medium">{asset.name}</TableCell>
-                      <TableCell>{asset.category}</TableCell>
+                      <TableCell>{asset.category?.name}</TableCell>
                       <TableCell>${asset.purchaseValue.toLocaleString()}</TableCell>
                       <TableCell>${currentValue.toLocaleString()}</TableCell>
                       <TableCell>${totalDepreciation.toLocaleString()}</TableCell>

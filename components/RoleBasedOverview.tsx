@@ -10,13 +10,10 @@ import {
 } from '@/lib/auth/roles';
 import { 
   TrendingUp, 
-  TrendingDown, 
   DollarSign, 
   Package, 
   Users, 
-  MapPin,
   Activity,
-  BarChart3,
   Search,
   Settings,
   Eye,

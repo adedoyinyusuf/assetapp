@@ -1,4 +1,4 @@
-import { prisma } from './server-prisma';
+import { prisma } from './db';
 
 export interface AnalyticsData {
   assetMetrics: AssetMetrics;
@@ -255,27 +255,27 @@ export class AnalyticsService {
   /**
    * Get trend analysis
    */
-  static async getTrendAnalysis(dateRange?: { start: Date; end: Date }): Promise<TrendAnalysis> {
+  static async getTrendAnalysis(_dateRange?: { start: Date; end: Date }): Promise<TrendAnalysis> {
     // Placeholder implementation - would need more complex date aggregation
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
     
     return {
-      assetGrowth: months.map((month, index) => ({
+      assetGrowth: months.map((month) => ({
         month,
         count: Math.floor(Math.random() * 100) + 50,
         value: Math.floor(Math.random() * 1000000) + 500000,
       })),
-      depreciationTrends: months.map((month, index) => ({
+      depreciationTrends: months.map((month) => ({
         month,
         depreciation: Math.floor(Math.random() * 100000) + 50000,
         value: Math.floor(Math.random() * 1000000) + 500000,
       })),
-      maintenanceTrends: months.map((month, index) => ({
+      maintenanceTrends: months.map((month) => ({
         month,
         incidents: Math.floor(Math.random() * 20) + 5,
         cost: Math.floor(Math.random() * 50000) + 10000,
       })),
-      locationTrends: months.map((month, index) => ({
+      locationTrends: months.map((month) => ({
         month,
         location: 'Lagos',
         count: Math.floor(Math.random() * 50) + 25,
@@ -286,7 +286,7 @@ export class AnalyticsService {
   /**
    * Get predictive insights
    */
-  static async getPredictiveInsights(dateRange?: { start: Date; end: Date }): Promise<PredictiveInsights> {
+  static async getPredictiveInsights(_dateRange?: { start: Date; end: Date }): Promise<PredictiveInsights> {
     const assets = await prisma.asset.findMany({
       select: {
         id: true,
@@ -409,7 +409,7 @@ export class AnalyticsService {
     return csvRows.map(row => row.join(',')).join('\n');
   }
 
-  private static convertToPDF(data: AnalyticsData): string {
+  private static convertToPDF(_data: AnalyticsData): string {
     // Implementation for PDF conversion
     // This would typically use a library like jsPDF or puppeteer
     return 'PDF generation not implemented';

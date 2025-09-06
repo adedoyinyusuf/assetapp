@@ -27,9 +27,7 @@ export default async function EnhancedDashboardPage() {
   // Fetch dashboard data
   const [assetCount, activeAssets, totalValue] = await Promise.all([
     prisma.asset.count(),
-    prisma.asset.count({
-      where: { status: 'ACTIVE' },
-    }),
+    prisma.asset.count(),
     prisma.asset.aggregate({
       _sum: {
         purchaseValue: true,

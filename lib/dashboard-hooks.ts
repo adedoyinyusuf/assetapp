@@ -68,7 +68,7 @@ export function useDashboardData() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [dateRange, setDateRange] = useState<'week' | 'month' | 'quarter' | 'year'>('month');
+  const [dateRange] = useState<'week' | 'month' | 'quarter' | 'year'>('month');
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [filters, setFilters] = useState<DashboardFilters>({
     dateRange: 'month',
@@ -201,7 +201,7 @@ export function useDashboardData() {
   };
 
   // Calculate metrics from assets and activities
-  const calculateMetrics = (assets: Asset[], activities: Activity[]): Omit<DashboardMetrics, 'recentAssets' | 'recentActivities'> => {
+  const calculateMetrics = (assets: Asset[], _activities: Activity[]): Omit<DashboardMetrics, 'recentAssets' | 'recentActivities'> => {
     const totalAssets = assets.length;
     const totalValue = assets.reduce((sum, asset) => sum + asset.currentValue, 0);
     const activeAssets = assets.filter(asset => asset.status === 'active').length;
@@ -236,8 +236,7 @@ export function useDashboardData() {
       return date.toLocaleString('default', { month: 'short' });
     });
     
-    const values = labels.map((_, i) => {
-      const month = new Date().getMonth() - (11 - i);
+    const values = labels.map(() => {
       return Math.floor(totalAssets * (0.7 + Math.random() * 0.6));
     });
     
@@ -376,6 +375,10 @@ export function useDashboardData() {
   }, [assets, searchQuery, filters]);
 
   // Action handlers
+  const handleViewAsset = useCallback((assetId: string) => {
+    router.push(`/assets/${assetId}`);
+  }, [router]);
+
   const handleAddAsset = useCallback(() => {
     toast.info('Navigating to add asset form');
     router.push('/assets/new');
@@ -433,10 +436,6 @@ export function useDashboardData() {
       return updatedFilters;
     });
   }, []);
-
-  const handleViewAsset = useCallback((assetId: string) => {
-    router.push(`/assets/${assetId}`);
-  }, [router]);
 
   const handleToggleNotifications = useCallback(() => {
     setNotificationsEnabled(prev => {
@@ -534,44 +533,6 @@ export function useDashboardData() {
     // Helpers
     formatCurrency,
     formatDate
-  };
-}
-      },
-    ];
-    
-    setActivities(sampleActivities);
-  }, []);
-
-  return {
-    // State
-    assets: filteredAssets(),
-    activities,
-    metrics,
-    isLoading,
-    dateRange,
-    searchQuery,
-    notificationsEnabled,
-    
-    // Actions
-    setDateRange,
-    setSearchQuery,
-    handleAddAsset,
-    handleTransferAsset,
-    handleExportReport,
-    handleFilterChange,
-    handleViewAsset,
-    handleToggleNotifications,
-    
-    // Formatting helpers
-    formatCurrency: (value: number) => 
-      new Intl.NumberFormat('en-US', { 
-        style: 'currency', 
-        currency: 'USD',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0
-      }).format(value),
-      
-    formatDate: (date: Date) => format(date, 'MMM d, yyyy')
   };
 }
 

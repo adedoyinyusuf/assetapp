@@ -27,7 +27,6 @@ interface AssetMovementFormProps {
 
 export default function AssetMovementForm({ 
   assetId, 
-  currentLocation, 
   currentStateId,
   currentLgaId,
   categoryName 
