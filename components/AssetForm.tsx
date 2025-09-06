@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { addAsset, updateAsset, getLGAs, Asset, Category, State, LGA } from '@/app/actions'
+import { addAsset, updateAsset, getLGAs, Asset, Category, State, LGA } from '@/app/client-actions'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faSave } from '@fortawesome/free-solid-svg-icons'
 

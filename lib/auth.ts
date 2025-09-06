@@ -2,22 +2,11 @@ import { PrismaAdapter } from '@auth/prisma-adapter';
 import type { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
-import { prisma } from './prisma';
+import { prisma } from './server-prisma';
 import { UserRole } from './auth/roles';
 
 // This file contains the NextAuth configuration for the application.
 // It sets up the authentication options including providers, callbacks, and session handling.
-
-// Define the auth options for NextAuth
-    email: string;
-    firstName: string | null;
-    lastName: string | null;
-    role: string;
-    isActive: boolean;
-    lastLogin: Date | null;
-    permissions: string[];
-  }
-}
 
 // Define the auth options for NextAuth
 export const authOptions: NextAuthOptions = {
@@ -65,7 +54,7 @@ export const authOptions: NextAuthOptions = {
         // Check if password is correct
         const isPasswordValid = await bcrypt.compare(
           credentials.password as string,
-          user.password
+          user.hashedPassword
         );
 
         if (!isPasswordValid) {

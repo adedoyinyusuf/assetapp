@@ -7,7 +7,7 @@ import { authOptions } from '@/lib/auth-options';
 export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || session.user.role !== 'SUPER_ADMIN') {
+    if (!session || session.user.role !== 'SUPERADMIN') {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 

@@ -1,6 +1,7 @@
 
 'use server'
 import { revalidatePath } from 'next/cache'
+import { prisma } from '@/lib/server-prisma'
 
 // Interfaces
 export interface Asset {
@@ -103,8 +104,6 @@ export async function addAssetMovement(movement: Omit<AssetMovement, 'id' | 'ass
   revalidatePath('/operations/movements');
   return res.json();
 }
-
-import { prisma } from '@/lib/server-prisma';
 
 // Asset CRUD
 export async function getAssets(): Promise<Asset[]> {

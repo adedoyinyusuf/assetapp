@@ -15,7 +15,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select"
-import { deleteAsset, getCategories, Asset, Category } from '@/app/actions'
+import { deleteAsset, getCategories, Asset, Category } from '@/app/client-actions'
 
 interface AssetListProps {
   initialAssets: Asset[]

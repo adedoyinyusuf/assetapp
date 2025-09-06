@@ -35,21 +35,30 @@ const nextConfig = {
   productionBrowserSourceMaps: false,
   
   // Webpack configuration
-  webpack: (config, { isServer }) => {
-    // Fixes npm packages that depend on `fs` module
+  webpack(config, { isServer }) {
+    // Fixes npm packages that depend on `node:` protocol
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      fs: false,
+      net: false,
+      tls: false,
+      dns: false,
+      child_process: false,
+      dgram: false,
+      crypto: false,
+      http2: false,
+      process: false,
+      path: false,
+      zlib: false,
+      bcrypt: false,
+    };
+
+    // Exclude bcrypt from client-side builds
     if (!isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        fs: false,
-        net: false,
-        tls: false,
-        dns: false,
-        child_process: false,
-        dgram: false,
-        module: false,
-      };
+      config.resolve.fallback.bcrypt = false;
+      config.externals = [...(config.externals || []), 'bcryptjs'];
     }
-    
+
     return config;
   },
   
@@ -82,8 +91,14 @@ const nextConfig = {
   
   // Experimental features
   experimental: {
-    serverComponentsExternalPackages: ['bcryptjs'],
+    serverComponentsExternalPackages: ['bcryptjs', '@prisma/client', 'prisma'],
+    serverActions: {
+      bodySizeLimit: '2mb',
+    },
   },
+  
+  // Transpile bcryptjs
+  transpilePackages: ['bcryptjs'],
 };
 
 export default nextConfig;

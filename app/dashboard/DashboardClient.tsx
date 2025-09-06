@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { 
   Package,
@@ -15,7 +15,10 @@ import {
   Filter,
   CheckCircle,
   AlertTriangle,
-  Info
+  Info,
+  Activity,
+  PieChart,
+  Users
 } from 'lucide-react';
 
 // UI Components
@@ -23,6 +26,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
+import { QuickAction, ActivityFeed } from '@/components/dashboard/ActivityFeed';
+import { DashboardCard } from '@/components/dashboard/DashboardCard';
+import { WebSocketPermissionGate } from '@/components/PermissionGate';
 
 interface Activity {
   id: string;
@@ -35,6 +42,14 @@ interface Activity {
   message?: string;
 }
 
+interface RealTimeUpdate {
+  id: string;
+  type: 'asset' | 'user' | 'system' | 'depreciation' | 'info' | 'success' | 'warning' | 'error';
+  message: string;
+  status: 'success' | 'warning' | 'error' | 'info';
+  timestamp: Date;
+}
+
 interface Asset {
   id: string;
   name: string;
@@ -45,8 +60,8 @@ interface Asset {
   lastUpdated: Date;
 }
 
-export default function Dashboard() {
-  const [realTimeUpdates, setRealTimeUpdates] = useState<Activity[]>([]);
+export default function DashboardClient() {
+  const [realTimeUpdates, setRealTimeUpdates] = useState<RealTimeUpdate[]>([]);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [searchQuery, setSearchQuery] = useState('');
@@ -102,19 +117,22 @@ export default function Dashboard() {
   const handleTransferAsset = () => {
     toast.info('Transfer Asset functionality will be implemented here');
   };
-
-  const handleExportReport = () => {
-    toast.success('Exporting report...');
+  const handleExportReport = (type: string) => {
+    toast.success(`Exporting ${type} report...`);
   };
 
   const handleViewAsset = (assetId: string) => {
     toast.info(`Viewing asset ${assetId}`);
   };
 
-  const handleFilterChange = (filter: string, value: string) => {
-    setDateRange(value);
-    toast.info(`Date range changed to: ${value}`);
+  const handleFilterChange = (filter: object) => {
+    toast.info(`Applying filter: ${JSON.stringify(filter)}`);
   };
+
+  const categoryData = metrics.assetDistribution.byCategory.map(cat => ({
+    ...cat,
+    color: `#${Math.floor(Math.random()*16777215).toString(16)}` // Dummy colors
+  }));
   
   // Handle real-time updates
   useEffect(() => {
@@ -189,176 +207,7 @@ export default function Dashboard() {
   };
   
   // Main render
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Asset Dashboard</h1>
-          <p className="text-muted-foreground">
-            Overview of your asset management system
-          </p>
-        </div>
-        <div className="flex items-center space-x-2">
-          <Button variant="outline" size="sm" onClick={handleExportReport}>
-            <Download className="mr-2 h-4 w-4" />
-            Export
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleToggleNotifications}>
-            {notificationsEnabled ? (
-              <Bell className="mr-2 h-4 w-4" />
-            ) : (
-              <BellOff className="mr-2 h-4 w-4" />
-            )}
-            {notificationsEnabled ? 'Disable Notifications' : 'Enable Notifications'}
-          </Button>
-        </div>
-      </div>
-      
-      {/* Quick Actions */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Button onClick={handleAddAsset} className="h-24 flex-col gap-2">
-          <Plus className="h-6 w-6" />
-          Add Asset
-        </Button>
-        <Button variant="outline" className="h-24 flex-col gap-2">
-          <Move className="h-6 w-6" />
-          Transfer Asset
-        </Button>
-        <Button variant="outline" className="h-24 flex-col gap-2">
-          <Download className="h-6 w-6" />
-          Generate Report
-        </Button>
-        <Button variant="outline" className="h-24 flex-col gap-2">
-          <Filter className="h-6 w-6" />
-          Advanced Filters
-        </Button>
-      </div>
-      
-      {/* Stats Overview */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Assets</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatNumber(metrics.totalAssets)}</div>
-            <p className="text-xs text-muted-foreground">
-              Across all locations
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Value</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(metrics.totalValue)}</div>
-            <p className="text-xs text-muted-foreground">
-              Current market value
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Assets</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatNumber(metrics.activeAssets)}</div>
-            <p className="text-xs text-muted-foreground">
-              Currently in use
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Maintenance</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{metrics.maintenanceNeeded}</div>
-            <p className="text-xs text-muted-foreground">
-              Requiring attention
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-      
-      {/* Main Content */}
-      <div className="grid gap-4 md:grid-cols-3">
-        {/* Recent Activities */}
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <CardTitle>Recent Activities</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {metrics.recentActivities.map((activity) => (
-                <div key={activity.id} className="flex items-start gap-4">
-                  <div className="mt-1">
-                    {getStatusIcon(activity.status || 'info')}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-medium">{activity.title}</h4>
-                      <span className="text-xs text-muted-foreground">
-                        {formatDate(activity.timestamp)}
-                      </span>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {activity.description}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-        
-        {/* Recent Assets */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Assets</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {metrics.recentAssets.map((asset) => (
-                <div key={asset.id} className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <p className="font-medium">{asset.name}</p>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <span>{asset.category}</span>
-                      <span>•</span>
-                      <span>{asset.location}</span>
-                    </div>
-                  </div>
-                  <Badge variant="outline" className={getStatusBadgeColor(asset.status)}>
-                    {asset.status.charAt(0).toUpperCase() + asset.status.slice(1)}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-            <Button variant="ghost" className="mt-4 w-full">
-              View All Assets
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
-  
   // Toggle notifications handler
-  const toggleNotifications = () => {
-    setNotificationsEnabled(prev => !prev);
-    handleToggleNotifications();
-  };
-
   const handleSystemNotification = useCallback((notification: any) => {
     setRealTimeUpdates(prev => [{
       id: Date.now().toString(),
@@ -379,7 +228,7 @@ export default function Dashboard() {
 
   const handleDepreciationUpdate = useCallback((depreciationData: any) => {
     addUpdate('depreciation', `Depreciation calculated for ${depreciationData.assetName}`, 'info');
-  };
+  });
 
   const addUpdate = (type: string, message: string, status: 'success' | 'warning' | 'error' | 'info' = 'info') => {
     const update: RealTimeUpdate = {
@@ -418,19 +267,6 @@ export default function Dashboard() {
     }
   }, []);
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'success':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'warning':
-        return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
-      case 'error':
-        return <AlertTriangle className="h-4 w-4 text-red-500" />;
-      case 'info':
-      default:
-        return <Info className="h-4 w-4 text-blue-500" />;
-    }
-  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -453,7 +289,6 @@ export default function Dashboard() {
         title="Asset Management Dashboard"
         description="Overview of your assets, activities, and key metrics"
         onSearch={setSearchQuery}
-        searchValue={searchQuery}
         user={{
           name: 'John Doe',
           email: 'john.doe@example.com',
@@ -474,7 +309,7 @@ export default function Dashboard() {
         <QuickAction 
           icon={<Move className="h-6 w-6 text-purple-600" />} 
           label="Transfer Asset" 
-          variant="secondary"
+          variant="default"
           onClick={() => handleTransferAsset()}
         />
         <QuickAction 
@@ -671,12 +506,8 @@ export default function Dashboard() {
         <div className="space-y-6">
           {/* Activity Feed */}
           <ActivityFeed 
-            activities={activities} 
+            activities={metrics.recentActivities} 
             className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6"
-            onViewAll={() => {
-              // In a real app, this would navigate to the activity log
-              toast.info('Opening full activity log');
-            }}
           />
           
           {/* Asset Distribution */}
@@ -869,7 +700,7 @@ export default function Dashboard() {
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{data.totalAssets.toLocaleString()}</div>
+            <div className="text-2xl font-bold">{metrics.totalAssets.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
               <TrendingUp className="inline h-3 w-3 text-green-600" />
               +12% from last month
@@ -883,7 +714,7 @@ export default function Dashboard() {
             <Move className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{data.assetMovements}</div>
+            <div className="text-2xl font-bold">{metrics.totalAssets}</div>
             <p className="text-xs text-muted-foreground">
               Last 7 days
             </p>
@@ -896,7 +727,7 @@ export default function Dashboard() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{data.totalUsers}</div>
+            <div className="text-2xl font-bold">{metrics.totalAssets}</div>
             <p className="text-xs text-muted-foreground">
               <TrendingUp className="inline h-3 w-3 text-green-600" />
               +5% from last month
@@ -910,7 +741,7 @@ export default function Dashboard() {
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{data.categories}</div>
+            <div className="text-2xl font-bold">{metrics.assetDistribution.byCategory.length}</div>
             <p className="text-xs text-muted-foreground">
               Asset categories
             </p>

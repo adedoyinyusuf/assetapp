@@ -35,6 +35,65 @@ module.exports = {
       },
     },
     extend: {
+      // Material 3 Typography Scale
+      fontSize: {
+        'display-large': ['57px', { lineHeight: '64px', letterSpacing: '-0.25px', fontWeight: '400' }],
+        'display-medium': ['45px', { lineHeight: '52px', letterSpacing: '0', fontWeight: '400' }],
+        'display-small': ['36px', { lineHeight: '44px', letterSpacing: '0', fontWeight: '400' }],
+        'headline-large': ['32px', { lineHeight: '40px', letterSpacing: '0', fontWeight: '400' }],
+        'headline-medium': ['28px', { lineHeight: '36px', letterSpacing: '0', fontWeight: '400' }],
+        'headline-small': ['24px', { lineHeight: '32px', letterSpacing: '0', fontWeight: '400' }],
+        'title-large': ['22px', { lineHeight: '28px', letterSpacing: '0', fontWeight: '400' }],
+        'title-medium': ['16px', { lineHeight: '24px', letterSpacing: '0.15px', fontWeight: '500' }],
+        'title-small': ['14px', { lineHeight: '20px', letterSpacing: '0.1px', fontWeight: '500' }],
+        'label-large': ['14px', { lineHeight: '20px', letterSpacing: '0.1px', fontWeight: '500' }],
+        'label-medium': ['12px', { lineHeight: '16px', letterSpacing: '0.5px', fontWeight: '500' }],
+        'label-small': ['11px', { lineHeight: '16px', letterSpacing: '0.5px', fontWeight: '500' }],
+        'body-large': ['16px', { lineHeight: '24px', letterSpacing: '0.15px', fontWeight: '400' }],
+        'body-medium': ['14px', { lineHeight: '20px', letterSpacing: '0.25px', fontWeight: '400' }],
+        'body-small': ['12px', { lineHeight: '16px', letterSpacing: '0.4px', fontWeight: '400' }],
+      },
+      
+      // Material 3 Elevation Shadows
+      boxShadow: {
+        'elevation-0': 'none',
+        'elevation-1': '0px 1px 2px 0px rgba(0, 0, 0, 0.3), 0px 1px 3px 1px rgba(0, 0, 0, 0.15)',
+        'elevation-2': '0px 1px 2px 0px rgba(0, 0, 0, 0.3), 0px 2px 6px 2px rgba(0, 0, 0, 0.15)',
+        'elevation-3': '0px 1px 3px 0px rgba(0, 0, 0, 0.3), 0px 4px 8px 3px rgba(0, 0, 0, 0.15)',
+        'elevation-4': '0px 2px 3px 0px rgba(0, 0, 0, 0.3), 0px 6px 10px 4px rgba(0, 0, 0, 0.15)',
+        'elevation-5': '0px 4px 4px 0px rgba(0, 0, 0, 0.3), 0px 8px 12px 6px rgba(0, 0, 0, 0.15)',
+      },
+      
+      // Material 3 Animation Curves
+      transitionTimingFunction: {
+        'emphasis-decelerate': 'cubic-bezier(0.05, 0.7, 0.1, 1.0)',
+        'emphasis-accelerate': 'cubic-bezier(0.3, 0, 0.8, 0.15)',
+        'standard-decelerate': 'cubic-bezier(0, 0, 0, 1)',
+        'standard-accelerate': 'cubic-bezier(0.3, 0, 1, 1)',
+        'legacy-decelerate': 'cubic-bezier(0, 0, 0.2, 1)',
+        'legacy-accelerate': 'cubic-bezier(0.4, 0, 1, 1)',
+      },
+      
+      // Material 3 Animation Durations
+      transitionDuration: {
+        'short1': '50ms',
+        'short2': '100ms',
+        'short3': '150ms',
+        'short4': '200ms',
+        'medium1': '250ms',
+        'medium2': '300ms',
+        'medium3': '350ms',
+        'medium4': '400ms',
+        'long1': '450ms',
+        'long2': '500ms',
+        'long3': '550ms',
+        'long4': '600ms',
+        'extra-long1': '700ms',
+        'extra-long2': '800ms',
+        'extra-long3': '900ms',
+        'extra-long4': '1000ms',
+      },
+      
       colors: {
         primary: {
           50: '#f0f9ff',
@@ -101,11 +160,56 @@ module.exports = {
           900: '#7f1d1d',
           950: '#450a0a',
         },
+        /* Legacy colors for backward compatibility */
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+        
+        /* Material 3 Color System */
+        'md-primary': "hsl(var(--md-sys-color-primary))",
+        'md-on-primary': "hsl(var(--md-sys-color-on-primary))",
+        'md-primary-container': "hsl(var(--md-sys-color-primary-container))",
+        'md-on-primary-container': "hsl(var(--md-sys-color-on-primary-container))",
+        'md-primary-fixed': "hsl(var(--md-sys-color-primary-fixed))",
+        'md-on-primary-fixed': "hsl(var(--md-sys-color-on-primary-fixed))",
+        'md-primary-fixed-dim': "hsl(var(--md-sys-color-primary-fixed-dim))",
+        'md-on-primary-fixed-variant': "hsl(var(--md-sys-color-on-primary-fixed-variant))",
+        
+        'md-secondary': "hsl(var(--md-sys-color-secondary))",
+        'md-on-secondary': "hsl(var(--md-sys-color-on-secondary))",
+        'md-secondary-container': "hsl(var(--md-sys-color-secondary-container))",
+        'md-on-secondary-container': "hsl(var(--md-sys-color-on-secondary-container))",
+        
+        'md-tertiary': "hsl(var(--md-sys-color-tertiary))",
+        'md-on-tertiary': "hsl(var(--md-sys-color-on-tertiary))",
+        'md-tertiary-container': "hsl(var(--md-sys-color-tertiary-container))",
+        'md-on-tertiary-container': "hsl(var(--md-sys-color-on-tertiary-container))",
+        
+        'md-error': "hsl(var(--md-sys-color-error))",
+        'md-on-error': "hsl(var(--md-sys-color-on-error))",
+        'md-error-container': "hsl(var(--md-sys-color-error-container))",
+        'md-on-error-container': "hsl(var(--md-sys-color-on-error-container))",
+        
+        'md-surface-dim': "hsl(var(--md-sys-color-surface-dim))",
+        'md-surface': "hsl(var(--md-sys-color-surface))",
+        'md-surface-bright': "hsl(var(--md-sys-color-surface-bright))",
+        'md-on-surface': "hsl(var(--md-sys-color-on-surface))",
+        'md-surface-variant': "hsl(var(--md-sys-color-surface-variant))",
+        'md-on-surface-variant': "hsl(var(--md-sys-color-on-surface-variant))",
+        'md-surface-container-lowest': "hsl(var(--md-sys-color-surface-container-lowest))",
+        'md-surface-container-low': "hsl(var(--md-sys-color-surface-container-low))",
+        'md-surface-container': "hsl(var(--md-sys-color-surface-container))",
+        'md-surface-container-high': "hsl(var(--md-sys-color-surface-container-high))",
+        'md-surface-container-highest': "hsl(var(--md-sys-color-surface-container-highest))",
+        
+        'md-outline': "hsl(var(--md-sys-color-outline))",
+        'md-outline-variant': "hsl(var(--md-sys-color-outline-variant))",
+        
+        'md-inverse-surface': "hsl(var(--md-sys-color-inverse-surface))",
+        'md-inverse-on-surface': "hsl(var(--md-sys-color-inverse-on-surface))",
+        'md-inverse-primary': "hsl(var(--md-sys-color-inverse-primary))",
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
@@ -136,11 +240,15 @@ module.exports = {
         },
       },
       borderRadius: {
-        lg: '0.75rem',
-        md: '0.5rem',
-        sm: '0.375rem',
-        '4xl': '2rem',
-        xl: '2rem',
+        'none': '0',
+        'xs': '4px',
+        'sm': '8px', 
+        'md': '12px',
+        'lg': '16px',
+        'xl': '20px',
+        '2xl': '24px',
+        '3xl': '28px',
+        'full': '9999px',
       },
     },
   },

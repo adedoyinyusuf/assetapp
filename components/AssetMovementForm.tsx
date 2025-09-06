@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { addAssetMovement, getStates, getLGAs, State, LGA } from '@/app/actions'
+import { addAssetMovement, getStates, getLGAs, State, LGA } from '@/app/client-actions'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faExchangeAlt } from '@fortawesome/free-solid-svg-icons'
 

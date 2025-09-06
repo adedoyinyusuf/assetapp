@@ -1,111 +1,56 @@
-import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
-import prisma from '@/lib/prisma';
-import bcrypt from 'bcryptjs';
+// app/api/users/me/route.ts
+import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-options";
+import { prisma } from "@/lib/server-prisma";
+import { getPermissionsForRole, UserRole } from "@/lib/auth/roles";
+import type { Permission } from "@/types/permissions";
 
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.id) {
-      return new NextResponse('Unauthorized', { status: 401 });
+
+    if (!session || !session.user) {
+      return new NextResponse("Unauthorized", { status: 401 });
     }
 
     const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
+      where: { id: Number(session.user.id) },
       select: {
         id: true,
         email: true,
+        role: {
+          select: {
+            name: true,
+            id: true
+          }
+        },
         firstName: true,
         lastName: true,
-        role: true,
         isActive: true,
         lastLogin: true,
-        permissions: {
-          select: {
-            permission: {
-              select: {
-                name: true,
-                description: true,
-              },
-            },
-          },
-        },
       },
     });
 
     if (!user) {
-      return new NextResponse('User not found', { status: 404 });
+      return new NextResponse("User not found", { status: 404 });
     }
 
-    // Flatten the permissions array
-    const userWithPermissions = {
+    // Get the role name and ensure it's a valid UserRole
+    const roleName = user.role?.name;
+    const validRole = roleName && Object.values(UserRole).includes(roleName as UserRole)
+      ? roleName as UserRole
+      : UserRole.VIEWER;
+
+    // Get permissions for the user's role
+    const permissions: Permission[] = getPermissionsForRole(validRole);
+
+    return NextResponse.json({
       ...user,
-      permissions: user.permissions.map((p) => p.permission.name),
-    };
-
-    return NextResponse.json(userWithPermissions);
-  } catch (error) {
-    console.error('Error fetching user profile:', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
-  }
-}
-
-export async function PATCH(request: Request) {
-  try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.id) {
-      return new NextResponse('Unauthorized', { status: 401 });
-    }
-
-    const data = await request.json();
-    const { currentPassword, newPassword, ...updateData } = data;
-
-    // If changing password, verify the current password
-    if (currentPassword && newPassword) {
-      const user = await prisma.user.findUnique({
-        where: { id: session.user.id },
-        select: { password: true },
-      });
-
-      if (!user?.password) {
-        return new NextResponse('User not found', { status: 404 });
-      }
-
-      const isPasswordValid = await bcrypt.compare(
-        currentPassword,
-        user.password
-      );
-
-      if (!isPasswordValid) {
-        return new NextResponse('Current password is incorrect', { status: 400 });
-      }
-
-      // Hash the new password
-      const hashedPassword = await bcrypt.hash(newPassword, 12);
-      updateData.password = hashedPassword;
-    }
-
-    // Update the user
-    const updatedUser = await prisma.user.update({
-      where: { id: session.user.id },
-      data: updateData,
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        role: true,
-        isActive: true,
-        lastLogin: true,
-      },
+      permissions: permissions.map((p) => p.name)
     });
-
-    return NextResponse.json(updatedUser);
   } catch (error) {
-    console.error('Error updating user profile:', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+    console.error("Error fetching user:", error);
+    return new NextResponse("Internal Server Error", { status: 500 });
   }
 }

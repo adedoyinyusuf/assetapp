@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, ChevronDown, ChevronRight } from 'lucide-react';
-import { getCategories } from '@/app/actions';
+import { getCategories } from '@/app/client-actions';
 
 // Simple Skeleton component
 const Skeleton = ({ className = '' }: { className?: string }) => (

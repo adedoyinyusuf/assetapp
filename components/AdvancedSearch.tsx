@@ -20,7 +20,7 @@ import {
   Calendar,
   DollarSign
 } from 'lucide-react';
-import { AdvancedSearchService, SearchResult, SearchSuggestion } from '@/lib/search';
+import { ClientSearchService as AdvancedSearchService, SearchResult, SearchSuggestion } from '@/lib/client-search';
 import { PermissionGate, SearchPermissionGate } from './PermissionGate';
 import { Task } from '@/lib/auth/roles';
 
@@ -154,14 +154,18 @@ export default function AdvancedSearch() {
       const searchOptions = {
         query: searchQuery,
         filters: {
-          category: searchFilters.category || undefined,
-          state: searchFilters.state || undefined,
+          category: searchFilters.category ? parseInt(searchFilters.category) : undefined,
+          state: searchFilters.state ? parseInt(searchFilters.state) : undefined,
           minValue: searchFilters.minValue ? parseFloat(searchFilters.minValue) : undefined,
           maxValue: searchFilters.maxValue ? parseFloat(searchFilters.maxValue) : undefined,
-          purchaseDateFrom: searchFilters.purchaseDateFrom || undefined,
-          purchaseDateTo: searchFilters.purchaseDateTo || undefined,
+          ...(searchFilters.purchaseDateFrom && searchFilters.purchaseDateTo && {
+            dateRange: {
+              start: new Date(searchFilters.purchaseDateFrom),
+              end: new Date(searchFilters.purchaseDateTo)
+            }
+          })
         },
-        sortBy: searchFilters.sortBy,
+        sortBy: searchFilters.sortBy as any,
         sortOrder: searchFilters.sortOrder,
         limit: 50
       };
