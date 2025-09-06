@@ -1,5 +1,14 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/server-prisma';
+import { prisma } from '@/lib/db';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth-options';
+import { z } from 'zod';
+
+// Input validation schema
+const categorySchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  description: z.string().optional(),
+});
 
 export async function GET() {
   try {
@@ -30,6 +39,84 @@ export async function GET() {
     console.error('Error fetching categories:', error);
     return NextResponse.json(
       { error: 'Failed to fetch categories' },
+      { status: 500 }
+    );
+  }
+}
+
+// POST - Create a new category
+export async function POST(req: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Check if user has admin privileges
+    if (session.user.role !== 'SUPERADMIN' && session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+    }
+
+    const body = await req.json();
+    const validation = categorySchema.safeParse(body);
+
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: 'Validation failed', details: validation.error.issues },
+        { status: 400 }
+      );
+    }
+
+    const data = validation.data;
+
+    // Check if category with same name already exists
+    const existingCategory = await prisma.category.findFirst({
+      where: {
+        name: { equals: data.name, mode: 'insensitive' },
+      },
+    });
+
+    if (existingCategory) {
+      return NextResponse.json(
+        { error: 'A category with this name already exists' },
+        { status: 409 }
+      );
+    }
+
+    // Create category
+    const category = await prisma.category.create({
+      data: {
+        name: data.name,
+        description: data.description,
+      },
+    });
+
+    // Log the action
+    await prisma.auditLog.create({
+      data: {
+        userId: parseInt(session.user.id),
+        action: 'CREATE_CATEGORY',
+        entityType: 'Category',
+        entityId: category.id,
+        newValues: {
+          name: category.name,
+          description: category.description,
+        },
+      },
+    });
+
+    return NextResponse.json({
+      id: category.id,
+      name: category.name,
+      description: category.description,
+      assetCount: 0,
+      createdAt: category.created_at.toISOString(),
+      updatedAt: category.updated_at.toISOString(),
+    }, { status: 201 });
+  } catch (error) {
+    console.error('Error creating category:', error);
+    return NextResponse.json(
+      { error: 'Failed to create category' },
       { status: 500 }
     );
   }
