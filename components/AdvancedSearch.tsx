@@ -1,13 +1,12 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Search, 
   Filter, 
@@ -21,7 +20,7 @@ import {
   DollarSign
 } from 'lucide-react';
 import { ClientSearchService as AdvancedSearchService, SearchResult, SearchSuggestion } from '@/lib/client-search';
-import { PermissionGate, SearchPermissionGate } from './PermissionGate';
+import { SearchPermissionGate } from './PermissionGate';
 import { Task } from '@/lib/auth/roles';
 
 interface SearchFilters {
@@ -347,7 +346,7 @@ export default function AdvancedSearch() {
                       <SelectValue placeholder="All categories" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All categories</SelectItem>
+                  <SelectItem value="all">Any category</SelectItem>
                       <SelectItem value="equipment">Equipment</SelectItem>
                       <SelectItem value="vehicles">Vehicles</SelectItem>
                       <SelectItem value="buildings">Buildings</SelectItem>
@@ -364,7 +363,7 @@ export default function AdvancedSearch() {
                       <SelectValue placeholder="All states" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All states</SelectItem>
+                  <SelectItem value="all">Any state</SelectItem>
                       <SelectItem value="lagos">Lagos</SelectItem>
                       <SelectItem value="abuja">Abuja</SelectItem>
                       <SelectItem value="kano">Kano</SelectItem>
@@ -508,11 +507,11 @@ export default function AdvancedSearch() {
                         <div className="flex items-center gap-2 mb-2">
                           <h4 className="font-semibold text-lg">
                             <span dangerouslySetInnerHTML={{ 
-                              __html: highlightText(result.name, query) 
+                              __html: highlightText(result.title, query) 
                             }} />
                           </h4>
-                          <Badge variant="outline">{result.category}</Badge>
-                          <Badge variant="secondary">{result.state}</Badge>
+                          <Badge variant="outline">{result.metadata.category}</Badge>
+                          <Badge variant="secondary">{result.metadata.state}</Badge>
                         </div>
                         
                         <p className="text-gray-600 mb-2">
@@ -524,29 +523,29 @@ export default function AdvancedSearch() {
                         <div className="flex items-center gap-4 text-sm text-gray-500">
                           <div className="flex items-center gap-1">
                             <Package className="h-4 w-4" />
-                            {result.category}
+                            {result.metadata.category}
                           </div>
                           <div className="flex items-center gap-1">
                             <MapPin className="h-4 w-4" />
-                            {result.state}, {result.lga}
+                            {result.metadata.state}, {result.metadata.lga}
                           </div>
                           <div className="flex items-center gap-1">
                             <Calendar className="h-4 w-4" />
-                            {new Date(result.purchaseDate).toLocaleDateString()}
+                            {result.metadata.purchaseDate ? new Date(result.metadata.purchaseDate).toLocaleDateString() : 'N/A'}
                           </div>
                           <div className="flex items-center gap-1">
                             <DollarSign className="h-4 w-4" />
-                            ₦{result.purchaseValue.toLocaleString()}
+                            ₦{result.metadata.purchaseValue ? result.metadata.purchaseValue.toLocaleString() : '0'}
                           </div>
                         </div>
                       </div>
                       
                       <div className="text-right">
                         <div className="text-lg font-semibold text-green-600">
-                          ₦{result.purchaseValue.toLocaleString()}
+                          ₦{result.metadata.purchaseValue ? result.metadata.purchaseValue.toLocaleString() : '0'}
                         </div>
                         <div className="text-sm text-gray-500">
-                          Relevance: {result.relevanceScore.toFixed(1)}%
+                          Relevance: {(result.relevance * 10).toFixed(1)}%
                         </div>
                       </div>
                     </div>

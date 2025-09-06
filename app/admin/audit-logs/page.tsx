@@ -165,7 +165,7 @@ export default function AuditLogsPage() {
                   <SelectValue placeholder="Filter by action" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Actions</SelectItem>
+                  <SelectItem value="all">All Users</SelectItem>
                   <SelectItem value="CREATE">Create</SelectItem>
                   <SelectItem value="UPDATE">Update</SelectItem>
                   <SelectItem value="DELETE">Delete</SelectItem>
@@ -181,7 +181,7 @@ export default function AuditLogsPage() {
                   <SelectValue placeholder="Filter by entity" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Entities</SelectItem>
+                  <SelectItem value="all">All Actions</SelectItem>
                   <SelectItem value="Asset">Asset</SelectItem>
                   <SelectItem value="User">User</SelectItem>
                   <SelectItem value="Role">Role</SelectItem>
