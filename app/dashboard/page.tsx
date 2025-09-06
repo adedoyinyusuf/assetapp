@@ -1,202 +1,413 @@
-import { Suspense } from 'react';
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
+import {
+  BarChart3,
+  Package,
+  TrendingUp,
+  Users,
+  Activity,
+  Settings,
+  Search,
+  PieChart,
+  Calendar,
+  AlertTriangle
+} from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Settings } from 'lucide-react';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth/auth-options';
-import { redirect } from 'next/navigation';
-import { prisma } from '@/lib/server-prisma';
-import { can, canPerformTask } from '@/lib/auth/roles';
-import { Action, Resource, Task } from '@/lib/auth/roles';
-import DashboardClient from './DashboardClient';
-import AdvancedAnalytics from '@/components/AdvancedAnalytics';
-import AdvancedSearch from '@/components/AdvancedSearch';
-import { RoleBasedWelcome } from '@/components/RoleBasedWelcome';
-import { RoleBasedOverview } from '@/components/RoleBasedOverview';
-import LoadingSpinner from '@/components/LoadingSpinner';
-import { PermissionGate } from '@/components/PermissionGate';
+import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
+import Link from 'next/link';
 
-async function getDashboardData() {
-  try {
-    const [
-      totalAssets,
-      totalValue,
-      totalUsers,
-      recentAssets,
-      assetMovements,
-      categories,
-      states
-    ] = await Promise.all([
-      prisma.asset.count(),
-      prisma.asset.aggregate({
-        _sum: { purchaseValue: true }
-      }),
-      prisma.user.count(),
-      prisma.asset.findMany({
-        take: 5,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          category: true,
-          state: true,
-          lga: true
-        }
-      }),
-      prisma.assetMovement.count({
-        where: {
-          createdAt: {
-            gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) // Last 7 days
-          }
-        }
-      }),
-      prisma.category.count(),
-      prisma.state.count()
-    ]);
-
-    return {
-      totalAssets,
-      totalValue: totalValue._sum.purchaseValue || 0,
-      totalUsers,
-      recentAssets,
-      assetMovements,
-      categories,
-      states
+interface DashboardData {
+  totalAssets: number;
+  totalValue: number;
+  totalUsers: number;
+  recentAssets: Array<{
+    id: number;
+    name: string;
+    category: {
+      name: string;
     };
-  } catch (error) {
-    console.error('Error fetching dashboard data:', error);
-    return {
-      totalAssets: 0,
-      totalValue: 0,
-      totalUsers: 0,
-      recentAssets: [],
-      assetMovements: 0,
-      categories: 0,
-      states: 0
+    location: {
+      state: string;
+      lga: string;
     };
-  }
+    purchaseValue: number;
+    purchaseDate: string;
+  }>;
+  assetMovements: number;
+  categories: number;
+  states: number;
+  categoryBreakdown: Array<{
+    name: string;
+    count: number;
+    value: number;
+  }>;
+  monthlyTrends: Array<{
+    month: string;
+    assets: number;
+    value: number;
+  }>;
+  statusDistribution: Array<{
+    status: string;
+    count: number;
+    percentage: number;
+  }>;
 }
 
-export default async function DashboardPage() {
-  const session = await getServerSession(authOptions);
-  
-  if (!session) {
-    redirect('/auth/signin');
+export default function DashboardPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('overview');
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (status === 'loading') return;
+    if (!session) {
+      router.push('/auth/signin');
+    }
+  }, [session, status, router]);
+
+  // Fetch dashboard data from API
+  const fetchDashboardData = async () => {
+    try {
+      setIsLoading(true);
+      const [assetsRes, reportsRes, categoriesRes, statesRes] = await Promise.all([
+        fetch('/api/assets?summary=true'),
+        fetch('/api/reports'),
+        fetch('/api/categories'),
+        fetch('/api/states')
+      ]);
+
+      const assetsData = await assetsRes.json();
+      const reportsData = await reportsRes.json();
+      const categoriesData = await categoriesRes.json();
+      const statesData = await statesRes.json();
+
+      // Transform data for dashboard
+      const data: DashboardData = {
+        totalAssets: assetsData.summary?.totalAssets || 0,
+        totalValue: assetsData.summary?.totalValue || 0,
+        totalUsers: reportsData.summary?.totalUsers || 0,
+        recentAssets: assetsData.summary?.recentAssets || [],
+        assetMovements: reportsData.summary?.recentMovements || 0,
+        categories: categoriesData.pagination?.total || 0,
+        states: statesData.pagination?.total || 0,
+        categoryBreakdown: assetsData.summary?.categories || [],
+        monthlyTrends: reportsData.summary?.monthlyTrends || [],
+        statusDistribution: reportsData.summary?.statusDistribution || []
+      };
+
+      setDashboardData(data);
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+        toast.error('Failed to load dashboard data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (session) {
+      fetchDashboardData();
+    }
+  }, [session]);
+
+  if (status === 'loading') {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      </div>
+    );
   }
 
-  const { role } = session.user;
-  const dashboardData = await getDashboardData();
+  if (!session) return null;
 
-  // Determine which tabs to show based on user permissions
-  const showAnalytics = canPerformTask(role, Task.VIEW_BASIC_ANALYTICS);
-  const showSearch = canPerformTask(role, Task.BASIC_SEARCH);
-  const showSettings = can(role, Action.MANAGE, Resource.SETTINGS);
+  const userRole = session.user.role || 'VIEWER';
+  const userName = session.user.firstName || session.user.email || 'User';
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      {/* Role-Based Welcome */}
-      <RoleBasedWelcome 
-        role={role} 
-        userName={session.user?.firstName || session.user?.email} 
-      />
+    <div className="container mx-auto py-6 space-y-6">
+      {/* Welcome Header */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4"
+      >
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+            <BarChart3 className="h-8 w-8 text-primary" />
+            Welcome, {userName}
+          </h1>
+          <p className="text-gray-600 mt-1">
+            {userRole === 'SUPERADMIN' && 'You have full system access'}
+            {userRole === 'ADMIN' && 'Manage assets and oversee operations'}
+            {userRole === 'MANAGER' && 'Monitor assets and generate reports'}
+            {userRole === 'OPERATOR' && 'Handle day-to-day asset operations'}
+            {userRole === 'AUDITOR' && 'Review and audit asset records'}
+            {userRole === 'VIEWER' && 'View asset information and reports'}
+          </p>
+        </div>
 
-      {/* Dashboard Tabs */}
-      <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          {showAnalytics && (
+        <div className="flex gap-2">
+          <Link href="/assets/search">
+            <Button variant="outline">
+              <Search className="h-4 w-4 mr-2" />
+              Search Assets
+            </Button>
+          </Link>
+          <Link href="/reports">
+            <Button>
+              <Activity className="h-4 w-4 mr-2" />
+              View Reports
+            </Button>
+          </Link>
+        </div>
+      </motion.div>
+
+      {/* Dashboard Content */}
+      {isLoading ? (
+        <div className="flex justify-center items-center py-24">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
+      ) : (
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          )}
-          {showSearch && (
-            <TabsTrigger value="search">Search</TabsTrigger>
-          )}
-          {showSettings && (
-            <TabsTrigger value="settings">Settings</TabsTrigger>
-          )}
-        </TabsList>
+            <TabsTrigger value="activity">Activity</TabsTrigger>
+          </TabsList>
 
-        {/* Overview Tab */}
-        <TabsContent value="overview" className="space-y-6">
-          <RoleBasedOverview role={role} data={dashboardData} />
-        </TabsContent>
+          {/* Overview Tab */}
+          <TabsContent value="overview" className="space-y-6">
+            {/* Key Metrics */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+            >
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Total Assets</p>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {dashboardData?.totalAssets.toLocaleString() || 0}
+                      </p>
+                    </div>
+                    <Package className="h-8 w-8 text-primary" />
+                  </div>
+                </CardContent>
+              </Card>
 
-        {/* Analytics Tab - Only show if user has permission */}
-        {showAnalytics && (
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Total Value</p>
+                      <p className="text-2xl font-bold text-green-600">
+                        ₦{dashboardData?.totalValue.toLocaleString() || 0}
+                      </p>
+                    </div>
+                    <TrendingUp className="h-8 w-8 text-green-500" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Categories</p>
+                      <p className="text-2xl font-bold text-blue-600">
+                        {dashboardData?.categories || 0}
+                      </p>
+                    </div>
+                    <PieChart className="h-8 w-8 text-blue-500" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Recent Movements</p>
+                      <p className="text-2xl font-bold text-purple-600">
+                        {dashboardData?.assetMovements || 0}
+                      </p>
+                    </div>
+                    <Activity className="h-8 w-8 text-purple-500" />
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Recent Assets */}
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Recent Assets</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {dashboardData?.recentAssets.length === 0 ? (
+                      <p className="text-gray-500 text-center py-8">
+                        No recent assets found
+                      </p>
+                    ) : (
+                      <div className="space-y-3">
+                        {dashboardData?.recentAssets.slice(0, 5).map((asset) => (
+                          <div key={asset.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                            <div className="flex-1 min-w-0">
+                              <Link href={`/assets/${asset.id}`} className="font-medium text-primary hover:underline">
+                                {asset.name}
+                              </Link>
+                              <p className="text-sm text-gray-500">
+                                {asset.category.name} • {asset.location.state}, {asset.location.lga}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm font-medium text-green-600">
+                                ₦{asset.purchaseValue.toLocaleString()}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {new Date(asset.purchaseDate).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                        <Link href="/assets/manage">
+                          <Button variant="link" className="p-0 h-auto w-full">
+                            View all assets →
+                          </Button>
+                        </Link>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* Category Breakdown */}
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <PieChart className="h-5 w-5" />
+                      Category Breakdown
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {dashboardData?.categoryBreakdown.length === 0 ? (
+                      <p className="text-gray-500 text-center py-8">
+                        No categories found
+                      </p>
+                    ) : (
+                      <div className="space-y-3">
+                        {dashboardData?.categoryBreakdown.slice(0, 5).map((category, index) => (
+                          <div key={category.name} className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline">{category.name}</Badge>
+                              <span className="text-sm text-gray-600">
+                                {category.count} assets
+                              </span>
+                            </div>
+                            <span className="text-sm font-medium text-green-600">
+                              ₦{category.value.toLocaleString()}
+                            </span>
+                          </div>
+                        ))}
+                        {(dashboardData?.categoryBreakdown.length || 0) > 5 && (
+                          <Link href="/reports">
+                            <Button variant="link" className="p-0 h-auto">
+                              View full breakdown →
+                            </Button>
+                          </Link>
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </div>
+          </TabsContent>
+
+          {/* Analytics Tab */}
           <TabsContent value="analytics" className="space-y-6">
-            <Suspense fallback={<LoadingSpinner text="Loading analytics..." />}>
-              <PermissionGate requiredTask={Task.VIEW_BASIC_ANALYTICS}>
-                <AdvancedAnalytics />
-              </PermissionGate>
-            </Suspense>
-          </TabsContent>
-        )}
-
-        {/* Search Tab - Only show if user has permission */}
-        {showSearch && (
-          <TabsContent value="search" className="space-y-6">
-            <Suspense fallback={<LoadingSpinner text="Loading search..." />}>
-              <PermissionGate requiredTask={Task.BASIC_SEARCH}>
-                <AdvancedSearch />
-              </PermissionGate>
-            </Suspense>
-          </TabsContent>
-        )}
-
-        {/* Settings Tab - Only show if user has permission */}
-        {showSettings && (
-          <TabsContent value="settings" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Settings className="h-5 w-5" />
-                  Dashboard Settings
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-lg font-medium mb-2">User Preferences</h3>
-                    <p className="text-gray-600">
-                      Configure your dashboard preferences and notifications here.
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <Card>
+                <CardHeader>
+                  <CardTitle>Asset Analytics</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-12">
+                    <BarChart3 className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Advanced Analytics</h3>
+                    <p className="text-gray-500 mb-4">
+                      Detailed charts and insights about your assets will be displayed here
                     </p>
+                    <Link href="/reports">
+                      <Button>
+                        View Full Reports
+                      </Button>
+                    </Link>
                   </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Default Tab</label>
-                      <select className="w-full p-2 border border-gray-300 rounded-md">
-                        <option value="overview">Overview</option>
-                        {showAnalytics && <option value="analytics">Analytics</option>}
-                        {showSearch && <option value="search">Search</option>}
-                      </select>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Refresh Interval</label>
-                      <select className="w-full p-2 border border-gray-300 rounded-md">
-                        <option value="30">30 seconds</option>
-                        <option value="60">1 minute</option>
-                        <option value="300">5 minutes</option>
-                        <option value="0">Manual only</option>
-                      </select>
-                    </div>
-                  </div>
-                  
-                  <div className="pt-4 border-t">
-                    <Button variant="outline">Save Preferences</Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </motion.div>
           </TabsContent>
-        )}
-      </Tabs>
 
-      {/* Real-Time Updates Component - Only show if user has WebSocket permission */}
-      <Suspense fallback={<LoadingSpinner text="Loading dashboard..." />}>
-        <PermissionGate requiredTask={Task.ACCESS_WEBSOCKET}>
-          <DashboardClient initialData={dashboardData} />
-        </PermissionGate>
-      </Suspense>
+          {/* Activity Tab */}
+          <TabsContent value="activity" className="space-y-6">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Activity className="h-5 w-5" />
+                    Recent Activity
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-12">
+                    <Calendar className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Activity Feed</h3>
+                    <p className="text-gray-500 mb-4">
+                      Real-time activity updates will be displayed here
+                    </p>
+                    <Link href="/depreciation">
+                      <Button variant="outline">
+                        View Depreciation Records
+                      </Button>
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </TabsContent>
+        </Tabs>
+      )}
     </div>
   );
 }
