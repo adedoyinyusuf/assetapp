@@ -121,3 +121,6 @@ prisma/migrations/
 *.backup
 *.old
 *.new
+# Build files and cache
+next-build/
+*.tsbuildinfo
