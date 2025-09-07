@@ -80,14 +80,15 @@ export default function ProfilePage() {
   // Fetch user profile
   useEffect(() => {
     if (session?.user) {
+      const user = session.user as any; // Type assertion for extended properties
       setUserProfile({
-        firstName: session.user.firstName || '',
-        lastName: session.user.lastName || '',
-        email: session.user.email || '',
-        role: session.user.role || '',
-        phone: session.user.phone || '',
-        bio: session.user.bio || '',
-        createdAt: session.user.createdAt || new Date().toISOString(),
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        email: user.email || '',
+        role: user.role || '',
+        phone: user.phone || '',
+        bio: user.bio || '',
+        createdAt: user.createdAt || new Date().toISOString(),
       });
     }
   }, [session]);
@@ -157,7 +158,7 @@ export default function ProfilePage() {
             lastName: data.lastName,
             phone: data.phone,
             bio: data.bio,
-          },
+          } as any, // Type assertion for extended properties
         });
         
         // Reset the password fields

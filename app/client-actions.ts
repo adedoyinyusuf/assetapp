@@ -102,24 +102,35 @@ export async function addAssetMovement(movement: Omit<AssetMovement, 'id' | 'ass
 
 // Asset CRUD (using fetch - safe for client)
 export async function addAsset(asset: Omit<Asset, 'id'>): Promise<Asset> {
-  const res = await fetch('http://localhost:3000/api/assets', {
+  const res = await fetch('/api/assets', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(asset),
   });
+  
+  if (!res.ok) {
+    const errorData = await res.json();
+    throw new Error(errorData.error || 'Failed to create asset');
+  }
+  
   return res.json();
 }
 
 export async function updateAsset(asset: Asset): Promise<void> {
-  await fetch(`http://localhost:3000/api/assets/${asset.id}`, {
+  const res = await fetch(`/api/assets/${asset.id}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(asset),
   });
+  
+  if (!res.ok) {
+    const errorData = await res.json();
+    throw new Error(errorData.error || 'Failed to update asset');
+  }
 }
 
 export async function deleteAsset(id: number): Promise<void> {
@@ -157,20 +168,48 @@ export async function getCategories(): Promise<Category[]> {
 // State & LGA functions (using fetch - safe for client)
 export async function getStates(): Promise<State[]> {
   try {
-    const res = await fetch('http://localhost:3000/api/states');
-    if (!res.ok) return [];
-    return await res.json();
-  } catch {
+    console.log('Fetching states from API...');
+    const res = await fetch('/api/states');
+    console.log('States API response status:', res.status);
+    
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error('States API error:', res.status, errorText);
+      return [];
+    }
+    
+    const response = await res.json();
+    console.log('States API response:', response);
+    
+    // Handle paginated response - extract data array
+    const states = response.data || response;
+    console.log('Processed states:', states);
+    
+    return states;
+  } catch (error) {
+    console.error('Error fetching states:', error);
     return [];
   }
 }
 
 export async function getLGAs(stateId: number): Promise<LGA[]> {
   try {
-    const res = await fetch(`http://localhost:3000/api/states/${stateId}/lgas`);
-    if (!res.ok) return [];
-    return await res.json();
-  } catch {
+    console.log('Fetching LGAs for state:', stateId);
+    const res = await fetch(`/api/states/${stateId}/lgas`);
+    console.log('LGAs API response status:', res.status);
+    
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error('LGAs API error:', res.status, errorText);
+      return [];
+    }
+    
+    const lgas = await res.json();
+    console.log('LGAs API response:', lgas);
+    
+    return lgas;
+  } catch (error) {
+    console.error('Error fetching LGAs:', error);
     return [];
   }
 }

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth-options';
+import { authOptions } from '@/lib/auth/auth-options-simple';
 import { z } from 'zod';
 
 // Input validation schemas
@@ -148,6 +148,7 @@ export async function GET(req: Request) {
         usefulLife: asset.usefulLife,
         salvageValue: asset.salvageValue,
         currentValue,
+        status: 'ACTIVE', // Default status - can be enhanced later with actual status field
         category: asset.category,
         state: asset.state,
         lga: asset.lga,
@@ -278,6 +279,7 @@ export async function POST(req: Request) {
       usefulLife: asset.usefulLife,
       salvageValue: asset.salvageValue,
       currentValue: asset.currentValue,
+      status: 'ACTIVE', // Default status
       category: asset.category,
       state: asset.state,
       lga: asset.lga,

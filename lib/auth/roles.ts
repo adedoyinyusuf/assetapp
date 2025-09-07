@@ -5,7 +5,7 @@ export enum UserRole {
   MANAGER = 'MANAGER',      // Can manage assets, operations, and view reports
   AUDITOR = 'AUDITOR',      // Can view and audit all assets and reports
   ADMIN = 'ADMIN',          // Full access including user management
-  SUPER_ADMIN = 'SUPERADMIN' // System owner with all permissions (note: no underscore to match database)
+  SUPER_ADMIN = 'SUPER_ADMIN' // System owner with all permissions
 }
 
 // Available resources in the system

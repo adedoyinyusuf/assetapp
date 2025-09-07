@@ -20,7 +20,8 @@ import {
   Save,
   X,
   Check,
-  AlertTriangle
+  AlertTriangle,
+  Package
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,7 +29,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 interface State {
@@ -112,19 +113,13 @@ export default function LocationsPage() {
       if (response.ok) {
         setStates(data.data || []);
       } else {
-        toast({
-          title: 'Error',
-          description: data.error || 'Failed to fetch states',
-          variant: 'destructive',
+        toast.error('Failed to fetch states', {
+          description: data.error || 'Failed to fetch states'
         });
       }
     } catch (error) {
       console.error('Error fetching states:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to fetch states',
-        variant: 'destructive',
-      });
+      toast.error('Failed to fetch states');
     }
   }, []);
 
@@ -137,19 +132,13 @@ export default function LocationsPage() {
       if (response.ok) {
         setLGAs(data.data || []);
       } else {
-        toast({
-          title: 'Error',
-          description: data.error || 'Failed to fetch LGAs',
-          variant: 'destructive',
+        toast.error('Failed to fetch LGAs', {
+          description: data.error || 'Failed to fetch LGAs'
         });
       }
     } catch (error) {
       console.error('Error fetching LGAs:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to fetch LGAs',
-        variant: 'destructive',
-      });
+      toast.error('Failed to fetch LGAs');
     }
   }, []);
 
@@ -199,11 +188,7 @@ export default function LocationsPage() {
   // Handle state submission
   const handleStateSubmit = async () => {
     if (!stateForm.name.trim() || !stateForm.code.trim()) {
-      toast({
-        title: 'Error',
-        description: 'Please fill in all required fields',
-        variant: 'destructive',
-      });
+      toast.error('Please fill in all required fields');
       return;
     }
 
@@ -224,27 +209,18 @@ export default function LocationsPage() {
       const data = await response.json();
 
       if (response.ok) {
-        toast({
-          title: 'Success',
-          description: `State ${modal.type === 'edit' ? 'updated' : 'created'} successfully`,
-        });
+        toast.success(`State ${modal.type === 'edit' ? 'updated' : 'created'} successfully`);
         setModal({ isOpen: false, type: 'create', entity: 'state' });
         setStateForm({ name: '', code: '' });
         fetchStates();
       } else {
-        toast({
-          title: 'Error',
-          description: data.error || `Failed to ${modal.type} state`,
-          variant: 'destructive',
+        toast.error(`Failed to ${modal.type} state`, {
+          description: data.error || `Failed to ${modal.type} state`
         });
       }
     } catch (error) {
       console.error(`Error ${modal.type}ing state:`, error);
-      toast({
-        title: 'Error',
-        description: `Failed to ${modal.type} state`,
-        variant: 'destructive',
-      });
+      toast.error(`Failed to ${modal.type} state`);
     } finally {
       setIsSubmitting(false);
     }
@@ -253,11 +229,7 @@ export default function LocationsPage() {
   // Handle LGA submission
   const handleLGASubmit = async () => {
     if (!lgaForm.name.trim() || !lgaForm.stateId) {
-      toast({
-        title: 'Error',
-        description: 'Please fill in all required fields',
-        variant: 'destructive',
-      });
+      toast.error('Please fill in all required fields');
       return;
     }
 
@@ -278,27 +250,18 @@ export default function LocationsPage() {
       const data = await response.json();
 
       if (response.ok) {
-        toast({
-          title: 'Success',
-          description: `LGA ${modal.type === 'edit' ? 'updated' : 'created'} successfully`,
-        });
+        toast.success(`LGA ${modal.type === 'edit' ? 'updated' : 'created'} successfully`);
         setModal({ isOpen: false, type: 'create', entity: 'lga' });
         setLGAForm({ name: '', stateId: 0 });
         fetchLGAs();
       } else {
-        toast({
-          title: 'Error',
-          description: data.error || `Failed to ${modal.type} LGA`,
-          variant: 'destructive',
+        toast.error(`Failed to ${modal.type} LGA`, {
+          description: data.error || `Failed to ${modal.type} LGA`
         });
       }
     } catch (error) {
       console.error(`Error ${modal.type}ing LGA:`, error);
-      toast({
-        title: 'Error',
-        description: `Failed to ${modal.type} LGA`,
-        variant: 'destructive',
-      });
+      toast.error(`Failed to ${modal.type} LGA`);
     } finally {
       setIsSubmitting(false);
     }
@@ -317,10 +280,7 @@ export default function LocationsPage() {
       const response = await fetch(url, { method: 'DELETE' });
 
       if (response.ok) {
-        toast({
-          title: 'Success',
-          description: `${modal.entity.toUpperCase()} deleted successfully`,
-        });
+        toast.success(`${modal.entity.toUpperCase()} deleted successfully`);
         setModal({ isOpen: false, type: 'create', entity: 'state' });
         
         if (modal.entity === 'state') {
@@ -330,19 +290,13 @@ export default function LocationsPage() {
         }
       } else {
         const data = await response.json();
-        toast({
-          title: 'Error',
-          description: data.error || `Failed to delete ${modal.entity}`,
-          variant: 'destructive',
+        toast.error(`Failed to delete ${modal.entity}`, {
+          description: data.error || `Failed to delete ${modal.entity}`
         });
       }
     } catch (error) {
       console.error(`Error deleting ${modal.entity}:`, error);
-      toast({
-        title: 'Error',
-        description: `Failed to delete ${modal.entity}`,
-        variant: 'destructive',
-      });
+      toast.error(`Failed to delete ${modal.entity}`);
     } finally {
       setIsSubmitting(false);
     }

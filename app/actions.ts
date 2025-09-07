@@ -1,7 +1,7 @@
 
 'use server'
 import { revalidatePath } from 'next/cache'
-import { prisma } from '@/lib/server-prisma'
+import { prisma } from '@/lib/prisma.server'
 
 // Interfaces
 export interface Asset {
@@ -341,7 +341,9 @@ export async function getStates(): Promise<State[]> {
   try {
     const res = await fetch('http://localhost:3000/api/states');
     if (!res.ok) return [];
-    return await res.json();
+    const response = await res.json();
+    // Handle paginated response - extract data array
+    return response.data || response;
   } catch {
     return [];
   }

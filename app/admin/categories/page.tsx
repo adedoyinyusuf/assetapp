@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,9 +9,20 @@ import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPlus, faEdit, faTrash, faSave, faTimes } from '@fortawesome/free-solid-svg-icons'
-import { getCategories, addCategory, updateCategory, deleteCategory, Category } from '@/app/actions'
+import { toast } from 'sonner'
+
+interface Category {
+  id: number;
+  name: string;
+  description?: string;
+  defaultUsefulLifeYears?: number;
+  parent_id?: number | null;
+  created_at?: string;
+  updated_at?: string;
+}
 
 export default function CategoriesManagementPage() {
+  const { data: session, status } = useSession()
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(false)
   const [showAddForm, setShowAddForm] = useState(false)
@@ -18,46 +30,101 @@ export default function CategoriesManagementPage() {
   const [newCategoryName, setNewCategoryName] = useState('')
   const [editCategoryName, setEditCategoryName] = useState('')
 
+  // Debug logging
+  useEffect(() => {
+    console.log('Session status:', status)
+    console.log('Session data:', session)
+    console.log('User role:', session?.user?.role)
+  }, [session, status])
+
   useEffect(() => {
     fetchCategories()
   }, [])
 
   const fetchCategories = async () => {
     try {
-      const data = await getCategories()
-      setCategories(data)
+      const response = await fetch('/api/categories', {
+        cache: 'no-store'
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setCategories(data);
+      } else {
+        console.error('Failed to fetch categories:', response.statusText);
+        toast.error('Failed to load categories');
+      }
     } catch (error) {
-      console.error('Error fetching categories:', error)
+      console.error('Error fetching categories:', error);
+      toast.error('Error loading categories');
     }
   }
 
   const handleAddCategory = async () => {
-    if (!newCategoryName.trim()) return
+    if (!newCategoryName.trim()) {
+      toast.error('Please enter a category name');
+      return;
+    }
     
     setLoading(true)
     try {
-      await addCategory(newCategoryName)
-      setNewCategoryName('')
-      setShowAddForm(false)
-      await fetchCategories()
+      const response = await fetch('/api/categories', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: newCategoryName,
+          description: ''
+        }),
+      });
+      
+      if (response.ok) {
+        toast.success('Category added successfully');
+        setNewCategoryName('');
+        setShowAddForm(false);
+        await fetchCategories();
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.error || 'Failed to add category');
+      }
     } catch (error) {
-      console.error('Error adding category:', error)
+      console.error('Error adding category:', error);
+      toast.error('Error adding category');
     } finally {
       setLoading(false)
     }
   }
 
   const handleEditCategory = async (id: number) => {
-    if (!editCategoryName.trim()) return
+    if (!editCategoryName.trim()) {
+      toast.error('Please enter a category name');
+      return;
+    }
     
     setLoading(true)
     try {
-      await updateCategory(id, editCategoryName)
-      setEditingId(null)
-      setEditCategoryName('')
-      await fetchCategories()
+      const response = await fetch(`/api/categories/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: editCategoryName,
+        }),
+      });
+      
+      if (response.ok) {
+        toast.success('Category updated successfully');
+        setEditingId(null);
+        setEditCategoryName('');
+        await fetchCategories();
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.error || 'Failed to update category');
+      }
     } catch (error) {
-      console.error('Error updating category:', error)
+      console.error('Error updating category:', error);
+      toast.error('Error updating category');
     } finally {
       setLoading(false)
     }
@@ -67,10 +134,20 @@ export default function CategoriesManagementPage() {
     if (confirm(`Are you sure you want to delete the category "${name}"?`)) {
       setLoading(true)
       try {
-        await deleteCategory(id)
-        await fetchCategories()
+        const response = await fetch(`/api/categories/${id}`, {
+          method: 'DELETE',
+        });
+        
+        if (response.ok) {
+          toast.success('Category deleted successfully');
+          await fetchCategories();
+        } else {
+          const errorData = await response.json();
+          toast.error(errorData.error || 'Failed to delete category');
+        }
       } catch (error) {
-        console.error('Error deleting category:', error)
+        console.error('Error deleting category:', error);
+        toast.error('Error deleting category');
       } finally {
         setLoading(false)
       }
@@ -91,7 +168,13 @@ export default function CategoriesManagementPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Categories Management</h1>
-        <Button onClick={() => setShowAddForm(!showAddForm)}>
+        <Button 
+          onClick={() => {
+            console.log('Add Category button clicked, current showAddForm:', showAddForm)
+            console.log('Session:', session)
+            setShowAddForm(!showAddForm)
+          }}
+        >
           <FontAwesomeIcon icon={faPlus} className="mr-2" />
           Add Category
         </Button>

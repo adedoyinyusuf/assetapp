@@ -79,36 +79,68 @@ export default function DashboardPage() {
   const fetchDashboardData = async () => {
     try {
       setIsLoading(true);
-      const [assetsRes, reportsRes, categoriesRes, statesRes] = await Promise.all([
-        fetch('/api/assets?summary=true'),
-        fetch('/api/reports'),
-        fetch('/api/categories'),
-        fetch('/api/states')
+      
+      // Fetch all assets to calculate summary data
+      const [assetsRes, categoriesRes] = await Promise.all([
+        fetch('/api/assets?limit=1000'), // Get a large number to capture all assets
+        fetch('/api/categories')
       ]);
 
       const assetsData = await assetsRes.json();
-      const reportsData = await reportsRes.json();
       const categoriesData = await categoriesRes.json();
-      const statesData = await statesRes.json();
+      
+      // Calculate summary data from the assets
+      const assets = assetsData.data || [];
+      const categories = Array.isArray(categoriesData) ? categoriesData : (categoriesData.data || []);
+      
+      // Calculate totals
+      const totalAssets = assets.length;
+      const totalValue = assets.reduce((sum: number, asset: any) => sum + (asset.purchaseValue || 0), 0);
+      
+      // Get recent assets (last 5)
+      const recentAssets = assets.slice(0, 5).map((asset: any) => ({
+        id: asset.id,
+        name: asset.name,
+        category: {
+          name: asset.category?.name || 'Unknown'
+        },
+        location: {
+          state: asset.state?.name || 'Unknown',
+          lga: asset.lga?.name || 'Unknown'
+        },
+        purchaseValue: asset.purchaseValue || 0,
+        purchaseDate: asset.purchaseDate
+      }));
+      
+      // Calculate category breakdown
+      const categoryMap = new Map();
+      assets.forEach((asset: any) => {
+        const categoryName = asset.category?.name || 'Unknown';
+        const existing = categoryMap.get(categoryName) || { name: categoryName, count: 0, value: 0 };
+        existing.count += 1;
+        existing.value += asset.purchaseValue || 0;
+        categoryMap.set(categoryName, existing);
+      });
+      const categoryBreakdown = Array.from(categoryMap.values());
 
       // Transform data for dashboard
       const data: DashboardData = {
-        totalAssets: assetsData.summary?.totalAssets || 0,
-        totalValue: assetsData.summary?.totalValue || 0,
-        totalUsers: reportsData.summary?.totalUsers || 0,
-        recentAssets: assetsData.summary?.recentAssets || [],
-        assetMovements: reportsData.summary?.recentMovements || 0,
-        categories: categoriesData.pagination?.total || 0,
-        states: statesData.pagination?.total || 0,
-        categoryBreakdown: assetsData.summary?.categories || [],
-        monthlyTrends: reportsData.summary?.monthlyTrends || [],
-        statusDistribution: reportsData.summary?.statusDistribution || []
+        totalAssets,
+        totalValue,
+        totalUsers: 0, // We don't have user data yet
+        recentAssets,
+        assetMovements: 0, // We don't have movement data yet
+        categories: categories.length,
+        states: 37, // Default Nigerian states
+        categoryBreakdown,
+        monthlyTrends: [], // We don't have trend data yet
+        statusDistribution: [] // We don't have status data yet
       };
 
       setDashboardData(data);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
-        toast.error('Failed to load dashboard data');
+      toast.error('Failed to load dashboard data');
     } finally {
       setIsLoading(false);
     }

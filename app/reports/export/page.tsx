@@ -20,8 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import Link from 'next/link';
 
 interface ExportOption {
@@ -142,20 +141,12 @@ export default function ExportReportsPage() {
   // Handle export
   const handleExport = async () => {
     if (!selectedExport || !selectedFormat) {
-      toast({
-        title: 'Error',
-        description: 'Please select an export type and format',
-        variant: 'destructive',
-      });
+      toast.error('Please select an export type and format');
       return;
     }
 
     if (selectedFields.length === 0) {
-      toast({
-        title: 'Error',
-        description: 'Please select at least one field to export',
-        variant: 'destructive',
-      });
+      toast.error('Please select at least one field to export');
       return;
     }
 
@@ -228,10 +219,7 @@ export default function ExportReportsPage() {
           window.URL.revokeObjectURL(url);
         }
 
-        toast({
-          title: 'Success',
-          description: `${option.title} exported successfully`,
-        });
+        toast.success(`${option.title} exported successfully`);
 
         // Add to export history
         const newJob: ExportJob = {
@@ -245,19 +233,13 @@ export default function ExportReportsPage() {
 
       } else {
         const errorData = await response.json();
-        toast({
-          title: 'Error',
-          description: errorData.error || 'Export failed',
-          variant: 'destructive',
+        toast.error('Export failed', {
+          description: errorData.error || 'Export failed'
         });
       }
     } catch (error) {
       console.error('Export error:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to export data',
-        variant: 'destructive',
-      });
+      toast.error('Failed to export data');
     } finally {
       setIsExporting(false);
     }
@@ -386,10 +368,12 @@ export default function ExportReportsPage() {
                   <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
                     {selectedOption.fields.map(field => (
                       <div key={field} className="flex items-center space-x-2">
-                        <Checkbox
+                        <input
+                          type="checkbox"
                           id={field}
                           checked={selectedFields.includes(field)}
-                          onCheckedChange={() => toggleField(field)}
+                          onChange={() => toggleField(field)}
+                          className="rounded border-gray-300 text-primary focus:ring-primary"
                         />
                         <label
                           htmlFor={field}

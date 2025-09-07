@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth-options';
+import { authOptions } from '@/lib/auth/auth-options-simple';
 import { z } from 'zod';
 
 // Input validation schema
@@ -53,7 +53,13 @@ export async function POST(req: Request) {
     }
 
     // Check if user has admin privileges
-    if (session.user.role !== 'SUPERADMIN' && session.user.role !== 'ADMIN') {
+    const userRole = session.user.role as string;
+    console.log('User role check - Role:', userRole, 'Type:', typeof userRole);
+    
+    // Handle different role formats
+    const normalizedRole = userRole?.toUpperCase();
+    if (normalizedRole !== 'SUPERADMIN' && normalizedRole !== 'SUPER_ADMIN' && normalizedRole !== 'ADMIN') {
+      console.log('User role check failed. Normalized role:', normalizedRole);
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 

@@ -45,7 +45,7 @@ function calculateCurrentValue(asset: {
 
 // GET - Retrieve a single asset by ID
 export async function GET(
-  req: Request,
+  _req: Request,
   { params }: { params: { id: string } }
 ) {
   try {
@@ -334,7 +334,7 @@ export async function PUT(
 
 // DELETE - Delete a specific asset
 export async function DELETE(
-  req: Request,
+  _req: Request,
   { params }: { params: { id: string } }
 ) {
   try {

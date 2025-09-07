@@ -14,9 +14,15 @@ export interface LGA {
 export async function getStates(): Promise<State[]> {
   try {
     const res = await fetch('/api/states', { cache: 'no-store' });
-    if (!res.ok) return [];
-    return await res.json();
-  } catch {
+    if (!res.ok) {
+      console.error('Failed to fetch states:', res.status, res.statusText);
+      return [];
+    }
+    const result = await res.json();
+    // Handle both paginated and direct array responses
+    return result.data || result;
+  } catch (error) {
+    console.error('Error fetching states:', error);
     return [];
   }
 }

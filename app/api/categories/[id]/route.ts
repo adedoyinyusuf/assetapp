@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth-options';
+import { authOptions } from '@/lib/auth/auth-options-simple';
 import { z } from 'zod';
 
 // Input validation schema
@@ -12,7 +12,7 @@ const updateCategorySchema = z.object({
 
 // GET - Retrieve a single category by ID
 export async function GET(
-  req: Request,
+  _req: Request,
   { params }: { params: { id: string } }
 ) {
   try {

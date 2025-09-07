@@ -23,12 +23,25 @@ export async function GET(req: Request) {
   try {
     // Authentication check
     const session = await getServerSession(authOptions);
-    if (!session || session.user.role !== UserRole.SUPER_ADMIN) {
+    console.log('Session in users API:', JSON.stringify(session, null, 2));
+    
+    if (!session) {
+      console.log('No session found');
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'No session found. Please log in.' },
         { status: 401 }
       );
     }
+    
+    if (![UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER].includes(session.user.role)) {
+      console.log('Insufficient permissions. User role:', session.user.role, 'Required roles:', [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER]);
+      return NextResponse.json(
+        { error: 'Unauthorized. Required role: SUPER_ADMIN, ADMIN, or MANAGER. Current role: ' + session?.user?.role },
+        { status: 401 }
+      );
+    }
+    
+    console.log('Authorization successful for user:', session.user.email, 'with role:', session.user.role);
 
     // Parse and validate query parameters
     const { searchParams } = new URL(req.url);
@@ -47,7 +60,8 @@ export async function GET(req: Request) {
 
     // Build the where clause with filters
     const whereClause: any = {
-      isActive: true, // Only show active users by default
+      // Temporarily show all users including inactive ones for debugging
+      // isActive: true, 
     };
 
     if (role) {

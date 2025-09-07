@@ -81,10 +81,14 @@ export default function LocationsManagementPage() {
     e.preventDefault()
     setSubmitting(true)
     try {
-      const response = await fetch('/api/locations/states', {
+      const url = stateForm.id ? `/api/states/${stateForm.id}` : '/api/states';
+      const response = await fetch(url, {
         method: stateForm.id ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(stateForm)
+        body: JSON.stringify({ 
+          name: stateForm.name,
+          code: stateForm.name.substring(0, 3).toUpperCase() // Generate code from name
+        })
       })
       
       if (!response.ok) {
@@ -134,8 +138,8 @@ export default function LocationsManagementPage() {
     try {
       const stateId = parseInt(selectedState)
       const url = lgaForm.id 
-        ? `/api/states/${stateId}/lgas/${lgaForm.id}`
-        : `/api/states/${stateId}/lgas`
+        ? `/api/lgas/${lgaForm.id}`
+        : '/api/lgas'
       const method = lgaForm.id ? 'PUT' : 'POST'
       
       const response = await fetch(url, {
@@ -143,7 +147,7 @@ export default function LocationsManagementPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           name: lgaForm.name,
-          state_id: stateId
+          stateId: stateId
         })
       })
       

@@ -41,6 +41,7 @@ export const authOptions: AuthOptions = {
               u.first_name as "firstName", 
               u.last_name as "lastName",
               u.hashed_password,
+              u.role_id,
               r.name as role,
               u.is_active as "isActive",
               u.last_login as "lastLogin"
@@ -87,7 +88,7 @@ export const authOptions: AuthOptions = {
              FROM role_permissions rp
              JOIN permissions p ON rp.permission_id = p.id
              WHERE rp.role_id = $1`,
-            [user.id]
+            [user.role_id]
           );
 
           const permissions = permissionsRes.rows.map(row => row.name);

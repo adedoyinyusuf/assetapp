@@ -42,19 +42,30 @@ import { toast } from 'sonner';
 interface Asset {
   id: number;
   name: string;
+  description?: string;
   category: {
     id: number;
     name: string;
+    description?: string;
   };
-  location: {
-    state: string;
-    lga: string;
+  state: {
+    id: number;
+    name: string;
+    code: string;
+  };
+  lga: {
+    id: number;
+    name: string;
+    stateId: number;
   };
   purchaseValue: number;
   currentValue: number;
   purchaseDate: string;
-  status: string;
+  status?: string;
   usefulLife: number;
+  salvageValue: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface PaginationInfo {
@@ -391,7 +402,7 @@ export default function ManageAssetsPage() {
                         <Badge variant="outline">{asset.category.name}</Badge>
                       </td>
                       <td className="py-4 px-4 text-sm text-gray-600">
-                        {asset.location.state}, {asset.location.lga}
+                        {asset.state?.name || 'N/A'}, {asset.lga?.name || 'N/A'}
                       </td>
                       <td className="py-4 px-4 text-right font-medium">
                         ₦{asset.purchaseValue.toLocaleString()}
@@ -408,7 +419,7 @@ export default function ManageAssetsPage() {
                             'secondary'
                           }
                         >
-                          {asset.status.replace('_', ' ')}
+                          {asset.status ? asset.status.replace('_', ' ') : 'ACTIVE'}
                         </Badge>
                       </td>
                       <td className="py-4 px-4 text-right">

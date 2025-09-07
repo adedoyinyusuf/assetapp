@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,118 +10,146 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPlus, faEdit, faTrash, faUser, faUserShield, faUsers } from '@fortawesome/free-solid-svg-icons'
+import { toast } from 'sonner'
 
 interface User {
   id: number
-  name: string
   email: string
-  role: 'Admin' | 'Manager' | 'User' | 'Viewer'
-  status: 'Active' | 'Inactive'
-  lastLogin: string
+  firstName: string | null
+  lastName: string | null
+  role: string
+  roleId: number | null
+  isActive: boolean
+  lastLogin: string | null
+  permissions: string[]
   createdAt: string
+  updatedAt: string
+}
+
+interface UsersResponse {
+  data: User[]
+  pagination: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
 }
 
 export default function UsersManagementPage() {
-  const [users, setUsers] = useState<User[]>([
-    {
-      id: 1,
-      name: 'John Doe',
-      email: 'john.doe@npc.gov.ng',
-      role: 'Admin',
-      status: 'Active',
-      lastLogin: '2024-01-25',
-      createdAt: '2024-01-01'
-    },
-    {
-      id: 2,
-      name: 'Jane Smith',
-      email: 'jane.smith@npc.gov.ng',
-      role: 'Manager',
-      status: 'Active',
-      lastLogin: '2024-01-24',
-      createdAt: '2024-01-05'
-    },
-    {
-      id: 3,
-      name: 'Mike Johnson',
-      email: 'mike.johnson@npc.gov.ng',
-      role: 'User',
-      status: 'Inactive',
-      lastLogin: '2024-01-20',
-      createdAt: '2024-01-10'
-    }
-  ])
-
+  const [users, setUsers] = useState<User[]>([])
+  const [loading, setLoading] = useState(true)
   const [showAddForm, setShowAddForm] = useState(false)
   const [filterRole, setFilterRole] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
+  const [pagination, setPagination] = useState({
+    total: 0,
+    page: 1,
+    limit: 10,
+    totalPages: 0
+  })
+
+  // Fetch users from API
+  const fetchUsers = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch('/api/admin/users')
+      if (response.ok) {
+        const data: UsersResponse = await response.json()
+        setUsers(data.data)
+        setPagination(data.pagination)
+      } else {
+        toast.error('Failed to fetch users')
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error)
+      toast.error('Error loading users')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchUsers()
+  }, [])
+
+  const getUserDisplayName = (user: User) => {
+    if (user.firstName && user.lastName) {
+      return `${user.firstName} ${user.lastName}`
+    }
+    if (user.firstName) return user.firstName
+    if (user.lastName) return user.lastName
+    return user.email
+  }
 
   const [newUser, setNewUser] = useState({
-    name: '',
+    firstName: '',
+    lastName: '',
     email: '',
-    role: 'User' as User['role'],
-    status: 'Active' as User['status']
+    role: 'USER',
+    isActive: true
   })
 
   const handleAddUser = () => {
-    if (!newUser.name || !newUser.email) return
-
-    const user: User = {
-      id: users.length + 1,
-      ...newUser,
-      lastLogin: 'Never',
-      createdAt: new Date().toISOString().split('T')[0]
-    }
-
-    setUsers([...users, user])
-    setNewUser({ name: '', email: '', role: 'User', status: 'Active' })
-    setShowAddForm(false)
+    // TODO: Implement API call to add user
+    toast.info('Add user functionality will be implemented')
   }
 
   const handleDeleteUser = (id: number) => {
+    // TODO: Implement API call to delete user
     if (confirm('Are you sure you want to delete this user?')) {
-      setUsers(users.filter(user => user.id !== id))
+      toast.info('Delete user functionality will be implemented')
     }
   }
 
   const toggleUserStatus = (id: number) => {
-    setUsers(users.map(user => 
-      user.id === id 
-        ? { ...user, status: user.status === 'Active' ? 'Inactive' : 'Active' }
-        : user
-    ))
+    // TODO: Implement API call to toggle user status
+    toast.info('Toggle user status functionality will be implemented')
   }
 
-  const getRoleBadge = (role: User['role']) => {
-    const variants = {
-      'Admin': 'destructive',
-      'Manager': 'default',
-      'User': 'secondary',
-      'Viewer': 'outline'
-    } as const
+  const getRoleBadge = (role: string) => {
+    const variants: Record<string, 'destructive' | 'default' | 'secondary' | 'outline'> = {
+      'SUPER_ADMIN': 'destructive',
+      'ADMIN': 'destructive', 
+      'MANAGER': 'default',
+      'OPERATOR': 'secondary',
+      'VIEWER': 'outline'
+    }
 
-    return <Badge variant={variants[role]}>{role}</Badge>
+    const displayNames: Record<string, string> = {
+      'SUPER_ADMIN': 'Super Admin',
+      'ADMIN': 'Admin',
+      'MANAGER': 'Manager', 
+      'OPERATOR': 'Operator',
+      'VIEWER': 'Viewer'
+    }
+
+    return <Badge variant={variants[role] || 'outline'}>{displayNames[role] || role}</Badge>
   }
 
-  const getStatusBadge = (status: User['status']) => {
+  const getStatusBadge = (isActive: boolean) => {
     return (
-      <Badge variant={status === 'Active' ? 'default' : 'secondary'}>
-        {status}
+      <Badge variant={isActive ? 'default' : 'secondary'}>
+        {isActive ? 'Active' : 'Inactive'}
       </Badge>
     )
   }
 
   const filteredUsers = users.filter(user => {
     if (filterRole && filterRole !== 'all' && user.role !== filterRole) return false
-    if (filterStatus && filterStatus !== 'all' && user.status !== filterStatus) return false
+    if (filterStatus && filterStatus !== 'all') {
+      const status = user.isActive ? 'Active' : 'Inactive'
+      if (status !== filterStatus) return false
+    }
     return true
   })
 
   const roleStats = {
-    Admin: users.filter(u => u.role === 'Admin').length,
-    Manager: users.filter(u => u.role === 'Manager').length,
-    User: users.filter(u => u.role === 'User').length,
-    Viewer: users.filter(u => u.role === 'Viewer').length
+    ADMIN: users.filter(u => u.role === 'ADMIN').length,
+    MANAGER: users.filter(u => u.role === 'MANAGER').length,
+    OPERATOR: users.filter(u => u.role === 'OPERATOR').length,
+    VIEWER: users.filter(u => u.role === 'VIEWER').length,
+    SUPER_ADMIN: users.filter(u => u.role === 'SUPER_ADMIN').length
   }
 
   return (
@@ -153,7 +181,7 @@ export default function UsersManagementPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Active Users</p>
-                <p className="text-2xl font-bold">{users.filter(u => u.status === 'Active').length}</p>
+                <p className="text-2xl font-bold">{users.filter(u => u.isActive).length}</p>
               </div>
               <FontAwesomeIcon icon={faUser} className="h-8 w-8 text-green-600" />
             </div>
@@ -165,7 +193,7 @@ export default function UsersManagementPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Admins</p>
-                <p className="text-2xl font-bold">{roleStats.Admin}</p>
+                <p className="text-2xl font-bold">{roleStats.ADMIN + roleStats.SUPER_ADMIN}</p>
               </div>
               <FontAwesomeIcon icon={faUserShield} className="h-8 w-8 text-red-600" />
             </div>
@@ -177,7 +205,7 @@ export default function UsersManagementPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Managers</p>
-                <p className="text-2xl font-bold">{roleStats.Manager}</p>
+                <p className="text-2xl font-bold">{roleStats.MANAGER}</p>
               </div>
               <FontAwesomeIcon icon={faUserShield} className="h-8 w-8 text-purple-600" />
             </div>
@@ -194,12 +222,21 @@ export default function UsersManagementPage() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="userName">Full Name</Label>
+                <Label htmlFor="userFirstName">First Name</Label>
                 <Input
-                  id="userName"
-                  value={newUser.name}
-                  onChange={(e) => setNewUser({...newUser, name: e.target.value})}
-                  placeholder="Enter full name"
+                  id="userFirstName"
+                  value={newUser.firstName}
+                  onChange={(e) => setNewUser({...newUser, firstName: e.target.value})}
+                  placeholder="Enter first name"
+                />
+              </div>
+              <div>
+                <Label htmlFor="userLastName">Last Name</Label>
+                <Input
+                  id="userLastName"
+                  value={newUser.lastName}
+                  onChange={(e) => setNewUser({...newUser, lastName: e.target.value})}
+                  placeholder="Enter last name"
                 />
               </div>
               <div>
@@ -214,21 +251,22 @@ export default function UsersManagementPage() {
               </div>
               <div>
                 <Label htmlFor="userRole">Role</Label>
-                <Select value={newUser.role} onValueChange={(value) => setNewUser({...newUser, role: value as User['role']})}>
+                <Select value={newUser.role} onValueChange={(value) => setNewUser({...newUser, role: value})}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Viewer">Viewer</SelectItem>
-                    <SelectItem value="User">User</SelectItem>
-                    <SelectItem value="Manager">Manager</SelectItem>
-                    <SelectItem value="Admin">Admin</SelectItem>
+                    <SelectItem value="VIEWER">Viewer</SelectItem>
+                    <SelectItem value="OPERATOR">Operator</SelectItem>
+                    <SelectItem value="MANAGER">Manager</SelectItem>
+                    <SelectItem value="ADMIN">Admin</SelectItem>
+                    <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
                 <Label htmlFor="userStatus">Status</Label>
-                <Select value={newUser.status} onValueChange={(value) => setNewUser({...newUser, status: value as User['status']})}>
+                <Select value={newUser.isActive ? 'Active' : 'Inactive'} onValueChange={(value) => setNewUser({...newUser, isActive: value === 'Active'})}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -259,10 +297,11 @@ export default function UsersManagementPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Roles</SelectItem>
-                  <SelectItem value="Admin">Admin</SelectItem>
-                  <SelectItem value="Manager">Manager</SelectItem>
-                  <SelectItem value="User">User</SelectItem>
-                  <SelectItem value="Viewer">Viewer</SelectItem>
+                  <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
+                  <SelectItem value="ADMIN">Admin</SelectItem>
+                  <SelectItem value="MANAGER">Manager</SelectItem>
+                  <SelectItem value="OPERATOR">Operator</SelectItem>
+                  <SelectItem value="VIEWER">Viewer</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={filterStatus} onValueChange={setFilterStatus}>
@@ -292,13 +331,25 @@ export default function UsersManagementPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredUsers.map((user) => (
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8">
+                      Loading users...
+                    </TableCell>
+                  </TableRow>
+                ) : filteredUsers.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                      No users found
+                    </TableCell>
+                  </TableRow>
+                ) : filteredUsers.map((user) => (
                   <TableRow key={user.id}>
-                    <TableCell className="font-medium">{user.name}</TableCell>
+                    <TableCell className="font-medium">{getUserDisplayName(user)}</TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>{getRoleBadge(user.role)}</TableCell>
-                    <TableCell>{getStatusBadge(user.status)}</TableCell>
-                    <TableCell>{user.lastLogin}</TableCell>
+                    <TableCell>{getStatusBadge(user.isActive)}</TableCell>
+                    <TableCell>{user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}</TableCell>
                     <TableCell>
                       <div className="flex gap-2">
                         <Button size="sm" variant="outline">
@@ -307,10 +358,10 @@ export default function UsersManagementPage() {
                         </Button>
                         <Button 
                           size="sm" 
-                          variant={user.status === 'Active' ? 'secondary' : 'default'}
+                          variant={user.isActive ? 'secondary' : 'default'}
                           onClick={() => toggleUserStatus(user.id)}
                         >
-                          {user.status === 'Active' ? 'Deactivate' : 'Activate'}
+                          {user.isActive ? 'Deactivate' : 'Activate'}
                         </Button>
                         <Button 
                           size="sm" 

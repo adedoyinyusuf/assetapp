@@ -15,10 +15,11 @@ export default async function AssetDetailsPage({ params }: { params: { id: strin
     return <div>Asset not found</div>
   }
 
-  const category = categories.find(c => c.id === asset.category_id)
-  const state = states.find(s => s.id === asset.state_id)
-  const lgas = state ? await getLGAs(state.id) : []
-  const lga = lgas.find(l => l.id === asset.lga_id)
+  // Use the category, state, and lga objects directly from the asset
+  // Fall back to legacy fields if needed
+  const category = asset.category || categories.find(c => c.id === (asset.categoryId || asset.category_id))
+  const state = asset.state || states.find(s => s.id === (asset.stateId || asset.state_id))
+  const lga = asset.lga || (asset.lga_id ? { id: asset.lga_id, name: asset.lga_name || '', stateId: asset.state_id || 0 } : null)
 
   return (
     <div className="space-y-6">
@@ -52,7 +53,7 @@ export default async function AssetDetailsPage({ params }: { params: { id: strin
                 <h3 className="font-medium text-lg mb-2">Location</h3>
                 <p className="flex items-center">
                   <FontAwesomeIcon icon={faMapMarkerAlt} className="mr-2 text-red-500" />
-                  {`${state?.name}, ${lga?.name}`}
+                  {`${state?.name || 'Unknown'}, ${lga?.name || 'Unknown'}`}
                 </p>
               </div>
             </div>
@@ -61,11 +62,11 @@ export default async function AssetDetailsPage({ params }: { params: { id: strin
               <div className="p-4 bg-gray-50 rounded-lg">
                 <h3 className="font-medium text-lg mb-2">Financial Details</h3>
                 <div className="space-y-2">
-                  <p><strong>Purchase Value:</strong> ${asset.purchaseValue.toFixed(2)}</p>
+                  <p><strong>Purchase Value:</strong> ${asset.purchaseValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                   <p><strong>Purchase Date:</strong> {new Date(asset.purchaseDate).toLocaleDateString()}</p>
                   <p><strong>Useful Life:</strong> {asset.usefulLife} years</p>
-                  <p><strong>Salvage Value:</strong> ${asset.salvageValue.toFixed(2)}</p>
-                  <p><strong>Annual Depreciation:</strong> ${((asset.purchaseValue - asset.salvageValue) / asset.usefulLife).toFixed(2)}</p>
+                  <p><strong>Salvage Value:</strong> ${asset.salvageValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                  <p><strong>Annual Depreciation:</strong> ${((asset.purchaseValue - asset.salvageValue) / asset.usefulLife).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                 </div>
               </div>
             </div>
@@ -100,10 +101,10 @@ export default async function AssetDetailsPage({ params }: { params: { id: strin
 
       <AssetMovementForm 
         assetId={asset.id} 
-        currentLocation={`${state?.name}, ${lga?.name}`}
-        currentStateId={asset.state_id}
-        currentLgaId={asset.lga_id}
-        categoryName={category?.name}
+        currentLocation={`${state?.name || 'Unknown'}, ${lga?.name || 'Unknown'}`}
+        currentStateId={asset.stateId || asset.state_id || asset.state?.id || 0}
+        currentLgaId={asset.lgaId || asset.lga_id || asset.lga?.id || 0}
+        categoryName={category?.name || 'Unknown'}
       />
     </div>
   )

@@ -7,6 +7,9 @@ export const config = {
   nextAuthSecret: process.env.NEXTAUTH_SECRET || 'your-secret-key',
   nextAuthUrl: process.env.NEXTAUTH_URL || 'http://localhost:3000',
   
+  // API
+  apiBaseUrl: process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000',
+  
   // App
   nodeEnv: process.env.NODE_ENV || 'development',
   isProduction: process.env.NODE_ENV === 'production',

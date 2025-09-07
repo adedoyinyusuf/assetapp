@@ -115,19 +115,13 @@ export default function DepreciationPage() {
         setDepreciationRecords(data.data || []);
         setTotalPages(data.pagination?.totalPages || 1);
       } else {
-        toast({
-          title: 'Error',
-          description: data.error || 'Failed to fetch depreciation records',
-          variant: 'destructive',
+        toast.error('Failed to fetch depreciation records', {
+          description: data.error || 'Failed to fetch depreciation records'
         });
       }
     } catch (error) {
       console.error('Error fetching depreciation records:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to fetch depreciation records',
-        variant: 'destructive',
-      });
+      toast.error('Failed to fetch depreciation records');
     } finally {
       setIsLoading(false);
     }
@@ -226,26 +220,17 @@ export default function DepreciationPage() {
       const data = await response.json();
 
       if (response.ok) {
-        toast({
-          title: 'Success',
-          description: data.message,
-        });
+        toast.success(data.message);
         setBulkModal({ isOpen: false, year: new Date().getFullYear(), selectedAssets: [] });
         fetchDepreciationRecords();
       } else {
-        toast({
-          title: 'Error',
-          description: data.error || 'Failed to calculate depreciation',
-          variant: 'destructive',
+        toast.error('Failed to calculate depreciation', {
+          description: data.error || 'Failed to calculate depreciation'
         });
       }
     } catch (error) {
       console.error('Error calculating depreciation:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to calculate depreciation',
-        variant: 'destructive',
-      });
+      toast.error('Failed to calculate depreciation');
     } finally {
       setIsLoading(false);
     }
@@ -261,26 +246,17 @@ export default function DepreciationPage() {
       });
 
       if (response.ok) {
-        toast({
-          title: 'Success',
-          description: 'Depreciation record deleted successfully',
-        });
+        toast.success('Depreciation record deleted successfully');
         fetchDepreciationRecords();
       } else {
         const data = await response.json();
-        toast({
-          title: 'Error',
-          description: data.error || 'Failed to delete record',
-          variant: 'destructive',
+        toast.error('Failed to delete record', {
+          description: data.error || 'Failed to delete record'
         });
       }
     } catch (error) {
       console.error('Error deleting record:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to delete record',
-        variant: 'destructive',
-      });
+      toast.error('Failed to delete record');
     }
   };
 

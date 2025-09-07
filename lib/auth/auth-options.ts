@@ -99,7 +99,7 @@ export const authOptions: AuthOptions = {
           const userId = user.id.toString();
           
           // Normalize role name and validate against UserRole enum
-          const roleName = user.role.name.toUpperCase().replace(/_/g, '');
+          const roleName = user.role.name.toUpperCase();
           const validRole = Object.values(UserRole).find(r => r === roleName) as UserRole;
           
           if (!validRole) {
@@ -131,7 +131,7 @@ export const authOptions: AuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         // Ensure role is properly typed and normalized
-        const roleName = (user.role as unknown as string).toUpperCase().replace(/_/g, '');
+        const roleName = (user.role as unknown as string).toUpperCase();
         const validRole = Object.values(UserRole).find(r => r === roleName);
         
         if (!validRole) {
@@ -156,7 +156,7 @@ export const authOptions: AuthOptions = {
     async session({ session, token }) {
       if (token) {
         // Ensure role is properly typed
-        const roleName = (token.role as unknown as string)?.toUpperCase().replace(/_/g, '');
+        const roleName = (token.role as unknown as string)?.toUpperCase();
         const validRole = Object.values(UserRole).find(r => r === roleName);
         
         if (!validRole) {

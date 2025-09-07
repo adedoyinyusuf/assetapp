@@ -8,7 +8,8 @@ const protectedRoutes = [
   '/operations',
   '/reports',
   '/team',
-  '/settings'
+  '/settings',
+  '/admin'
 ];
 
 const roleBasedRoutes: Record<string, string[]> = {
@@ -37,6 +38,7 @@ const roleBasedRoutes: Record<string, string[]> = {
     '/reports',
     '/team',
     '/settings',
+    '/admin',
   ],
   [UserRole.SUPER_ADMIN]: protectedRoutes, // Access to everything
 };
@@ -100,5 +102,6 @@ export const config = {
     '/reports/:path*',
     '/team/:path*',
     '/settings/:path*',
+    '/admin/:path*',
   ]
 };
