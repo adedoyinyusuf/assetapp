@@ -115,11 +115,7 @@ export default function CategoriesPage() {
   
   // Handle different role formats and normalize comparison
   const normalizedUserRole = userRole?.toUpperCase();
-  const canAddCategory = normalizedUserRole === 'SUPER_ADMIN' || 
-                        normalizedUserRole === 'SUPERADMIN' || 
-                        normalizedUserRole === 'ADMIN' ||
-                        userRole === UserRole.SUPER_ADMIN || 
-                        userRole === UserRole.ADMIN;
+  const canAddCategory = normalizedUserRole === UserRole.SUPER_ADMIN || normalizedUserRole === UserRole.ADMIN
   
   console.log('Can add category:', canAddCategory, 'Normalized role:', normalizedUserRole);
 

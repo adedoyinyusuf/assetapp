@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth/auth-options-simple';
+import { authOptions } from '@/lib/auth/auth-options';
 import { z } from 'zod';
+import { UserRole } from '@/lib/auth/roles';
 
 // Input validation schema
 const updateCategorySchema = z.object({
@@ -90,7 +91,7 @@ export async function PUT(
     }
 
     // Check if user has admin privileges
-    if (session.user.role !== 'SUPERADMIN' && session.user.role !== 'ADMIN') {
+    if (session.user.role !== UserRole.SUPER_ADMIN && session.user.role !== UserRole.ADMIN) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
@@ -197,7 +198,7 @@ export async function DELETE(
     }
 
     // Check if user has super admin privileges
-    if (session.user.role !== 'SUPERADMIN') {
+    if (session.user.role !== UserRole.SUPER_ADMIN) {
       return NextResponse.json({ error: 'Only super admins can delete categories' }, { status: 403 });
     }
 

@@ -32,6 +32,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { UserRole } from '@/lib/auth/roles'
 
 interface DepreciationRecord {
   id: number;
@@ -539,7 +540,7 @@ export default function DepreciationPage() {
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
-                          {(session.user.role === 'SUPERADMIN') && (
+                          {(session?.user?.role === UserRole.SUPER_ADMIN) && (
                             <Button
                               variant="ghost"
                               size="sm"

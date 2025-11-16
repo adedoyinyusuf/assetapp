@@ -1,8 +1,9 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth/auth-options-simple';
-import { z } from 'zod';
+import { NextResponse } from 'next/server'
+import { prisma } from '@/lib/db'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth/auth-options'
+import { z } from 'zod'
+import { UserRole } from '@/lib/auth/roles'
 
 // Input validation schemas
 const lgaUpdateSchema = z.object({
@@ -79,7 +80,7 @@ export async function PUT(req: Request, { params }: RouteParams) {
     }
 
     // Check if user has admin privileges
-    if (!['SUPER_ADMIN', 'ADMIN'].includes(session.user.role)) {
+    if (![UserRole.SUPER_ADMIN, UserRole.ADMIN].includes(session.user.role)) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
@@ -198,7 +199,7 @@ export async function DELETE(req: Request, { params }: RouteParams) {
     }
 
     // Check if user has admin privileges
-    if (!['SUPER_ADMIN', 'ADMIN'].includes(session.user.role)) {
+    if (![UserRole.SUPER_ADMIN, UserRole.ADMIN].includes(session.user.role)) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 

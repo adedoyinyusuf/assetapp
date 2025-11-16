@@ -292,11 +292,8 @@ export async function DELETE(req: Request) {
     }
 
     // Prevent deleting super admin accounts
-    if (user.role?.name === 'SUPERADMIN') {
-      return NextResponse.json(
-        { error: 'Cannot delete super admin accounts' },
-        { status: 403 }
-      );
+    if (user.role?.name === UserRole.SUPER_ADMIN) {
+      return NextResponse.json({ error: 'Cannot delete super admin user' }, { status: 403 })
     }
 
     // Soft delete the user by setting isActive to false

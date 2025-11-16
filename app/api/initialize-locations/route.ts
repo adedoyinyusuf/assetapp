@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth/auth-options-simple';
+import { authOptions } from '@/lib/auth/auth-options';
+import { UserRole } from '@/lib/auth/roles'
 
 // Nigerian States and LGAs data
 const NIGERIAN_STATES_AND_LGAS = [
@@ -70,7 +71,7 @@ export async function POST(req: Request) {
     }
 
     // Check if user has admin privileges
-    if (!['SUPER_ADMIN', 'ADMIN'].includes(session.user.role)) {
+    if (![UserRole.SUPER_ADMIN, UserRole.ADMIN].includes(session.user.role)) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 

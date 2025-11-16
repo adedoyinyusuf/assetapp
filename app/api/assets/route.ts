@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth/auth-options-simple';
+import { authOptions } from '@/lib/auth/auth-options';
 import { z } from 'zod';
 
 // Input validation schemas

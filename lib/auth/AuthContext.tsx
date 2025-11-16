@@ -82,7 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user) return false;
     
     // Super admin has all permissions
-    if (user.role === 'SUPER_ADMIN') return true;
+    if (user.role === UserRole.SUPER_ADMIN) return true;
 
     // Check if the user has the required permission
     return user.permissions?.includes(`${action.toUpperCase()}_${resource.toUpperCase()}`) || false;

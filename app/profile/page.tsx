@@ -25,6 +25,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import { UserRole } from '@/lib/auth/roles'
 
 // Define form schema with Zod
 const profileFormSchema = z.object({
@@ -197,13 +198,10 @@ export default function ProfilePage() {
 
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
-      case 'SUPERADMIN': return 'destructive';
-      case 'ADMIN': return 'default';
-      case 'MANAGER': return 'secondary';
-      case 'OPERATOR': return 'outline';
-      case 'AUDITOR': return 'outline';
-      case 'VIEWER': return 'secondary';
-      default: return 'outline';
+      case UserRole.SUPER_ADMIN: return 'destructive';
+      case UserRole.ADMIN: return 'default';
+      case UserRole.MANAGER: return 'secondary';
+      default: return 'default';
     }
   };
 

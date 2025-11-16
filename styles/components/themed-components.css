@@ -1,0 +1,506 @@
+/**
+ * Themed Components - Asset Application
+ * Using the new Green & Red color scheme
+ * Version: 2.0.0
+ */
+
+/* ========================================
+ * BUTTON COMPONENTS
+ * ======================================== */
+
+.btn-primary {
+  @apply bg-apple-green text-white font-medium px-4 py-2 rounded-lg;
+  @apply hover:bg-cal-poly-green hover:shadow-hover;
+  @apply focus:ring-4 focus:ring-primary-300 focus:outline-none;
+  @apply active:bg-pakistan-green;
+  @apply transition-all duration-200 ease-in-out;
+}
+
+.btn-secondary {
+  @apply bg-sage text-pakistan-green font-medium px-4 py-2 rounded-lg border border-sage;
+  @apply hover:bg-yellow-green hover:border-apple-green hover:shadow-hover;
+  @apply focus:ring-4 focus:ring-primary-200 focus:outline-none;
+  @apply active:bg-apple-green active:text-white;
+  @apply transition-all duration-200 ease-in-out;
+}
+
+.btn-danger {
+  @apply bg-red-ncs text-white font-medium px-4 py-2 rounded-lg;
+  @apply hover:bg-carmine hover:shadow-hover;
+  @apply focus:ring-4 focus:ring-secondary-300 focus:outline-none;
+  @apply active:bg-chocolate-cosmos;
+  @apply transition-all duration-200 ease-in-out;
+}
+
+.btn-outline {
+  @apply bg-transparent text-apple-green font-medium px-4 py-2 rounded-lg border-2 border-apple-green;
+  @apply hover:bg-apple-green hover:text-white hover:shadow-hover;
+  @apply focus:ring-4 focus:ring-primary-200 focus:outline-none;
+  @apply active:bg-cal-poly-green;
+  @apply transition-all duration-200 ease-in-out;
+}
+
+.btn-ghost {
+  @apply bg-transparent text-pakistan-green font-medium px-4 py-2 rounded-lg;
+  @apply hover:bg-sage hover:text-apple-green;
+  @apply focus:ring-4 focus:ring-primary-100 focus:outline-none;
+  @apply transition-all duration-200 ease-in-out;
+}
+
+/* Button Sizes */
+.btn-sm {
+  @apply px-3 py-1.5 text-sm;
+}
+
+.btn-lg {
+  @apply px-6 py-3 text-lg;
+}
+
+.btn-xl {
+  @apply px-8 py-4 text-xl;
+}
+
+/* ========================================
+ * CARD COMPONENTS
+ * ======================================== */
+
+.card {
+  @apply bg-white rounded-xl shadow-md border border-sage;
+  @apply hover:shadow-hover;
+  @apply transition-shadow duration-300 ease-in-out;
+}
+
+.card-gradient {
+  @apply bg-gradient-card;
+}
+
+.card-header {
+  @apply px-6 py-4 border-b border-sage;
+  @apply bg-gradient-to-r from-apple-green/5 to-yellow-green/5;
+}
+
+.card-body {
+  @apply px-6 py-4;
+}
+
+.card-footer {
+  @apply px-6 py-4 border-t border-sage;
+  @apply bg-sage/10;
+}
+
+/* ========================================
+ * FORM COMPONENTS
+ * ======================================== */
+
+.form-input {
+  @apply w-full px-4 py-2 border border-sage rounded-lg;
+  @apply text-pakistan-green placeholder-gray-500;
+  @apply focus:border-apple-green focus:ring-4 focus:ring-primary-100 focus:outline-none;
+  @apply hover:border-yellow-green;
+  @apply transition-all duration-200 ease-in-out;
+}
+
+.form-input.error {
+  @apply border-indian-red focus:border-red-ncs focus:ring-secondary-100;
+}
+
+.form-input.success {
+  @apply border-apple-green focus:border-yellow-green focus:ring-primary-100;
+}
+
+.form-label {
+  @apply block text-sm font-medium text-pakistan-green mb-2;
+}
+
+.form-error {
+  @apply text-red-ncs text-sm mt-1 flex items-center gap-1;
+}
+
+.form-success {
+  @apply text-apple-green text-sm mt-1 flex items-center gap-1;
+}
+
+.form-help {
+  @apply text-cal-poly-green text-sm mt-1;
+}
+
+/* Select Component */
+.form-select {
+  @apply form-input pr-10 bg-white;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23243010'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+  background-position: right 0.75rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+}
+
+/* Checkbox Component */
+.form-checkbox {
+  @apply h-4 w-4 text-apple-green rounded border-sage;
+  @apply focus:ring-4 focus:ring-primary-100;
+  @apply hover:border-apple-green;
+  @apply transition-colors duration-200;
+}
+
+/* Radio Component */
+.form-radio {
+  @apply h-4 w-4 text-apple-green border-sage;
+  @apply focus:ring-4 focus:ring-primary-100;
+  @apply hover:border-apple-green;
+  @apply transition-colors duration-200;
+}
+
+/* ========================================
+ * TABLE COMPONENTS
+ * ======================================== */
+
+.table {
+  @apply w-full border-collapse;
+}
+
+.table-header {
+  @apply bg-apple-green text-white;
+}
+
+.table-header th {
+  @apply px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider;
+}
+
+.table-row {
+  @apply border-b border-sage hover:bg-sage/10;
+  @apply transition-colors duration-150;
+}
+
+.table-row:nth-child(even) {
+  @apply bg-sage/5;
+}
+
+.table-cell {
+  @apply px-6 py-4 text-sm text-pakistan-green;
+}
+
+.table-compact .table-cell {
+  @apply px-4 py-2;
+}
+
+/* ========================================
+ * BADGE COMPONENTS
+ * ======================================== */
+
+.badge {
+  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  @apply transition-colors duration-200;
+}
+
+.badge-primary {
+  @apply bg-apple-green text-white;
+}
+
+.badge-secondary {
+  @apply bg-sage text-pakistan-green;
+}
+
+.badge-success {
+  @apply bg-apple-green text-white;
+}
+
+.badge-warning {
+  @apply bg-yellow-300 text-yellow-900;
+}
+
+.badge-error {
+  @apply bg-red-ncs text-white;
+}
+
+.badge-info {
+  @apply bg-blue-500 text-white;
+}
+
+/* Status Badges */
+.badge-campaign-draft {
+  @apply bg-sage text-pakistan-green;
+}
+
+.badge-campaign-active {
+  @apply bg-apple-green text-white;
+}
+
+.badge-campaign-paused {
+  @apply bg-indian-red text-white;
+}
+
+.badge-campaign-completed {
+  @apply bg-cal-poly-green text-white;
+}
+
+.badge-campaign-cancelled {
+  @apply bg-carmine text-white;
+}
+
+.badge-verification-pending {
+  @apply bg-sage text-pakistan-green;
+}
+
+.badge-verification-in-progress {
+  @apply bg-yellow-green text-white;
+}
+
+.badge-verification-verified {
+  @apply bg-apple-green text-white;
+}
+
+.badge-verification-approved {
+  @apply bg-cal-poly-green text-white;
+}
+
+.badge-verification-rejected {
+  @apply bg-red-ncs text-white;
+}
+
+/* Priority Badges */
+.badge-priority-low {
+  @apply bg-sage text-pakistan-green;
+}
+
+.badge-priority-medium {
+  @apply bg-yellow-green text-white;
+}
+
+.badge-priority-high {
+  @apply bg-indian-red text-white;
+}
+
+.badge-priority-critical {
+  @apply bg-carmine text-white animate-pulse;
+}
+
+/* ========================================
+ * NAVIGATION COMPONENTS
+ * ======================================== */
+
+.nav-sidebar {
+  @apply bg-gradient-sidebar text-sage;
+}
+
+.nav-item {
+  @apply flex items-center px-6 py-3 text-sm font-medium rounded-lg mx-2;
+  @apply hover:bg-cal-poly-green hover:text-white;
+  @apply transition-all duration-200 ease-in-out;
+}
+
+.nav-item.active {
+  @apply bg-apple-green text-white;
+}
+
+.nav-item-icon {
+  @apply w-5 h-5 mr-3;
+}
+
+/* Breadcrumbs */
+.breadcrumb {
+  @apply flex items-center space-x-2 text-sm text-cal-poly-green;
+}
+
+.breadcrumb-item {
+  @apply hover:text-apple-green transition-colors duration-200;
+}
+
+.breadcrumb-separator {
+  @apply text-sage;
+}
+
+/* ========================================
+ * MODAL COMPONENTS
+ * ======================================== */
+
+.modal-backdrop {
+  @apply fixed inset-0 bg-pakistan-green/50 backdrop-blur-sm z-50;
+}
+
+.modal-content {
+  @apply bg-white rounded-xl shadow-2xl border border-sage;
+  @apply max-w-md mx-auto my-8 p-6;
+  @apply animate-slide-up;
+}
+
+.modal-header {
+  @apply pb-4 border-b border-sage;
+}
+
+.modal-title {
+  @apply text-lg font-semibold text-pakistan-green;
+}
+
+.modal-body {
+  @apply py-4;
+}
+
+.modal-footer {
+  @apply pt-4 border-t border-sage flex justify-end space-x-3;
+}
+
+/* ========================================
+ * ALERT COMPONENTS
+ * ======================================== */
+
+.alert {
+  @apply p-4 rounded-lg border flex items-start space-x-3;
+}
+
+.alert-success {
+  @apply bg-success-bg border-success-border text-apple-green;
+}
+
+.alert-warning {
+  @apply bg-warning-bg border-warning-border text-yellow-800;
+}
+
+.alert-error {
+  @apply bg-error-bg border-error-border text-red-ncs;
+}
+
+.alert-info {
+  @apply bg-info-bg border-info-border text-blue-800;
+}
+
+.alert-icon {
+  @apply w-5 h-5 mt-0.5 flex-shrink-0;
+}
+
+.alert-content {
+  @apply flex-1;
+}
+
+.alert-title {
+  @apply font-medium mb-1;
+}
+
+.alert-message {
+  @apply text-sm;
+}
+
+/* ========================================
+ * PROGRESS COMPONENTS
+ * ======================================== */
+
+.progress-bar {
+  @apply w-full bg-sage rounded-full h-2 overflow-hidden;
+}
+
+.progress-fill {
+  @apply h-full bg-gradient-primary rounded-full transition-all duration-300 ease-out;
+}
+
+.progress-text {
+  @apply text-sm font-medium text-pakistan-green mt-2;
+}
+
+/* ========================================
+ * SKELETON LOADING
+ * ======================================== */
+
+.skeleton {
+  @apply bg-sage/30 animate-pulse rounded;
+}
+
+.skeleton-text {
+  @apply h-4 bg-sage/30 rounded;
+}
+
+.skeleton-avatar {
+  @apply w-10 h-10 bg-sage/30 rounded-full;
+}
+
+/* ========================================
+ * UTILITIES
+ * ======================================== */
+
+.text-gradient-primary {
+  @apply bg-gradient-primary bg-clip-text text-transparent;
+}
+
+.text-gradient-secondary {
+  @apply bg-gradient-secondary bg-clip-text text-transparent;
+}
+
+.border-gradient {
+  background: linear-gradient(white, white) padding-box,
+              linear-gradient(135deg, #87a330, #a1c349) border-box;
+  border: 2px solid transparent;
+  border-radius: 0.75rem;
+}
+
+/* Hover Animations */
+.hover-lift {
+  @apply transition-transform duration-200 ease-out;
+}
+
+.hover-lift:hover {
+  @apply -translate-y-1;
+}
+
+.hover-scale {
+  @apply transition-transform duration-200 ease-out;
+}
+
+.hover-scale:hover {
+  @apply scale-105;
+}
+
+/* Focus Styles */
+.focus-ring {
+  @apply focus:outline-none focus:ring-4 focus:ring-primary-200;
+}
+
+.focus-ring-error {
+  @apply focus:outline-none focus:ring-4 focus:ring-secondary-200;
+}
+
+/* ========================================
+ * RESPONSIVE UTILITIES
+ * ======================================== */
+
+@media (max-width: 768px) {
+  .card {
+    @apply rounded-lg;
+  }
+  
+  .modal-content {
+    @apply mx-4 my-4;
+  }
+  
+  .table-responsive {
+    @apply overflow-x-auto;
+  }
+}
+
+/* ========================================
+ * ANIMATIONS
+ * ======================================== */
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.3s ease-out;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-in-out;
+}

@@ -26,11 +26,11 @@ export default function DashboardBase({ role, children }: DashboardBaseProps) {
 
 function getDashboardTitle(role: UserRole): string {
   switch (role) {
-    case 'SUPERADMIN':
+    case UserRole.SUPER_ADMIN:
       return 'System Administration';
-    case 'ADMIN':
+    case UserRole.ADMIN:
       return 'Administration';
-    case 'MANAGER':
+    case UserRole.MANAGER:
       return 'Management';
     case 'OPERATOR':
       return 'Operations';
@@ -43,11 +43,11 @@ function getDashboardTitle(role: UserRole): string {
 
 function getDashboardDescription(role: UserRole): string {
   switch (role) {
-    case 'SUPERADMIN':
+    case UserRole.SUPER_ADMIN:
       return 'Full system administration and configuration';
-    case 'ADMIN':
+    case UserRole.ADMIN:
       return 'User and system management';
-    case 'MANAGER':
+    case UserRole.MANAGER:
       return 'Team and asset management';
     case 'OPERATOR':
       return 'Asset operations and maintenance';

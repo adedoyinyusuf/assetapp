@@ -99,8 +99,9 @@ export const authOptions: AuthOptions = {
           const userId = user.id.toString();
           
           // Normalize role name and validate against UserRole enum
-          const roleName = user.role.name.toUpperCase();
-          const validRole = Object.values(UserRole).find(r => r === roleName) as UserRole;
+          const roleName = user.role.name.replace(/[\s-]+/g, '_').toUpperCase();
+          const normalizedRole = roleName === 'SUPERADMIN' ? UserRole.SUPER_ADMIN : roleName as UserRole;
+          const validRole = Object.values(UserRole).find(r => r === normalizedRole) as UserRole;
           
           if (!validRole) {
             console.error('Invalid role:', user.role.name, 'Normalized to:', roleName, 'Valid roles:', Object.values(UserRole));
@@ -131,8 +132,9 @@ export const authOptions: AuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         // Ensure role is properly typed and normalized
-        const roleName = (user.role as unknown as string).toUpperCase();
-        const validRole = Object.values(UserRole).find(r => r === roleName);
+        const roleName = (user.role as unknown as string).replace(/[\s-]+/g, '_').toUpperCase();
+        const normalizedRole = roleName === 'SUPERADMIN' ? UserRole.SUPER_ADMIN : roleName as UserRole;
+        const validRole = Object.values(UserRole).find(r => r === normalizedRole);
         
         if (!validRole) {
           console.error('Invalid role in JWT callback:', user.role);
@@ -156,8 +158,9 @@ export const authOptions: AuthOptions = {
     async session({ session, token }) {
       if (token) {
         // Ensure role is properly typed
-        const roleName = (token.role as unknown as string)?.toUpperCase();
-        const validRole = Object.values(UserRole).find(r => r === roleName);
+        const roleName = (token.role as unknown as string)?.replace(/[\s-]+/g, '_').toUpperCase();
+        const normalizedRole = roleName === 'SUPERADMIN' ? UserRole.SUPER_ADMIN : roleName as UserRole;
+        const validRole = Object.values(UserRole).find(r => r === normalizedRole);
         
         if (!validRole) {
           console.error('Invalid role in session callback:', token.role);

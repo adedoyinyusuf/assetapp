@@ -1,14 +1,15 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth-options';
+import { NextResponse } from 'next/server'
+import { prisma } from '@/lib/db'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth/auth-options'
+import { UserRole } from '@/lib/auth/roles'
 
 // Get audit logs with filtering and pagination
 export async function GET(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session || session.user.role !== 'SUPERADMIN') {
-      return new NextResponse('Unauthorized', { status: 401 });
+    const session = await getServerSession(authOptions)
+    if (!session || session.user.role !== UserRole.SUPER_ADMIN) {
+      return new NextResponse('Unauthorized', { status: 401 })
     }
 
     const { searchParams } = new URL(req.url);
@@ -93,9 +94,9 @@ export async function GET(req: Request) {
 // Create an audit log entry
 export async function POST(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(authOptions)
     if (!session) {
-      return new NextResponse('Unauthorized', { status: 401 });
+      return new NextResponse('Unauthorized', { status: 401 })
     }
 
     const { action, entityType, entityId, oldValues, newValues, ipAddress, userAgent } = await req.json();

@@ -22,6 +22,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import { UserRole } from '@/lib/auth/roles'
 
 interface DashboardData {
   totalAssets: number;
@@ -179,12 +180,12 @@ export default function DashboardPage() {
             Welcome, {userName}
           </h1>
           <p className="text-gray-600 mt-1">
-            {userRole === 'SUPERADMIN' && 'You have full system access'}
-            {userRole === 'ADMIN' && 'Manage assets and oversee operations'}
-            {userRole === 'MANAGER' && 'Monitor assets and generate reports'}
-            {userRole === 'OPERATOR' && 'Handle day-to-day asset operations'}
-            {userRole === 'AUDITOR' && 'Review and audit asset records'}
-            {userRole === 'VIEWER' && 'View asset information and reports'}
+            {userRole === UserRole.SUPER_ADMIN && 'You have full system access'}
+            {userRole === UserRole.ADMIN && 'Manage assets and oversee operations'}
+            {userRole === UserRole.MANAGER && 'Monitor assets and generate reports'}
+            {userRole === UserRole.OPERATOR && 'Handle day-to-day asset operations'}
+            {userRole === UserRole.AUDITOR && 'Review and audit asset records'}
+            {userRole === UserRole.VIEWER && 'View asset information and reports'}
           </p>
         </div>
 

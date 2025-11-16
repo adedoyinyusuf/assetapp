@@ -52,6 +52,19 @@ model User {
   refreshTokens  RefreshToken[]
   sessions       UserSession[]
   role           UserRole       @relation(fields: [roleId], references: [id])
+  
+  // Stock Verification relationships
+  verificationAssignments    VerificationAssignment[]  @relation("VerificationAssignments")
+  supervisedAssignments      VerificationAssignment[]  @relation("SupervisedAssignments")
+  verifierVerifications      AssetVerification[]       @relation("VerifierVerifications")
+  reviewerVerifications      AssetVerification[]       @relation("ReviewerVerifications")
+  createdCampaigns          VerificationCampaign[]     @relation("CreatedCampaigns")
+  createdTemplates          VerificationTemplate[]     @relation("CreatedTemplates")
+  createdSchedules          VerificationSchedule[]     @relation("CreatedSchedules")
+  reportedDiscrepancies     VerificationDiscrepancy[]  @relation("ReportedDiscrepancies")
+  assignedDiscrepancies     VerificationDiscrepancy[]  @relation("AssignedDiscrepancies")
+  resolvedDiscrepancies     VerificationDiscrepancy[]  @relation("ResolvedDiscrepancies")
+  escalatedDiscrepancies    VerificationDiscrepancy[]  @relation("EscalatedDiscrepancies")
 
   @@map("users")
 }
@@ -133,6 +146,9 @@ model State {
   toMovements   AssetMovement[] @relation("ToState")
   assets        Asset[]
   lgas          LGA[]
+  
+  // Stock Verification relationships
+  verificationActualStates AssetVerification[] @relation("VerificationActualState")
 
   @@map("states")
 }
@@ -147,6 +163,9 @@ model LGA {
   toMovements   AssetMovement[] @relation("ToLGA")
   assets        Asset[]
   state         State           @relation(fields: [stateId], references: [id])
+  
+  // Stock Verification relationships
+  verificationActualLgas AssetVerification[] @relation("VerificationActualLGA")
 
   @@unique([name, stateId])
   @@map("lgas")
@@ -171,6 +190,9 @@ model Asset {
   lga           LGA             @relation(fields: [lgaId], references: [id])
   state         State           @relation(fields: [stateId], references: [id])
   depreciation  Depreciation[]
+  
+  // Stock Verification relationships
+  verifications AssetVerification[] @relation("AssetVerifications")
 
   @@map("assets")
 }
@@ -208,4 +230,374 @@ model Depreciation {
 
   @@unique([assetId, year])
   @@map("depreciations")
+}
+
+// =============================================================================
+// STOCK VERIFICATION MODELS
+// =============================================================================
+
+// Verification Campaigns
+model VerificationCampaign {
+  id                  Int                       @id @default(autoincrement())
+  name                String                    @db.VarChar(255)
+  description         String?                   @db.Text
+  startDate           DateTime                  @map("start_date") @db.Date
+  endDate             DateTime                  @map("end_date") @db.Date
+  status              VerificationCampaignStatus @default(PLANNED)
+  createdBy           Int                       @map("created_by")
+  assignedStates      Int[]                     @map("assigned_states")
+  assignedLgas        Int[]                     @map("assigned_lgas")
+  assignedCategories  Int[]                     @map("assigned_categories")
+  targetAssetCount    Int?                      @map("target_asset_count")
+  actualAssetCount    Int                       @default(0) @map("actual_asset_count")
+  verificationProgress Decimal                  @default(0.00) @map("verification_progress") @db.Decimal(5, 2)
+  budget              Decimal?                  @map("budget") @db.Decimal(15, 2)
+  instructions        String?                   @map("instructions") @db.Text
+  metadata            Json?                     @map("metadata")
+  createdAt           DateTime                  @default(now()) @map("created_at")
+  updatedAt           DateTime                  @updatedAt @map("updated_at")
+  
+  // Relationships
+  creator             User                      @relation("CreatedCampaigns", fields: [createdBy], references: [id])
+  verifications       AssetVerification[]
+  assignments         VerificationAssignment[]
+  schedules           VerificationSchedule[]
+  analytics           VerificationAnalytics[]
+  
+  // Indexes
+  @@index([status])
+  @@index([startDate, endDate])
+  @@index([createdBy])
+  @@map("verification_campaigns")
+}
+
+// Individual Asset Verifications
+model AssetVerification {
+  id                    Int                       @id @default(autoincrement())
+  campaignId            Int                       @map("campaign_id")
+  assetId               Int                       @map("asset_id")
+  verifierId            Int                       @map("verifier_id")
+  verificationDate      DateTime                  @map("verification_date")
+  status                AssetVerificationStatus   @default(PENDING)
+  physicalCondition     PhysicalCondition?        @map("physical_condition")
+  locationAccurate      Boolean                   @default(true) @map("location_accurate")
+  actualStateId         Int?                      @map("actual_state_id")
+  actualLgaId           Int?                      @map("actual_lga_id")
+  actualLocation        String?                   @map("actual_location") @db.VarChar(500)
+  coordinates           String?                   @map("coordinates") @db.VarChar(100)
+  notes                 String?                   @map("notes") @db.Text
+  photoUrls             String[]                  @map("photo_urls")
+  qrCodeScanned         Boolean                   @default(false) @map("qr_code_scanned")
+  barcodeScanData       String?                   @map("barcode_scan_data")
+  estimatedValue        Decimal?                  @map("estimated_value") @db.Decimal(15, 2)
+  verificationDuration  Int?                      @map("verification_duration")
+  deviceInfo            String?                   @map("device_info")
+  signatureUrl          String?                   @map("signature_url")
+  witnessName           String?                   @map("witness_name")
+  witnessSignature      String?                   @map("witness_signature")
+  reviewedBy            Int?                      @map("reviewed_by")
+  reviewedAt            DateTime?                 @map("reviewed_at")
+  reviewNotes           String?                   @map("review_notes") @db.Text
+  createdAt             DateTime                  @default(now()) @map("created_at")
+  updatedAt             DateTime                  @updatedAt @map("updated_at")
+  
+  // Relationships
+  campaign              VerificationCampaign      @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  asset                 Asset                     @relation("AssetVerifications", fields: [assetId], references: [id])
+  verifier              User                      @relation("VerifierVerifications", fields: [verifierId], references: [id])
+  reviewer              User?                     @relation("ReviewerVerifications", fields: [reviewedBy], references: [id])
+  actualState           State?                    @relation("VerificationActualState", fields: [actualStateId], references: [id])
+  actualLga             LGA?                      @relation("VerificationActualLGA", fields: [actualLgaId], references: [id])
+  discrepancies         VerificationDiscrepancy[]
+  
+  // Constraints
+  @@unique([campaignId, assetId])
+  @@index([campaignId])
+  @@index([assetId])
+  @@index([verifierId])
+  @@index([status])
+  @@index([verificationDate])
+  @@map("asset_verifications")
+}
+
+// Discrepancy Tracking
+model VerificationDiscrepancy {
+  id                Int                     @id @default(autoincrement())
+  verificationId    Int                     @map("verification_id")
+  discrepancyType   DiscrepancyType
+  description       String                  @db.Text
+  severity          DiscrepancySeverity     @default(MEDIUM)
+  status            DiscrepancyStatus       @default(REPORTED)
+  reportedBy        Int                     @map("reported_by")
+  assignedTo        Int?                    @map("assigned_to")
+  resolvedBy        Int?                    @map("resolved_by")
+  resolutionNotes   String?                 @map("resolution_notes") @db.Text
+  resolutionDate    DateTime?               @map("resolution_date")
+  expectedValue     String?                 @map("expected_value") @db.Text
+  actualValue       String?                 @map("actual_value") @db.Text
+  financialImpact   Decimal?                @map("financial_impact") @db.Decimal(15, 2)
+  actionRequired    String?                 @map("action_required") @db.Text
+  dueDate           DateTime?               @map("due_date")
+  escalatedTo       Int?                    @map("escalated_to")
+  escalatedAt       DateTime?               @map("escalated_at")
+  tags              String[]                @map("tags")
+  attachments       String[]                @map("attachments")
+  priority          Int                     @default(3) @map("priority")
+  createdAt         DateTime                @default(now()) @map("created_at")
+  updatedAt         DateTime                @updatedAt @map("updated_at")
+  
+  // Relationships
+  verification      AssetVerification       @relation(fields: [verificationId], references: [id], onDelete: Cascade)
+  reporter          User                    @relation("ReportedDiscrepancies", fields: [reportedBy], references: [id])
+  assignee          User?                   @relation("AssignedDiscrepancies", fields: [assignedTo], references: [id])
+  resolver          User?                   @relation("ResolvedDiscrepancies", fields: [resolvedBy], references: [id])
+  escalatedUser     User?                   @relation("EscalatedDiscrepancies", fields: [escalatedTo], references: [id])
+  
+  // Indexes
+  @@index([verificationId])
+  @@index([status])
+  @@index([severity])
+  @@index([discrepancyType])
+  @@index([assignedTo])
+  @@index([dueDate])
+  @@map("verification_discrepancies")
+}
+
+// Team Assignments
+model VerificationAssignment {
+  id                Int                     @id @default(autoincrement())
+  campaignId        Int                     @map("campaign_id")
+  userId            Int                     @map("user_id")
+  role              VerificationRole
+  stateIds          Int[]                   @map("state_ids")
+  lgaIds            Int[]                   @map("lga_ids")
+  categoryIds       Int[]                   @map("category_ids")
+  startDate         DateTime?               @map("start_date")
+  endDate           DateTime?               @map("end_date")
+  dailyTarget       Int?                    @map("daily_target")
+  totalTarget       Int?                    @map("total_target")
+  completedCount    Int                     @default(0) @map("completed_count")
+  status            AssignmentStatus        @default(ACTIVE)
+  instructions      String?                 @map("instructions") @db.Text
+  permissions       String[]                @map("permissions")
+  reportingTo       Int?                    @map("reporting_to")
+  mobileAccess      Boolean                 @default(true) @map("mobile_access")
+  offlineAccess     Boolean                 @default(false) @map("offline_access")
+  createdAt         DateTime                @default(now()) @map("created_at")
+  updatedAt         DateTime                @updatedAt @map("updated_at")
+  
+  // Relationships
+  campaign          VerificationCampaign    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  user              User                    @relation("VerificationAssignments", fields: [userId], references: [id])
+  supervisor        User?                   @relation("SupervisedAssignments", fields: [reportingTo], references: [id])
+  
+  // Constraints
+  @@unique([campaignId, userId])
+  @@index([campaignId])
+  @@index([userId])
+  @@index([status])
+  @@map("verification_assignments")
+}
+
+// Verification Templates
+model VerificationTemplate {
+  id              Int                     @id @default(autoincrement())
+  name            String                  @db.VarChar(255)
+  description     String?                 @db.Text
+  templateType    VerificationTemplateType
+  categoryIds     Int[]                   @map("category_ids")
+  checklistItems  Json                    @map("checklist_items")
+  requiredPhotos  String[]                @map("required_photos")
+  requiredFields  String[]                @map("required_fields")
+  estimatedTime   Int?                    @map("estimated_time")
+  instructions    String?                 @map("instructions") @db.Text
+  isDefault       Boolean                 @default(false) @map("is_default")
+  createdBy       Int                     @map("created_by")
+  isActive        Boolean                 @default(true) @map("is_active")
+  version         String                  @default("1.0") @map("version")
+  createdAt       DateTime                @default(now()) @map("created_at")
+  updatedAt       DateTime                @updatedAt @map("updated_at")
+  
+  // Relationships
+  creator         User                    @relation("CreatedTemplates", fields: [createdBy], references: [id])
+  
+  // Indexes
+  @@index([templateType])
+  @@index([categoryIds])
+  @@index([isActive])
+  @@map("verification_templates")
+}
+
+// Verification Schedules
+model VerificationSchedule {
+  id              Int                     @id @default(autoincrement())
+  campaignId      Int                     @map("campaign_id")
+  name            String                  @db.VarChar(255)
+  description     String?                 @db.Text
+  scheduleType    ScheduleType
+  startDate       DateTime                @map("start_date")
+  endDate         DateTime                @map("end_date")
+  frequency       Json                    @map("frequency")
+  assignedUsers   Int[]                   @map("assigned_users")
+  targetStates    Int[]                   @map("target_states")
+  targetLgas      Int[]                   @map("target_lgas")
+  targetCategories Int[]                  @map("target_categories")
+  estimatedAssets Int?                    @map("estimated_assets")
+  status          ScheduleStatus          @default(ACTIVE)
+  lastExecuted    DateTime?               @map("last_executed")
+  nextExecution   DateTime?               @map("next_execution")
+  createdBy       Int                     @map("created_by")
+  createdAt       DateTime                @default(now()) @map("created_at")
+  updatedAt       DateTime                @updatedAt @map("updated_at")
+  
+  // Relationships
+  campaign        VerificationCampaign    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  creator         User                    @relation("CreatedSchedules", fields: [createdBy], references: [id])
+  
+  // Indexes
+  @@index([campaignId])
+  @@index([scheduleType])
+  @@index([status])
+  @@index([nextExecution])
+  @@map("verification_schedules")
+}
+
+// Verification Analytics
+model VerificationAnalytics {
+  id                    Int                 @id @default(autoincrement())
+  campaignId            Int                 @map("campaign_id")
+  date                  DateTime            @map("date") @db.Date
+  totalAssets           Int                 @default(0) @map("total_assets")
+  verifiedAssets        Int                 @default(0) @map("verified_assets")
+  pendingAssets         Int                 @default(0) @map("pending_assets")
+  missingAssets         Int                 @default(0) @map("missing_assets")
+  damagedAssets         Int                 @default(0) @map("damaged_assets")
+  discrepancyCount      Int                 @default(0) @map("discrepancy_count")
+  verificationRate      Decimal             @default(0.00) @map("verification_rate") @db.Decimal(5, 2)
+  avgVerificationTime   Decimal?            @map("avg_verification_time") @db.Decimal(8, 2)
+  totalValue            Decimal             @default(0.00) @map("total_value") @db.Decimal(15, 2)
+  verifiedValue         Decimal             @default(0.00) @map("verified_value") @db.Decimal(15, 2)
+  discrepancyValue      Decimal             @default(0.00) @map("discrepancy_value") @db.Decimal(15, 2)
+  teamProductivity      Json?               @map("team_productivity")
+  categoryBreakdown     Json?               @map("category_breakdown")
+  locationBreakdown     Json?               @map("location_breakdown")
+  createdAt             DateTime            @default(now()) @map("created_at")
+  updatedAt             DateTime            @updatedAt @map("updated_at")
+  
+  // Relationships
+  campaign              VerificationCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  
+  // Constraints
+  @@unique([campaignId, date])
+  @@index([campaignId])
+  @@index([date])
+  @@map("verification_analytics")
+}
+
+// =============================================================================
+// STOCK VERIFICATION ENUMS
+// =============================================================================
+
+enum VerificationCampaignStatus {
+  PLANNED
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+  ARCHIVED
+}
+
+enum AssetVerificationStatus {
+  PENDING
+  IN_PROGRESS
+  VERIFIED
+  DISCREPANCY_FOUND
+  MISSING
+  DAMAGED
+  REQUIRES_REVIEW
+  APPROVED
+  REJECTED
+}
+
+enum PhysicalCondition {
+  EXCELLENT
+  GOOD
+  FAIR
+  POOR
+  DAMAGED
+  MISSING
+  UNKNOWN
+}
+
+enum DiscrepancyType {
+  MISSING_ASSET
+  LOCATION_MISMATCH
+  CONDITION_DISCREPANCY
+  UNAUTHORIZED_ASSET
+  DATA_MISMATCH
+  QUANTITY_VARIANCE
+  VALUE_DISCREPANCY
+  CATEGORY_MISMATCH
+  DUPLICATE_ASSET
+  OBSOLETE_ASSET
+}
+
+enum DiscrepancySeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum DiscrepancyStatus {
+  REPORTED
+  ACKNOWLEDGED
+  INVESTIGATING
+  PENDING_APPROVAL
+  APPROVED
+  RESOLVED
+  CLOSED
+  ESCALATED
+}
+
+enum VerificationRole {
+  TEAM_LEADER
+  SENIOR_VERIFIER
+  VERIFIER
+  ASSISTANT_VERIFIER
+  SUPERVISOR
+  OBSERVER
+  QUALITY_CONTROLLER
+}
+
+enum AssignmentStatus {
+  ACTIVE
+  INACTIVE
+  COMPLETED
+  SUSPENDED
+}
+
+enum VerificationTemplateType {
+  STANDARD
+  DETAILED
+  QUICK_CHECK
+  CONDITION_ASSESSMENT
+  LOCATION_VERIFICATION
+  CUSTOM
+}
+
+enum ScheduleType {
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  ANNUAL
+  CUSTOM
+}
+
+enum ScheduleStatus {
+  ACTIVE
+  INACTIVE
+  COMPLETED
+  CANCELLED
 }

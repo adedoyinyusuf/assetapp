@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth/auth-options-simple';
+import { authOptions } from '@/lib/auth/auth-options';
 import { z } from 'zod';
+import { UserRole } from '@/lib/auth/roles'
 
 // Input validation schema
 const categorySchema = z.object({
@@ -58,9 +59,8 @@ export async function POST(req: Request) {
     
     // Handle different role formats
     const normalizedRole = userRole?.toUpperCase();
-    if (normalizedRole !== 'SUPERADMIN' && normalizedRole !== 'SUPER_ADMIN' && normalizedRole !== 'ADMIN') {
-      console.log('User role check failed. Normalized role:', normalizedRole);
-      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+    if (![UserRole.SUPER_ADMIN, UserRole.ADMIN].includes(normalizedRole as any)) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
     }
 
     const body = await req.json();

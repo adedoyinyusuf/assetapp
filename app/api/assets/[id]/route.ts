@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth-options';
+import { authOptions } from '@/lib/auth/auth-options';
 import { z } from 'zod';
+import { UserRole } from '@/lib/auth/roles';
 
 // Input validation schemas
 const updateAssetSchema = z.object({
@@ -344,7 +345,7 @@ export async function DELETE(
     }
 
     // Check if user has sufficient permissions
-    if (session.user.role !== 'SUPERADMIN' && session.user.role !== 'ADMIN') {
+    if (session.user.role !== UserRole.SUPER_ADMIN && session.user.role !== UserRole.ADMIN) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 

@@ -31,6 +31,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { UserRole } from '@/lib/auth/roles'
 
 interface State {
   id: number;
@@ -329,7 +330,7 @@ export default function LocationsPage() {
   if (!session) return null;
 
   // Check permissions
-  const canManage = session.user.role === 'SUPERADMIN' || session.user.role === 'ADMIN';
+  const canManage = session?.user?.role === UserRole.SUPER_ADMIN || session?.user?.role === UserRole.ADMIN
 
   return (
     <div className="container mx-auto py-6 space-y-6">

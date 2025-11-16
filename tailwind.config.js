@@ -54,14 +54,39 @@ module.exports = {
         'body-small': ['12px', { lineHeight: '16px', letterSpacing: '0.4px', fontWeight: '400' }],
       },
       
-      // Material 3 Elevation Shadows
+      // Enhanced Shadows with Theme Colors
       boxShadow: {
+        'none': 'none',
+        'sm': '0 1px 2px 0 rgba(36, 48, 16, 0.05)',
+        'DEFAULT': '0 1px 3px 0 rgba(36, 48, 16, 0.1), 0 1px 2px 0 rgba(36, 48, 16, 0.06)',
+        'md': '0 4px 6px -1px rgba(36, 48, 16, 0.1), 0 2px 4px -1px rgba(36, 48, 16, 0.06)',
+        'lg': '0 10px 15px -3px rgba(36, 48, 16, 0.1), 0 4px 6px -2px rgba(36, 48, 16, 0.05)',
+        'xl': '0 20px 25px -5px rgba(36, 48, 16, 0.1), 0 10px 10px -5px rgba(36, 48, 16, 0.04)',
+        '2xl': '0 25px 50px -12px rgba(36, 48, 16, 0.25)',
+        'inner': 'inset 0 2px 4px 0 rgba(36, 48, 16, 0.06)',
+        'focus': '0 0 0 3px rgba(135, 163, 48, 0.25)',
+        'hover': '0 4px 12px -2px rgba(36, 48, 16, 0.15)',
+        // Material 3 Elevation Shadows (updated with theme colors)
         'elevation-0': 'none',
-        'elevation-1': '0px 1px 2px 0px rgba(0, 0, 0, 0.3), 0px 1px 3px 1px rgba(0, 0, 0, 0.15)',
-        'elevation-2': '0px 1px 2px 0px rgba(0, 0, 0, 0.3), 0px 2px 6px 2px rgba(0, 0, 0, 0.15)',
-        'elevation-3': '0px 1px 3px 0px rgba(0, 0, 0, 0.3), 0px 4px 8px 3px rgba(0, 0, 0, 0.15)',
-        'elevation-4': '0px 2px 3px 0px rgba(0, 0, 0, 0.3), 0px 6px 10px 4px rgba(0, 0, 0, 0.15)',
-        'elevation-5': '0px 4px 4px 0px rgba(0, 0, 0, 0.3), 0px 8px 12px 6px rgba(0, 0, 0, 0.15)',
+        'elevation-1': '0px 1px 2px 0px rgba(36, 48, 16, 0.3), 0px 1px 3px 1px rgba(36, 48, 16, 0.15)',
+        'elevation-2': '0px 1px 2px 0px rgba(36, 48, 16, 0.3), 0px 2px 6px 2px rgba(36, 48, 16, 0.15)',
+        'elevation-3': '0px 1px 3px 0px rgba(36, 48, 16, 0.3), 0px 4px 8px 3px rgba(36, 48, 16, 0.15)',
+        'elevation-4': '0px 2px 3px 0px rgba(36, 48, 16, 0.3), 0px 6px 10px 4px rgba(36, 48, 16, 0.15)',
+        'elevation-5': '0px 4px 4px 0px rgba(36, 48, 16, 0.3), 0px 8px 12px 6px rgba(36, 48, 16, 0.15)',
+      },
+      
+      // Theme Gradients
+      backgroundImage: {
+        'gradient-primary': 'linear-gradient(135deg, #87a330 0%, #a1c349 100%)',
+        'gradient-primary-hover': 'linear-gradient(135deg, #2a3c24 0%, #87a330 100%)',
+        'gradient-secondary': 'linear-gradient(135deg, #cd5d67 0%, #ba1f33 100%)',
+        'gradient-secondary-hover': 'linear-gradient(135deg, #91171f 0%, #cd5d67 100%)',
+        'gradient-hero': 'linear-gradient(135deg, #243010 0%, #2a3c24 100%)',
+        'gradient-card': 'linear-gradient(180deg, #ffffff 0%, rgba(202, 213, 147, 0.05) 100%)',
+        'gradient-background': 'linear-gradient(180deg, #ffffff 0%, rgba(202, 213, 147, 0.1) 100%)',
+        'gradient-sidebar': 'linear-gradient(180deg, #243010 0%, #2a3c24 100%)',
+        'gradient-success': 'linear-gradient(135deg, #87a330 0%, #a1c349 100%)',
+        'gradient-error': 'linear-gradient(135deg, #ba1f33 0%, #cd5d67 100%)',
       },
       
       // Material 3 Animation Curves
@@ -95,46 +120,72 @@ module.exports = {
       },
       
       colors: {
+        // New Color Palette - Green & Red Theme
+        'pakistan-green': '#243010',
+        'apple-green': '#87a330',
+        'yellow-green': '#a1c349',
+        'sage': '#cad593',
+        'cal-poly-green': '#2a3c24',
+        'chocolate-cosmos': '#410b13',
+        'indian-red': '#cd5d67',
+        'red-ncs': '#ba1f33',
+        'chocolate-cosmos-2': '#421820',
+        'carmine': '#91171f',
+        
+        // Updated Primary Color Scale (Green Theme)
         primary: {
-          50: '#f0f9ff',
-          100: '#e0f2fe',
-          200: '#bae6fd',
-          300: '#7dd3fc',
-          400: '#38bdf8',
-          500: '#0ea5e9',
-          600: '#0284c7',
-          700: '#0369a1',
-          800: '#075985',
-          900: '#0c4a6e',
-          950: '#082f49',
+          DEFAULT: '#87a330', // apple-green
+          50: '#f0f4e4',
+          100: '#dfe8c4',
+          200: '#cad593', // sage
+          300: '#a1c349', // yellow-green
+          400: '#87a330', // apple-green
+          500: '#6b8326',
+          600: '#54661e',
+          700: '#3f4d17',
+          800: '#2a3c24', // cal-poly-green
+          900: '#243010', // pakistan-green
+          950: '#1a2408',
+          hover: '#2a3c24', // cal-poly-green
         },
+        
+        // Updated Secondary Color Scale (Red Theme)
         secondary: {
-          50: '#f5f3ff',
-          100: '#ede9fe',
-          200: '#ddd6fe',
-          300: '#c4b5fd',
-          400: '#a78bfa',
-          500: '#8b5cf6',
-          600: '#7c3aed',
-          700: '#6d28d9',
-          800: '#5b21b6',
-          900: '#4c1d95',
-          950: '#2e1065',
+          DEFAULT: '#cd5d67', // indian-red
+          50: '#fceaec',
+          100: '#f7d1d5',
+          200: '#ebb9bf',
+          300: '#de9ca5',
+          400: '#cd5d67', // indian-red
+          500: '#ba1f33', // red-ncs
+          600: '#a01b2c',
+          700: '#91171f', // carmine
+          800: '#421820', // chocolate-cosmos-2
+          900: '#410b13', // chocolate-cosmos
+          950: '#2d0709',
+          hover: '#91171f', // carmine
         },
+        
+        // Updated Status Colors to Match Theme
         success: {
-          50: '#f0fdf4',
-          100: '#dcfce7',
-          200: '#bbf7d0',
-          300: '#86efac',
-          400: '#4ade80',
-          500: '#22c55e',
-          600: '#16a34a',
-          700: '#15803d',
-          800: '#166534',
-          900: '#14532d',
-          950: '#052e16',
+          DEFAULT: '#87a330', // apple-green
+          50: '#f0f4e4',
+          100: '#dfe8c4',
+          200: '#cad593',
+          300: '#a1c349',
+          400: '#87a330',
+          500: '#6b8326',
+          600: '#54661e',
+          700: '#3f4d17',
+          800: '#2a3c24',
+          900: '#243010',
+          950: '#1a2408',
+          bg: 'rgba(135, 163, 48, 0.1)',
+          border: '#a1c349',
         },
+        
         warning: {
+          DEFAULT: '#ffc107',
           50: '#fffbeb',
           100: '#fef3c7',
           200: '#fde68a',
@@ -146,19 +197,84 @@ module.exports = {
           800: '#92400e',
           900: '#78350f',
           950: '#451a03',
+          bg: 'rgba(255, 193, 7, 0.1)',
+          border: '#ffca2c',
         },
+        
         error: {
-          50: '#fef2f2',
-          100: '#fee2e2',
-          200: '#fecaca',
-          300: '#fca5a5',
-          400: '#f87171',
-          500: '#ef4444',
-          600: '#dc2626',
-          700: '#b91c1c',
-          800: '#991b1b',
-          900: '#7f1d1d',
-          950: '#450a0a',
+          DEFAULT: '#ba1f33', // red-ncs
+          50: '#fceaec',
+          100: '#f7d1d5',
+          200: '#ebb9bf',
+          300: '#de9ca5',
+          400: '#cd5d67',
+          500: '#ba1f33',
+          600: '#a01b2c',
+          700: '#91171f',
+          800: '#421820',
+          900: '#410b13',
+          950: '#2d0709',
+          bg: 'rgba(186, 31, 51, 0.1)',
+          border: '#cd5d67',
+        },
+        
+        info: {
+          DEFAULT: '#17a2b8',
+          bg: 'rgba(23, 162, 184, 0.1)',
+          border: '#20c997',
+        },
+        
+        // Component Specific Colors
+        sidebar: {
+          bg: '#243010', // pakistan-green
+          text: '#cad593', // sage
+          hover: '#2a3c24', // cal-poly-green
+          active: '#87a330', // apple-green
+        },
+        
+        header: {
+          bg: '#87a330', // apple-green
+          text: '#ffffff',
+          hover: '#a1c349', // yellow-green
+        },
+        
+        // Verification Module Specific Colors
+        campaign: {
+          draft: '#cad593', // sage
+          active: '#87a330', // apple-green
+          paused: '#cd5d67', // indian-red
+          completed: '#2a3c24', // cal-poly-green
+          cancelled: '#91171f', // carmine
+        },
+        
+        verification: {
+          pending: '#cad593', // sage
+          'in-progress': '#a1c349', // yellow-green
+          verified: '#87a330', // apple-green
+          approved: '#2a3c24', // cal-poly-green
+          rejected: '#ba1f33', // red-ncs
+        },
+        
+        discrepancy: {
+          open: '#cd5d67', // indian-red
+          'in-progress': '#a1c349', // yellow-green
+          resolved: '#87a330', // apple-green
+          closed: '#2a3c24', // cal-poly-green
+        },
+        
+        priority: {
+          low: '#cad593', // sage
+          medium: '#a1c349', // yellow-green
+          high: '#cd5d67', // indian-red
+          critical: '#91171f', // carmine
+        },
+        
+        condition: {
+          excellent: '#87a330', // apple-green
+          good: '#a1c349', // yellow-green
+          fair: '#cad593', // sage
+          poor: '#cd5d67', // indian-red
+          damaged: '#ba1f33', // red-ncs
         },
         /* Legacy colors for backward compatibility */
         border: "hsl(var(--border))",

@@ -1,0 +1,101 @@
+# Prometheus Configuration for Stock Verification Module
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - "stock_verification_rules.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+scrape_configs:
+  # Stock Verification Application
+  - job_name: 'stock-verification-app'
+    static_configs:
+      - targets: ['assetapp:3000']
+    scrape_interval: 30s
+    scrape_timeout: 10s
+    metrics_path: '/api/metrics'
+    honor_labels: true
+    params:
+      module: ['stock-verification']
+
+  # Database Monitoring (PostgreSQL)
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+    scrape_interval: 30s
+
+  # Redis Monitoring
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+    scrape_interval: 30s
+
+  # Node.js Application Metrics
+  - job_name: 'nodejs'
+    static_configs:
+      - targets: ['assetapp:3000']
+    scrape_interval: 15s
+    metrics_path: '/metrics'
+
+  # Health Check Monitoring
+  - job_name: 'health-checks'
+    static_configs:
+      - targets: ['assetapp:3000']
+    scrape_interval: 30s
+    metrics_path: '/api/stock-verification/health'
+    scrape_timeout: 10s
+
+  # Background Workers
+  - job_name: 'stock-verification-worker'
+    static_configs:
+      - targets: ['worker:3001']
+    scrape_interval: 30s
+    metrics_path: '/metrics'
+
+  # Nginx Reverse Proxy
+  - job_name: 'nginx'
+    static_configs:
+      - targets: ['nginx-exporter:9113']
+    scrape_interval: 30s
+
+  # System Metrics
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    scrape_interval: 15s
+
+# Stock Verification specific scrape configurations
+  # Campaign Metrics
+  - job_name: 'stock-verification-campaigns'
+    static_configs:
+      - targets: ['assetapp:3000']
+    scrape_interval: 60s
+    metrics_path: '/api/stock-verification/metrics/campaigns'
+    honor_timestamps: true
+
+  # Verification Metrics
+  - job_name: 'stock-verification-verifications'
+    static_configs:
+      - targets: ['assetapp:3000']
+    scrape_interval: 30s
+    metrics_path: '/api/stock-verification/metrics/verifications'
+
+  # Discrepancy Metrics
+  - job_name: 'stock-verification-discrepancies'
+    static_configs:
+      - targets: ['assetapp:3000']
+    scrape_interval: 60s
+    metrics_path: '/api/stock-verification/metrics/discrepancies'
+
+  # Performance Metrics
+  - job_name: 'stock-verification-performance'
+    static_configs:
+      - targets: ['assetapp:3000']
+    scrape_interval: 15s
+    metrics_path: '/api/stock-verification/metrics/performance'

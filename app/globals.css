@@ -2,270 +2,122 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,500&display=swap');
 
 @layer base {
   :root {
+    /* Design tokens */
     --radius: 0.75rem;
     
-    /* Material 3 Primary Colors */
-    --md-sys-color-primary: 103 80% 40%;
-    --md-sys-color-on-primary: 0 0% 100%;
-    --md-sys-color-primary-container: 103 80% 90%;
-    --md-sys-color-on-primary-container: 103 80% 10%;
-    --md-sys-color-primary-fixed: 103 80% 90%;
-    --md-sys-color-on-primary-fixed: 103 80% 10%;
-    --md-sys-color-primary-fixed-dim: 103 80% 80%;
-    --md-sys-color-on-primary-fixed-variant: 103 80% 30%;
+    /* Elevation shadows */
+    --elevation-1: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --elevation-2: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    --elevation-3: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --elevation-4: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
     
-    /* Material 3 Secondary Colors */
-    --md-sys-color-secondary: 120 20% 50%;
-    --md-sys-color-on-secondary: 0 0% 100%;
-    --md-sys-color-secondary-container: 120 20% 90%;
-    --md-sys-color-on-secondary-container: 120 20% 10%;
-    --md-sys-color-secondary-fixed: 120 20% 90%;
-    --md-sys-color-on-secondary-fixed: 120 20% 10%;
-    --md-sys-color-secondary-fixed-dim: 120 20% 80%;
-    --md-sys-color-on-secondary-fixed-variant: 120 20% 30%;
-    
-    /* Material 3 Tertiary Colors */
-    --md-sys-color-tertiary: 280 30% 50%;
-    --md-sys-color-on-tertiary: 0 0% 100%;
-    --md-sys-color-tertiary-container: 280 30% 90%;
-    --md-sys-color-on-tertiary-container: 280 30% 10%;
-    --md-sys-color-tertiary-fixed: 280 30% 90%;
-    --md-sys-color-on-tertiary-fixed: 280 30% 10%;
-    --md-sys-color-tertiary-fixed-dim: 280 30% 80%;
-    --md-sys-color-on-tertiary-fixed-variant: 280 30% 30%;
-    
-    /* Material 3 Error Colors */
-    --md-sys-color-error: 0 100% 42%;
-    --md-sys-color-on-error: 0 0% 100%;
-    --md-sys-color-error-container: 0 100% 95%;
-    --md-sys-color-on-error-container: 0 100% 11%;
-    
-    /* Material 3 Surface Colors */
-    --md-sys-color-surface-dim: 0 0% 87%;
-    --md-sys-color-surface: 0 0% 98%;
-    --md-sys-color-surface-bright: 0 0% 98%;
-    --md-sys-color-on-surface: 0 0% 10%;
-    --md-sys-color-on-surface-variant: 220 7% 40%;
-    --md-sys-color-surface-container-lowest: 0 0% 100%;
-    --md-sys-color-surface-container-low: 0 0% 96%;
-    --md-sys-color-surface-container: 0 0% 94%;
-    --md-sys-color-surface-container-high: 0 0% 92%;
-    --md-sys-color-surface-container-highest: 0 0% 90%;
-    --md-sys-color-surface-variant: 220 7% 92%;
-    
-    /* Material 3 Outline Colors */
-    --md-sys-color-outline: 220 7% 65%;
-    --md-sys-color-outline-variant: 220 7% 82%;
-    
-    /* Material 3 Inverse Colors */
-    --md-sys-color-inverse-surface: 0 0% 14%;
-    --md-sys-color-inverse-on-surface: 0 0% 95%;
-    --md-sys-color-inverse-primary: 103 80% 80%;
-    
-    /* Light theme */
+    /* Light theme semantic colors */
     --background: 0 0% 100%;
-    --foreground: 222.2 47.4% 11.2%;
+    --foreground: 222 47% 11%;
     
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 222 47% 11%;
     
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 222 47% 11%;
     
-    /* Primary green colors */
+    /* AssetHub primary brand colors - Enhanced */
     --primary: 163 72% 41%;
     --primary-foreground: 0 0% 100%;
     
-    /* Secondary colors */
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Secondary neutral colors */
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
     
-    /* Muted colors */
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Accent colors for interactive elements */
+    --accent: 199 89% 48%;
+    --accent-foreground: 0 0% 100%;
     
-    /* Accent colors */
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Semantic status colors */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
     
-    /* Destructive colors */
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
     
-    /* Border and input */
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    
+    /* Muted colors for subtle elements */
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+    
+    /* Form and interaction elements */
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
     --ring: 163 72% 41%;
     
-    /* Card shadow */
-    --card-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    /* Chart colors for data visualization */
+    --chart-1: 163 72% 41%;
+    --chart-2: 199 89% 48%;
+    --chart-3: 142 76% 36%;
+    --chart-4: 38 92% 50%;
+    --chart-5: 0 84% 60%;
   }
 
   .dark {
-    /* Material 3 Dark Mode Colors */
-    --md-sys-color-primary: 103 80% 80%;
-    --md-sys-color-on-primary: 103 80% 20%;
-    --md-sys-color-primary-container: 103 80% 30%;
-    --md-sys-color-on-primary-container: 103 80% 90%;
-    --md-sys-color-primary-fixed: 103 80% 90%;
-    --md-sys-color-on-primary-fixed: 103 80% 10%;
-    --md-sys-color-primary-fixed-dim: 103 80% 80%;
-    --md-sys-color-on-primary-fixed-variant: 103 80% 30%;
+    /* Dark theme elevation shadows */
+    --elevation-1: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+    --elevation-2: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.4);
+    --elevation-3: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+    --elevation-4: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
     
-    --md-sys-color-secondary: 120 20% 80%;
-    --md-sys-color-on-secondary: 120 20% 20%;
-    --md-sys-color-secondary-container: 120 20% 30%;
-    --md-sys-color-on-secondary-container: 120 20% 90%;
+    /* Dark theme semantic colors */
+    --background: 222 84% 5%;
+    --foreground: 210 40% 98%;
     
-    --md-sys-color-tertiary: 280 30% 80%;
-    --md-sys-color-on-tertiary: 280 30% 20%;
-    --md-sys-color-tertiary-container: 280 30% 30%;
-    --md-sys-color-on-tertiary-container: 280 30% 90%;
-    
-    --md-sys-color-error: 0 100% 70%;
-    --md-sys-color-on-error: 0 100% 20%;
-    --md-sys-color-error-container: 0 100% 30%;
-    --md-sys-color-on-error-container: 0 100% 90%;
-    
-    --md-sys-color-surface-dim: 0 0% 6%;
-    --md-sys-color-surface: 0 0% 10%;
-    --md-sys-color-surface-bright: 0 0% 24%;
-    --md-sys-color-on-surface: 0 0% 90%;
-    --md-sys-color-on-surface-variant: 220 7% 70%;
-    --md-sys-color-surface-container-lowest: 0 0% 4%;
-    --md-sys-color-surface-container-low: 0 0% 10%;
-    --md-sys-color-surface-container: 0 0% 12%;
-    --md-sys-color-surface-container-high: 0 0% 17%;
-    --md-sys-color-surface-container-highest: 0 0% 22%;
-    --md-sys-color-surface-variant: 220 7% 30%;
-    
-    --md-sys-color-outline: 220 7% 60%;
-    --md-sys-color-outline-variant: 220 7% 30%;
-    
-    --md-sys-color-inverse-surface: 0 0% 90%;
-    --md-sys-color-inverse-on-surface: 0 0% 20%;
-    --md-sys-color-inverse-primary: 103 80% 40%;
-    
-    /* Legacy theme mapping for compatibility */
-    --background: var(--md-sys-color-surface);
-    --foreground: var(--md-sys-color-on-surface);
-    
-    --card: 222.2 84% 4.9%;
+    --card: 222 84% 5%;
     --card-foreground: 210 40% 98%;
     
-    --popover: 222.2 84% 4.9%;
+    --popover: 222 84% 5%;
     --popover-foreground: 210 40% 98%;
     
-    /* Primary green colors - darker for dark mode */
-    --primary: 163 72% 35%;
-    --primary-foreground: 0 0% 100%;
+    /* AssetHub primary - adapted for dark mode */
+    --primary: 163 72% 50%;
+    --primary-foreground: 163 72% 10%;
     
-    /* Secondary colors - darker for dark mode */
-    --secondary: 217.2 32.6% 17.5%;
+    /* Secondary colors - adapted for dark mode */
+    --secondary: 217 33% 18%;
     --secondary-foreground: 210 40% 98%;
     
-    /* Muted colors - darker for dark mode */
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    /* Accent colors - adapted for dark mode */
+    --accent: 199 89% 58%;
+    --accent-foreground: 199 89% 10%;
     
-    /* Accent colors - darker for dark mode */
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    /* Semantic status colors - adapted for dark mode */
+    --success: 142 76% 46%;
+    --success-foreground: 142 76% 10%;
     
-    /* Destructive colors - darker for dark mode */
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 85.7% 97.3%;
+    --warning: 38 92% 60%;
+    --warning-foreground: 38 92% 10%;
     
-    /* Border and input - darker for dark mode */
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 163 72% 45%;
+    --destructive: 0 84% 70%;
+    --destructive-foreground: 0 84% 10%;
     
-    /* Card shadow - darker for dark mode */
-    --card-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.3);
-    --primary-foreground: 210 40% 98%;
-    --primary-hover: 217.2 91.2% 59.8%;
- 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --secondary-hover: 210 40% 90%;
- 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
- 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --accent-hover: 210 40% 92%;
- 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --destructive-hover: 0 84.2% 55%;
-
-    --success: 142.1 76.2% 36.3%;
-    --success-foreground: 210 40% 98%;
-
-    --warning: 38 92% 50%;
-    --warning-foreground: 210 40% 98%;
-
-    --info: 217.2 91.2% 59.8%;
-    --info-foreground: 210 40% 98%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
-    --ring-offset: 0 0% 100%;
- 
-    --radius: 0.5rem;
-    --transition: all 0.2s ease-in-out;
-  }
- 
-  .dark {
-    --background: 224 71% 4%;
-    --foreground: 213 31% 91%;
- 
-    --card: 224 71% 8%;
-    --card-foreground: 210 40% 98%;
-    --card-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.5);
- 
-    --popover: 224 71% 4%;
-    --popover-foreground: 215 20.2% 65.1%;
- 
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 210 40% 98%;
-    --primary-hover: 221.2 83.2% 53.3%;
- 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --secondary-hover: 217.2 32.6% 22.5%;
- 
-    --muted: 223 47% 11%;
-    --muted-foreground: 215.4 16.3% 56.9%;
- 
-    --accent: 216 34% 17%;
-    --accent-foreground: 210 40% 98%;
-    --accent-hover: 216 34% 22%;
- 
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 210 40% 98%;
-    --destructive-hover: 0 63% 36%;
-
-    --success: 142.1 70.6% 45.3%;
-    --success-foreground: 210 40% 98%;
-
-    --warning: 38 92% 50%;
-    --warning-foreground: 210 40% 98%;
-
-    --info: 217.2 91.2% 59.8%;
-    --info-foreground: 210 40% 98%;
- 
-    --border: 216 34% 17%;
-    --input: 216 34% 17%;
-    --ring: 217.2 91.2% 59.8%;
-    --ring-offset: 224 71% 4%;
+    /* Muted colors - adapted for dark mode */
+    --muted: 217 33% 18%;
+    --muted-foreground: 215 20% 65%;
+    
+    /* Form and interaction elements - adapted for dark mode */
+    --border: 217 33% 18%;
+    --input: 217 33% 18%;
+    --ring: 163 72% 50%;
+    
+    /* Chart colors for data visualization - adapted for dark mode */
+    --chart-1: 163 72% 50%;
+    --chart-2: 199 89% 58%;
+    --chart-3: 142 76% 46%;
+    --chart-4: 38 92% 60%;
+    --chart-5: 0 84% 70%;
   }
 }
 

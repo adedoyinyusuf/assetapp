@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth/auth-options-simple';
+import { authOptions } from '@/lib/auth/auth-options';
 import { z } from 'zod';
+import { UserRole } from '@/lib/auth/roles';
 
 // Input validation schemas
 const lgaSchema = z.object({
@@ -114,7 +115,7 @@ export async function POST(req: Request) {
     }
 
     // Check if user has admin privileges
-    if (session.user.role !== 'SUPERADMIN' && session.user.role !== 'ADMIN') {
+    if (![UserRole.SUPER_ADMIN, UserRole.ADMIN].includes(session.user.role)) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
@@ -215,7 +216,7 @@ export async function PUT(req: Request) {
     }
 
     // Check if user has admin privileges
-    if (session.user.role !== 'SUPERADMIN' && session.user.role !== 'ADMIN') {
+    if (session.user.role !== UserRole.SUPER_ADMIN && session.user.role !== UserRole.ADMIN) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
@@ -335,8 +336,8 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if user has admin privileges
-    if (session.user.role !== 'SUPERADMIN') {
+    // Check if user has super admin privileges
+    if (![UserRole.SUPER_ADMIN, UserRole.ADMIN].includes(session.user.role)) {
       return NextResponse.json({ error: 'Only super admins can delete LGAs' }, { status: 403 });
     }
 

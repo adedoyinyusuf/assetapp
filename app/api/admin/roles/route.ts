@@ -364,7 +364,7 @@ export async function DELETE(req: Request) {
     }
 
     // Check if role is a system role (prevent deletion of system roles)
-    if (['ADMIN', 'SUPERADMIN', 'USER'].includes(role.name)) {
+    if ([UserRole.ADMIN, UserRole.SUPER_ADMIN].includes(role.name as UserRole) || role.name === 'USER') {
       return NextResponse.json(
         { error: 'Cannot delete system roles' },
         { status: 400 }

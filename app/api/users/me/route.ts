@@ -1,7 +1,7 @@
 // app/api/users/me/route.ts
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { authOptions } from "@/lib/auth/auth-options";
 import { prisma } from "@/lib/db";
 import { getPermissionsForRole, UserRole } from "@/lib/auth/roles";
 import type { Permission } from "@/types/permissions";

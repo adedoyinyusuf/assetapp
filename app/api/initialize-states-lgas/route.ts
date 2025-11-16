@@ -1,7 +1,8 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth/auth-options-simple';
+import { NextResponse } from 'next/server'
+import { prisma } from '@/lib/db'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth/auth-options'
+import { UserRole } from '@/lib/auth/roles'
 
 // Nigerian States from CSV
 const STATES_DATA = [
@@ -68,16 +69,14 @@ async function loadLgasData() {
 
 export async function POST(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(authOptions)
     if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     // Check if user has admin privileges
-    const userRole = session.user.role as string;
-    const normalizedRole = userRole?.toUpperCase();
-    if (normalizedRole !== 'SUPERADMIN' && normalizedRole !== 'SUPER_ADMIN' && normalizedRole !== 'ADMIN') {
-      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+    if (session.user.role !== UserRole.SUPER_ADMIN && session.user.role !== UserRole.ADMIN) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
     }
 
     let statesCreated = 0;

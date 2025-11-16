@@ -1,0 +1,434 @@
+/**
+ * Global Styles - Asset Application
+ * Updated with Green & Red Color Theme
+ * Version: 2.0.0
+ */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Import Theme Colors */
+@import './theme/colors.css';
+
+/* Import Themed Components */
+@import './components/themed-components.css';
+
+/* ========================================
+ * BASE STYLES
+ * ======================================== */
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-gradient-background text-text-primary font-sans antialiased;
+  @apply min-h-screen;
+}
+
+/* ========================================
+ * TYPOGRAPHY OVERRIDES
+ * ======================================== */
+
+h1, h2, h3, h4, h5, h6 {
+  @apply text-pakistan-green font-semibold;
+}
+
+h1 {
+  @apply text-4xl mb-6;
+}
+
+h2 {
+  @apply text-3xl mb-5;
+}
+
+h3 {
+  @apply text-2xl mb-4;
+}
+
+h4 {
+  @apply text-xl mb-3;
+}
+
+h5 {
+  @apply text-lg mb-2;
+}
+
+h6 {
+  @apply text-base mb-2;
+}
+
+p {
+  @apply text-cal-poly-green mb-4 leading-relaxed;
+}
+
+a {
+  @apply text-apple-green hover:text-cal-poly-green transition-colors duration-200;
+}
+
+/* ========================================
+ * SCROLLBAR STYLING
+ * ======================================== */
+
+/* Webkit Browsers */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-sage/20;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-apple-green rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-cal-poly-green;
+}
+
+/* Firefox */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--apple-green) var(--sage);
+}
+
+/* ========================================
+ * SELECTION STYLING
+ * ======================================== */
+
+::selection {
+  @apply bg-apple-green/20 text-pakistan-green;
+}
+
+::-moz-selection {
+  @apply bg-apple-green/20 text-pakistan-green;
+}
+
+/* ========================================
+ * FOCUS VISIBLE STYLES
+ * ======================================== */
+
+:focus-visible {
+  @apply outline-none ring-4 ring-primary-200 ring-offset-2;
+}
+
+/* ========================================
+ * LAYOUT COMPONENTS
+ * ======================================== */
+
+.main-layout {
+  @apply min-h-screen flex;
+}
+
+.sidebar-layout {
+  @apply w-64 fixed inset-y-0 left-0 z-30;
+  @apply bg-gradient-sidebar;
+}
+
+.main-content {
+  @apply flex-1 ml-64 flex flex-col;
+}
+
+.header-layout {
+  @apply bg-gradient-primary text-white shadow-lg;
+  @apply sticky top-0 z-20;
+}
+
+.page-container {
+  @apply flex-1 p-6 bg-gradient-background;
+}
+
+.content-container {
+  @apply max-w-7xl mx-auto;
+}
+
+/* Mobile Responsive Layout */
+@media (max-width: 768px) {
+  .sidebar-layout {
+    @apply -translate-x-full;
+  }
+  
+  .sidebar-layout.open {
+    @apply translate-x-0;
+  }
+  
+  .main-content {
+    @apply ml-0;
+  }
+}
+
+/* ========================================
+ * PAGE SECTIONS
+ * ======================================== */
+
+.page-header {
+  @apply bg-white/80 backdrop-blur-sm border-b border-sage/50;
+  @apply px-6 py-4 mb-6;
+}
+
+.page-title {
+  @apply text-3xl font-bold text-gradient-primary mb-2;
+}
+
+.page-subtitle {
+  @apply text-cal-poly-green text-lg;
+}
+
+.page-actions {
+  @apply flex items-center gap-3 mt-4 md:mt-0;
+}
+
+/* ========================================
+ * DASHBOARD SPECIFIC STYLES
+ * ======================================== */
+
+.dashboard-grid {
+  @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8;
+}
+
+.stat-card {
+  @apply card p-6 text-center hover-lift;
+}
+
+.stat-value {
+  @apply text-3xl font-bold text-gradient-primary mb-2;
+}
+
+.stat-label {
+  @apply text-sm text-cal-poly-green uppercase tracking-wider;
+}
+
+.stat-change {
+  @apply text-sm flex items-center justify-center gap-1 mt-2;
+}
+
+.stat-change.positive {
+  @apply text-apple-green;
+}
+
+.stat-change.negative {
+  @apply text-red-ncs;
+}
+
+/* ========================================
+ * STOCK VERIFICATION SPECIFIC STYLES
+ * ======================================== */
+
+.campaign-card {
+  @apply card p-6 hover-lift cursor-pointer;
+}
+
+.campaign-header {
+  @apply flex items-start justify-between mb-4;
+}
+
+.campaign-title {
+  @apply text-xl font-semibold text-pakistan-green mb-1;
+}
+
+.campaign-description {
+  @apply text-cal-poly-green text-sm;
+}
+
+.campaign-meta {
+  @apply flex items-center gap-4 text-sm text-cal-poly-green mt-4;
+}
+
+.verification-progress {
+  @apply mt-4;
+}
+
+.progress-stats {
+  @apply flex justify-between text-sm text-cal-poly-green mb-2;
+}
+
+/* Asset Cards */
+.asset-card {
+  @apply card p-4 hover-scale;
+}
+
+.asset-image {
+  @apply w-full h-32 bg-sage/20 rounded-lg mb-3 flex items-center justify-center;
+}
+
+.asset-title {
+  @apply font-medium text-pakistan-green mb-1;
+}
+
+.asset-details {
+  @apply text-sm text-cal-poly-green space-y-1;
+}
+
+/* Discrepancy Cards */
+.discrepancy-card {
+  @apply card border-l-4 p-4;
+}
+
+.discrepancy-card.high {
+  @apply border-l-indian-red;
+}
+
+.discrepancy-card.critical {
+  @apply border-l-carmine;
+}
+
+.discrepancy-card.medium {
+  @apply border-l-yellow-green;
+}
+
+.discrepancy-card.low {
+  @apply border-l-sage;
+}
+
+/* ========================================
+ * FORM LAYOUTS
+ * ======================================== */
+
+.form-grid {
+  @apply grid grid-cols-1 md:grid-cols-2 gap-6;
+}
+
+.form-section {
+  @apply mb-8;
+}
+
+.form-section-title {
+  @apply text-lg font-medium text-pakistan-green mb-4 pb-2 border-b border-sage;
+}
+
+.field-group {
+  @apply space-y-4;
+}
+
+.field-row {
+  @apply flex gap-4;
+}
+
+.field-row .form-input {
+  @apply flex-1;
+}
+
+/* ========================================
+ * DATA TABLES
+ * ======================================== */
+
+.data-table-container {
+  @apply card overflow-hidden;
+}
+
+.data-table-header {
+  @apply p-6 border-b border-sage flex items-center justify-between;
+}
+
+.data-table-title {
+  @apply text-lg font-medium text-pakistan-green;
+}
+
+.data-table-actions {
+  @apply flex items-center gap-3;
+}
+
+.data-table {
+  @apply table w-full;
+}
+
+.data-table-pagination {
+  @apply p-4 border-t border-sage flex items-center justify-between;
+}
+
+/* ========================================
+ * LOADING STATES
+ * ======================================== */
+
+.loading-spinner {
+  @apply animate-spin rounded-full h-8 w-8 border-2 border-sage border-t-apple-green;
+}
+
+.loading-overlay {
+  @apply absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-10;
+}
+
+.page-loading {
+  @apply min-h-screen flex items-center justify-center;
+}
+
+/* ========================================
+ * ERROR STATES
+ * ======================================== */
+
+.error-page {
+  @apply min-h-screen flex items-center justify-center p-6;
+}
+
+.error-content {
+  @apply text-center;
+}
+
+.error-code {
+  @apply text-6xl font-bold text-gradient-secondary mb-4;
+}
+
+.error-message {
+  @apply text-xl text-pakistan-green mb-6;
+}
+
+/* ========================================
+ * PRINT STYLES
+ * ======================================== */
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-only {
+    display: block !important;
+  }
+  
+  .card {
+    @apply shadow-none border border-gray-300 break-inside-avoid;
+  }
+  
+  .page-container {
+    @apply p-0;
+  }
+}
+
+/* ========================================
+ * ACCESSIBILITY ENHANCEMENTS
+ * ======================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Screen Reader Only */
+.sr-only {
+  @apply absolute w-px h-px p-0 -m-px overflow-hidden whitespace-nowrap border-0;
+  clip: rect(0, 0, 0, 0);
+}
+
+/* Skip Link */
+.skip-link {
+  @apply absolute -top-40 left-6 bg-apple-green text-white px-4 py-2 rounded;
+  @apply focus:top-6 transition-all duration-200;
+  z-index: 9999;
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+  .card {
+    @apply border-2 border-pakistan-green;
+  }
+  
+  .btn-primary {
+    @apply border-2 border-white;
+  }
+}
