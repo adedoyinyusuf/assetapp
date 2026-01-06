@@ -78,7 +78,7 @@ export class VerificationService extends BaseService {
         throw new ValidationError('One or more assets not found');
       }
 
-      const alreadyVerified = assets.filter(asset => 
+      const alreadyVerified = assets.filter(asset =>
         asset.verifications.some(v => ['VERIFIED', 'APPROVED'].includes(v.status))
       );
 
@@ -169,8 +169,8 @@ export class VerificationService extends BaseService {
   }
 
   /**
-   * Get paginated verifications
-   */
+ * Get paginated verifications
+ */
   async getVerifications(
     params: VerificationQueryParams,
     userId: number
@@ -208,6 +208,15 @@ export class VerificationService extends BaseService {
 
       // Apply user access restrictions
       const userAccessWhere = await this.buildUserAccessFilter(userId, 'verification');
+
+      // FIX: Check if user has no access to any campaigns (empty array causes Prisma to hang)
+      if (userAccessWhere.campaignId &&
+        Array.isArray(userAccessWhere.campaignId.in) &&
+        userAccessWhere.campaignId.in.length === 0) {
+        // User has no campaign assignments, return empty result immediately
+        return this.createPaginatedResponse([], 0, page, limit);
+      }
+
       const finalWhere = { ...where, ...userAccessWhere };
 
       const [verifications, total] = await Promise.all([
@@ -476,7 +485,7 @@ export class VerificationService extends BaseService {
           const filePath = join(this.uploadPath, fileName);
 
           // Convert base64 to buffer if needed
-          const buffer = typeof file.data === 'string' 
+          const buffer = typeof file.data === 'string'
             ? Buffer.from(file.data, 'base64')
             : file.data;
 
@@ -612,7 +621,7 @@ export class VerificationService extends BaseService {
 
       // Check if asset is already verified in this campaign
       const existingVerification = asset.verifications[0];
-      const isAlreadyVerified = existingVerification && 
+      const isAlreadyVerified = existingVerification &&
         ['VERIFIED', 'APPROVED'].includes(existingVerification.status);
 
       return {
@@ -654,7 +663,7 @@ export class VerificationService extends BaseService {
 
       const conditionStats = await this.db.assetVerification.groupBy({
         by: ['physicalCondition'],
-        where: { 
+        where: {
           campaignId,
           physicalCondition: { not: null },
         },
@@ -714,7 +723,7 @@ export class VerificationService extends BaseService {
       if (qrData.startsWith('ASSET:')) {
         return parseInt(qrData.split(':')[1]);
       }
-      
+
       const parsed = JSON.parse(qrData);
       return parsed.assetId || parsed.id || null;
     } catch {

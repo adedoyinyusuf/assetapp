@@ -17,4 +17,5 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 // Export a type-safe Prisma client for server-side use only
+export const db = prisma;
 export default prisma;

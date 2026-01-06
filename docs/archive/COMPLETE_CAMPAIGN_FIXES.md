@@ -1,10 +1,10 @@
 import { VerificationCampaignStatus, VerificationCampaign, Prisma } from '@prisma/client';
 import { BaseService, PaginatedResponse, NotFoundError, UnauthorizedError, ValidationError, ConflictError } from './base-service';
-import {
-  CreateCampaignRequest,
-  UpdateCampaignRequest,
+import { 
+  CreateCampaignRequest, 
+  UpdateCampaignRequest, 
   CampaignQueryParams,
-  CreateAssignmentRequest
+  CreateAssignmentRequest 
 } from './validation';
 import { calculateVerificationProgress, calculateDaysBetween } from './utils';
 
@@ -13,7 +13,7 @@ import { calculateVerificationProgress, calculateDaysBetween } from './utils';
 // =============================================================================
 
 export class CampaignService extends BaseService {
-
+  
   /**
    * Create a new verification campaign
    */
@@ -32,11 +32,11 @@ export class CampaignService extends BaseService {
 
       // Validate referenced entities exist
       await this.validateEntitiesExist('state', data.assignedStates, 'One or more assigned states not found');
-
+      
       if (data.assignedLgas.length > 0) {
         await this.validateEntitiesExist('lga', data.assignedLgas, 'One or more assigned LGAs not found');
       }
-
+      
       if (data.assignedCategories.length > 0) {
         await this.validateEntitiesExist('category', data.assignedCategories, 'One or more assigned categories not found');
       }
@@ -129,23 +129,23 @@ export class CampaignService extends BaseService {
         AND: [
           // Status filter
           status && status.length > 0 ? { status: { in: status } } : {},
-
+          
           // Date range filter
           this.createDateRangeFilter(startDate, endDate, 'startDate'),
-
+          
           // Creator filter
           createdBy ? { createdBy } : {},
-
+          
           // State filter
-          stateIds && stateIds.length > 0
-            ? { assignedStates: { hasSome: stateIds } }
+          stateIds && stateIds.length > 0 
+            ? { assignedStates: { hasSome: stateIds } } 
             : {},
-
+          
           // LGA filter
-          lgaIds && lgaIds.length > 0
-            ? { assignedLgas: { hasSome: lgaIds } }
+          lgaIds && lgaIds.length > 0 
+            ? { assignedLgas: { hasSome: lgaIds } } 
             : {},
-
+          
           // Search filter
           this.createSearchFilter(search, ['name', 'description']),
         ],
@@ -279,17 +279,10 @@ export class CampaignService extends BaseService {
         },
       });
 
-      // Calculate verification progress
-      const targetCount = campaign.targetAssetCount ?? 0;
-      const verificationProgress = targetCount > 0
-        ? (stats.verifiedAssets / targetCount) * 100
-        : 0;
-
       return {
         ...campaign,
         stats,
         recentActivity,
-        verificationProgress,
         _count: {
           ...campaign._count,
           discrepancies: discrepancyCount,
@@ -335,11 +328,11 @@ export class CampaignService extends BaseService {
       if (data.assignedStates) {
         await this.validateEntitiesExist('state', data.assignedStates, 'One or more assigned states not found');
       }
-
+      
       if (data.assignedLgas && data.assignedLgas.length > 0) {
         await this.validateEntitiesExist('lga', data.assignedLgas, 'One or more assigned LGAs not found');
       }
-
+      
       if (data.assignedCategories && data.assignedCategories.length > 0) {
         await this.validateEntitiesExist('category', data.assignedCategories, 'One or more assigned categories not found');
       }
@@ -430,7 +423,7 @@ export class CampaignService extends BaseService {
       const activeCount = await this.db.assetVerification.count({
         where: { campaignId, status: { in: ['IN_PROGRESS', 'PENDING'] } },
       });
-
+      
       if (activeCount > 0) {
         throw new ConflictError('Cannot delete campaign with active verifications');
       }
@@ -795,7 +788,7 @@ export interface VerificationCampaignWithStats extends VerificationCampaign {
   };
 }
 
-export interface CampaignDetailResponse extends Omit<VerificationCampaign, 'verificationProgress'> {
+export interface CampaignDetailResponse extends VerificationCampaign {
   creator: {
     id: number;
     firstName: string | null;
@@ -828,7 +821,6 @@ export interface CampaignDetailResponse extends Omit<VerificationCampaign, 'veri
   }>;
   stats: CampaignStatistics;
   recentActivity: ActivityLog[];
-  verificationProgress: number;
   _count: {
     verifications: number;
     assignments: number;

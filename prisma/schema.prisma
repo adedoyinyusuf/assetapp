@@ -65,6 +65,21 @@ model User {
   assignedDiscrepancies     VerificationDiscrepancy[]  @relation("AssignedDiscrepancies")
   resolvedDiscrepancies     VerificationDiscrepancy[]  @relation("ResolvedDiscrepancies")
   escalatedDiscrepancies    VerificationDiscrepancy[]  @relation("EscalatedDiscrepancies")
+  
+  // Maintenance relationships
+  maintenanceRequests       MaintenanceRequest[]
+  assignedWorkOrders        WorkOrder[]
+  assignedSchedules         MaintenanceSchedule[]
+  
+  // Procurement relationships
+  procurementRequests           ProcurementRequest[]  @relation("UserProcurementRequests")
+  approvedProcurementRequests   ProcurementRequest[]  @relation("ApprovedProcurementRequests")
+  rejectedProcurementRequests   ProcurementRequest[]  @relation("RejectedProcurementRequests")
+  createdPurchaseOrders         PurchaseOrder[]
+  
+  // Disposal relationships
+  disposalRequests          DisposalRequest[]
+  processedDisposals        DisposalRecord[]
 
   @@map("users")
 }
@@ -191,10 +206,36 @@ model Asset {
   state         State           @relation(fields: [stateId], references: [id])
   depreciation  Depreciation[]
   
+  serialNumber  String?         @unique @map("serial_number")
+  status        AssetStatus     @default(IN_STORE)
+  procurementRequestId  Int?    @map("procurement_request_id")
+  purchaseOrderId       Int?    @map("purchase_order_id")
+
   // Stock Verification relationships
   verifications AssetVerification[] @relation("AssetVerifications")
+  
+  // Maintenance relationships
+  maintenanceRequests MaintenanceRequest[]
+  workOrders          WorkOrder[]
+  schedules           MaintenanceSchedule[]
+  
+  // Disposal relationships
+  disposalRequests    DisposalRequest[]
+  disposalRecords     DisposalRecord[]
+  
+  // Procurement relationships
+  procurementRequest  ProcurementRequest? @relation(fields: [procurementRequestId], references: [id])
+  purchaseOrder       PurchaseOrder?      @relation(fields: [purchaseOrderId], references: [id])
 
   @@map("assets")
+}
+
+enum AssetStatus {
+  IN_STORE
+  IN_USE
+  MAINTENANCE
+  DISPOSED
+  MISSING
 }
 
 model AssetMovement {
@@ -499,6 +540,7 @@ model VerificationAnalytics {
 // =============================================================================
 
 enum VerificationCampaignStatus {
+  DRAFT
   PLANNED
   ACTIVE
   PAUSED
@@ -600,4 +642,316 @@ enum ScheduleStatus {
   INACTIVE
   COMPLETED
   CANCELLED
+}
+
+// =============================================================================
+// MAINTENANCE MODULE MODELS
+// =============================================================================
+
+model MaintenanceRequest {
+  id              Int               @id @default(autoincrement())
+  assetId         Int               @map("asset_id")
+  requestedBy     Int               @map("requested_by")
+  title           String
+  description     String            @db.Text
+  priority        MaintenancePriority @default(MEDIUM)
+  status          MaintenanceStatus   @default(PENDING)
+  images          String[]
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+
+  // Relationships
+  asset           Asset             @relation(fields: [assetId], references: [id])
+  requester       User              @relation(fields: [requestedBy], references: [id])
+  workOrder       WorkOrder?
+
+  @@map("maintenance_requests")
+  @@index([assetId])
+  @@index([status])
+  @@index([priority])
+}
+
+model WorkOrder {
+  id              Int               @id @default(autoincrement())
+  requestId       Int?              @unique @map("request_id")
+  assetId         Int               @map("asset_id")
+  assignedTo      Int?              @map("assigned_to") // Internal staff
+  vendorName      String?           @map("vendor_name") // External vendor
+  title           String
+  description     String            @db.Text
+  status          WorkOrderStatus   @default(OPEN)
+  priority        MaintenancePriority @default(MEDIUM)
+  startDate       DateTime?         @map("start_date")
+  completionDate  DateTime?         @map("completion_date")
+  laborCost       Decimal           @default(0.00) @map("labor_cost") @db.Decimal(15, 2)
+  partsCost       Decimal           @default(0.00) @map("parts_cost") @db.Decimal(15, 2)
+  notes           String?           @db.Text
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+
+  // Relationships
+  request         MaintenanceRequest? @relation(fields: [requestId], references: [id])
+  asset           Asset               @relation(fields: [assetId], references: [id])
+  assignee        User?               @relation(fields: [assignedTo], references: [id])
+
+  @@map("work_orders")
+  @@index([assetId])
+  @@index([status])
+  @@index([assignedTo])
+}
+
+model MaintenanceSchedule {
+  id              Int               @id @default(autoincrement())
+  assetId         Int               @map("asset_id")
+  title           String
+  description     String?           @db.Text
+  frequency       ScheduleType
+  nextDueDate     DateTime          @map("next_due_date")
+  lastPerformed   DateTime?         @map("last_performed")
+  assignedTo      Int?              @map("assigned_to")
+  isActive        Boolean           @default(true) @map("is_active")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+
+  // Relationships
+  asset           Asset             @relation(fields: [assetId], references: [id])
+  assignee        User?             @relation(fields: [assignedTo], references: [id])
+
+  @@map("maintenance_schedules")
+  @@index([assetId])
+  @@index([nextDueDate])
+}
+
+// =============================================================================
+// MAINTENANCE ENUMS
+// =============================================================================
+
+enum MaintenancePriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum MaintenanceStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum WorkOrderStatus {
+  OPEN
+  IN_PROGRESS
+  ON_HOLD
+  COMPLETED
+  CANCELLED
+}
+
+// =============================================================================
+// PROCUREMENT MODULE MODELS
+// =============================================================================
+
+model Vendor {
+  id              Int               @id @default(autoincrement())
+  name            String
+  contactPerson   String?           @map("contact_person")
+  email           String?
+  phone           String?
+  address         String?           @db.Text
+  taxId           String?           @map("tax_id")
+  isActive        Boolean           @default(true) @map("is_active")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+
+  // Relationships
+  purchaseOrders  PurchaseOrder[]
+
+  @@map("vendors")
+}
+
+model ProcurementRequest {
+  id              Int               @id @default(autoincrement())
+  requestedBy     Int               @map("requested_by")
+  title           String
+  description     String?           @db.Text
+  status          ProcurementRequestStatus @default(PENDING)
+  totalEstimatedCost Decimal        @default(0.00) @map("total_estimated_cost") @db.Decimal(15, 2)
+  reason          String?           @db.Text
+  approvedBy      Int?              @map("approved_by")
+  approvedAt      DateTime?         @map("approved_at")
+  rejectedBy      Int?              @map("rejected_by")
+  rejectedAt      DateTime?         @map("rejected_at")
+  rejectionReason String?           @db.Text @map("rejection_reason")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+
+  // Relationships
+  requester       User              @relation("UserProcurementRequests", fields: [requestedBy], references: [id])
+  approver        User?             @relation("ApprovedProcurementRequests", fields: [approvedBy], references: [id])
+  rejector        User?             @relation("RejectedProcurementRequests", fields: [rejectedBy], references: [id])
+  items           ProcurementRequestItem[]
+  purchaseOrders  PurchaseOrder[]
+  createdAssets   Asset[]
+
+  @@map("procurement_requests")
+  @@index([status])
+  @@index([requestedBy])
+}
+
+model ProcurementRequestItem {
+  id              Int               @id @default(autoincrement())
+  requestId       Int               @map("request_id")
+  itemName        String            @map("item_name")
+  description     String?           @db.Text
+  quantity        Int
+  estimatedPrice  Decimal           @default(0.00) @map("estimated_price") @db.Decimal(15, 2)
+  
+  // Relationships
+  request         ProcurementRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@map("procurement_request_items")
+  @@index([requestId])
+}
+
+model PurchaseOrder {
+  id              Int               @id @default(autoincrement())
+  poNumber        String            @unique @map("po_number") // e.g., PO-2023-001
+  vendorId        Int               @map("vendor_id")
+  requestId       Int?              @map("request_id")
+  createdBy       Int               @map("created_by")
+  status          PurchaseOrderStatus @default(DRAFT)
+  totalAmount     Decimal           @default(0.00) @map("total_amount") @db.Decimal(15, 2)
+  orderDate       DateTime          @default(now()) @map("order_date")
+  expectedDate    DateTime?         @map("expected_date")
+  notes           String?           @db.Text
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+
+  // Relationships
+  vendor          Vendor            @relation(fields: [vendorId], references: [id])
+  request         ProcurementRequest? @relation(fields: [requestId], references: [id])
+  creator         User              @relation(fields: [createdBy], references: [id])
+  items           PurchaseOrderItem[]
+  createdAssets   Asset[]
+
+  @@map("purchase_orders")
+  @@index([vendorId])
+  @@index([status])
+  @@index([poNumber])
+}
+
+model PurchaseOrderItem {
+  id              Int               @id @default(autoincrement())
+  purchaseOrderId Int               @map("purchase_order_id")
+  itemName        String            @map("item_name")
+  description     String?           @db.Text
+  quantity        Int
+  unitPrice       Decimal           @default(0.00) @map("unit_price") @db.Decimal(15, 2)
+  totalPrice      Decimal           @default(0.00) @map("total_price") @db.Decimal(15, 2)
+  receivedQuantity Int              @default(0) @map("received_quantity")
+  
+  // Relationships
+  purchaseOrder   PurchaseOrder     @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+
+  @@map("purchase_order_items")
+  @@index([purchaseOrderId])
+}
+
+// =============================================================================
+// PROCUREMENT ENUMS
+// =============================================================================
+
+enum ProcurementRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  ORDERED
+  COMPLETED
+  CANCELLED
+}
+
+enum PurchaseOrderStatus {
+  DRAFT
+  SENT
+  PARTIALLY_RECEIVED
+  COMPLETED
+  CANCELLED
+}
+
+// =============================================================================
+// DISPOSAL MODULE MODELS
+// =============================================================================
+
+model DisposalRequest {
+  id              Int               @id @default(autoincrement())
+  assetId         Int               @map("asset_id")
+  requestedBy     Int               @map("requested_by")
+  reason          DisposalReason
+  description     String?           @db.Text
+  status          DisposalStatus    @default(PENDING)
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+
+  // Relationships
+  asset           Asset             @relation(fields: [assetId], references: [id])
+  requester       User              @relation(fields: [requestedBy], references: [id])
+  record          DisposalRecord?
+
+  @@map("disposal_requests")
+  @@index([status])
+  @@index([assetId])
+}
+
+model DisposalRecord {
+  id              Int               @id @default(autoincrement())
+  requestId       Int?              @unique @map("request_id")
+  assetId         Int               @map("asset_id")
+  method          DisposalMethod
+  proceeds        Decimal           @default(0.00) @db.Decimal(15, 2)
+  disposalDate    DateTime          @default(now()) @map("disposal_date")
+  notes           String?           @db.Text
+  processedBy     Int               @map("processed_by")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+
+  // Relationships
+  request         DisposalRequest?  @relation(fields: [requestId], references: [id])
+  asset           Asset             @relation(fields: [assetId], references: [id])
+  processor       User              @relation(fields: [processedBy], references: [id])
+
+  @@map("disposal_records")
+  @@index([assetId])
+  @@index([disposalDate])
+}
+
+// =============================================================================
+// DISPOSAL ENUMS
+// =============================================================================
+
+enum DisposalReason {
+  OBSOLETE
+  DAMAGED
+  LOST
+  SOLD
+  DONATED
+  OTHER
+}
+
+enum DisposalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  COMPLETED
+  CANCELLED
+}
+
+enum DisposalMethod {
+  AUCTION
+  SCRAP
+  DONATION
+  RETURN_TO_VENDOR
+  DESTROYED
+  SOLD
 }
