@@ -26,7 +26,7 @@ export const prismaMock = {
   state: createModelMock(),
   lGA: createModelMock(),
   user: createModelMock(),
-  
+
   // Stock verification models
   verificationCampaign: createModelMock(),
   assetVerification: createModelMock(),
@@ -35,23 +35,24 @@ export const prismaMock = {
   verificationTemplate: createModelMock(),
   verificationSchedule: createModelMock(),
   verificationAnalytics: createModelMock(),
-  
+  maintenanceRequest: createModelMock(),
+
   // System models
   auditLog: createModelMock(),
   permission: createModelMock(),
   role: createModelMock(),
   userRole: createModelMock(),
   userPermission: createModelMock(),
-  
+
   // Transaction support
   $transaction: jest.fn(),
   $connect: jest.fn(),
   $disconnect: jest.fn(),
-  
+
   // Raw query support
   $queryRaw: jest.fn(),
   $executeRaw: jest.fn(),
-  
+
   // Utility methods
   $on: jest.fn(),
   $use: jest.fn(),
@@ -197,7 +198,7 @@ export const resetPrismaMock = () => {
       });
     }
   });
-  
+
   // Reset special methods by clearing call history only
   if (jest.isMockFunction(prismaMock.$transaction as any)) {
     (prismaMock.$transaction as jest.Mock).mockClear();

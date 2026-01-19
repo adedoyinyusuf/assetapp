@@ -1,4 +1,3 @@
-
 'use server'
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma.server'
@@ -14,6 +13,8 @@ export interface Asset {
   categoryId: number;
   stateId: number;
   lgaId: number;
+  status?: string;
+  currentValue?: number;
   category?: {
     id: number;
     name: string;
@@ -116,24 +117,37 @@ export async function getAssets(): Promise<Asset[]> {
         movements: true
       }
     });
-    
+
     // Map to the expected asset format
-    return assets.map(asset => ({
-      ...asset,
-      // Ensure date is in string format
-      purchaseDate: asset.purchaseDate instanceof Date 
-        ? asset.purchaseDate.toISOString() 
-        : typeof asset.purchaseDate === 'string' 
-          ? asset.purchaseDate 
-          : new Date().toISOString(),
-      // Add legacy fields for backward compatibility
-      category_id: asset.categoryId,
-      state_id: asset.stateId,
-      lga_id: asset.lgaId,
-      state_name: asset.state?.name || '',
-      lga_name: asset.lga?.name || '',
-      category_name: asset.category?.name || ''
-    }));
+    return assets.map(asset => {
+      // Calculate current value
+      const purchaseDate = new Date(asset.purchaseDate);
+      const currentDate = new Date();
+      const yearsElapsed = (currentDate.getTime() - purchaseDate.getTime()) / (365 * 24 * 60 * 60 * 1000);
+      const depreciableValue = asset.purchaseValue - asset.salvageValue;
+      const annualDepreciation = asset.usefulLife > 0 ? depreciableValue / asset.usefulLife : 0;
+      const totalDepreciation = Math.min(yearsElapsed * annualDepreciation, depreciableValue);
+      const currentValue = Math.max(0, asset.purchaseValue - totalDepreciation);
+
+      return {
+        ...asset,
+        // Ensure date is in string format
+        purchaseDate: asset.purchaseDate instanceof Date
+          ? asset.purchaseDate.toISOString()
+          : typeof asset.purchaseDate === 'string'
+            ? asset.purchaseDate
+            : new Date().toISOString(),
+        status: (asset as any).status || 'ACTIVE',
+        currentValue: currentValue,
+        // Add legacy fields for backward compatibility
+        category_id: asset.categoryId,
+        state_id: asset.stateId,
+        lga_id: asset.lgaId,
+        state_name: asset.state?.name || '',
+        lga_name: asset.lga?.name || '',
+        category_name: asset.category?.name || ''
+      };
+    });
   } catch (error) {
     console.error('Error fetching assets:', error);
     return [];
@@ -188,16 +202,16 @@ export async function calculateDepreciation(asset: Asset, currentDate: Date): Pr
 // Category CRUD
 export async function getCategories(): Promise<Category[]> {
   console.log('=== getCategories() called ===');
-  
+
   try {
     // 1. First, check if prisma is defined
     if (!prisma) {
       console.error('Prisma client is not initialized');
       throw new Error('Prisma client is not initialized');
     }
-    
+
     console.log('Prisma client is available');
-    
+
     // 2. Try to get categories using raw SQL query with proper typing
     console.log('Attempting to fetch categories...');
     const categories = await prisma.$queryRaw<Array<{
@@ -211,9 +225,9 @@ export async function getCategories(): Promise<Category[]> {
       FROM categories 
       ORDER BY name ASC
     `;
-    
+
     console.log('Successfully fetched categories:', JSON.stringify(categories, null, 2));
-    
+
     return categories.map((cat: any) => ({
       id: cat.id,
       name: cat.name,
@@ -223,7 +237,7 @@ export async function getCategories(): Promise<Category[]> {
       created_at: new Date(cat.created_at).toISOString(),
       updated_at: new Date(cat.updated_at).toISOString()
     } as Category));
-    
+
   } catch (error: unknown) {
     console.error('Error in getCategories:', error);
     throw error;
@@ -236,11 +250,11 @@ export async function addCategory(name: string): Promise<Category> {
     const existing = await prisma.$queryRaw`
       SELECT id FROM categories WHERE name = ${name} LIMIT 1
     `;
-    
+
     if (existing && (existing as any[]).length > 0) {
       throw new Error('A category with this name already exists');
     }
-    
+
     // Create the new category
     const result = await prisma.$queryRaw<Array<{
       id: number;
@@ -253,9 +267,9 @@ export async function addCategory(name: string): Promise<Category> {
       VALUES (${name}, '', NOW(), NOW())
       RETURNING *
     `;
-    
+
     const newCategory = result[0];
-    
+
     // Return the new category in the expected format
     return {
       id: newCategory.id,
@@ -275,30 +289,30 @@ export async function addCategory(name: string): Promise<Category> {
 export async function updateCategory(id: number, name: string): Promise<void> {
   try {
     // First check if category exists
-    const categoryExists = await prisma.$queryRaw<Array<{id: number}>>`
+    const categoryExists = await prisma.$queryRaw<Array<{ id: number }>>`
       SELECT id FROM categories WHERE id = ${id}
     `;
-    
+
     if (!categoryExists || categoryExists.length === 0) {
       throw new Error('Category not found');
     }
-    
+
     // Check if another category with the same name already exists
-    const nameExists = await prisma.$queryRaw<Array<{id: number}>>`
+    const nameExists = await prisma.$queryRaw<Array<{ id: number }>>`
       SELECT id FROM categories WHERE name = ${name} AND id != ${id} LIMIT 1
     `;
-    
+
     if (nameExists && nameExists.length > 0) {
       throw new Error('A category with this name already exists');
     }
-    
+
     // Update the category
     await prisma.$executeRaw`
       UPDATE categories 
       SET name = ${name}, updated_at = NOW() 
       WHERE id = ${id}
     `;
-    
+
   } catch (error: any) {
     console.error('Error updating category:', error);
     throw new Error(error.message || 'Failed to update category');
@@ -308,28 +322,28 @@ export async function updateCategory(id: number, name: string): Promise<void> {
 export async function deleteCategory(id: number): Promise<void> {
   try {
     // First check if category exists
-    const categoryExists = await prisma.$queryRaw<Array<{id: number}>>`
+    const categoryExists = await prisma.$queryRaw<Array<{ id: number }>>`
       SELECT id FROM categories WHERE id = ${id}
     `;
-    
+
     if (!categoryExists || categoryExists.length === 0) {
       throw new Error('Category not found');
     }
-    
+
     // Check if any assets are using this category
-    const assetsUsingCategory = await prisma.$queryRaw<Array<{count: number}>>`
+    const assetsUsingCategory = await prisma.$queryRaw<Array<{ count: number }>>`
       SELECT COUNT(*) as count FROM assets WHERE category_id = ${id}
     `;
-    
+
     if (assetsUsingCategory && assetsUsingCategory[0].count > 0) {
       throw new Error('Cannot delete category: There are assets using this category');
     }
-    
+
     // Delete the category
     await prisma.$executeRaw`
       DELETE FROM categories WHERE id = ${id}
     `;
-    
+
   } catch (error: any) {
     console.error('Error deleting category:', error);
     throw new Error(error.message || 'Failed to delete category');
@@ -369,4 +383,3 @@ export async function initializeLocations(): Promise<{ message: string }> {
   revalidatePath('/admin/locations');
   return res.json();
 }
-

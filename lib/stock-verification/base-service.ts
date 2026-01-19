@@ -44,13 +44,13 @@ export abstract class BaseService {
     fieldName: string = 'createdAt'
   ) {
     const filter: any = {};
-    
+
     if (dateFrom || dateTo) {
       filter[fieldName] = {};
       if (dateFrom) filter[fieldName].gte = new Date(dateFrom);
       if (dateTo) filter[fieldName].lte = new Date(dateTo);
     }
-    
+
     return filter;
   }
 
@@ -59,7 +59,7 @@ export abstract class BaseService {
    */
   protected createSearchFilter(search?: string, fields: string[] = ['name']) {
     if (!search) return {};
-    
+
     return {
       OR: fields.map(field => ({
         [field]: {
@@ -75,7 +75,7 @@ export abstract class BaseService {
    */
   protected createArrayFilter<T>(values?: T[], fieldName: string = 'id') {
     if (!values || values.length === 0) return {};
-    
+
     return {
       [fieldName]: {
         in: values,
@@ -106,13 +106,14 @@ export abstract class BaseService {
       if (!user || !user.isActive) return false;
 
       // Check if user has the required permission
-      const hasPermission = user.role.permissions.some(rp => 
-        rp.permission.resource === resource && 
+      const hasPermission = user.role.permissions.some(rp =>
+        rp.permission.resource === resource &&
         rp.permission.action === action
       );
 
       return hasPermission;
-    } catch {
+    } catch (error) {
+      console.error('checkUserAccess Error:', error);
       return false;
     }
   }
@@ -122,15 +123,77 @@ export abstract class BaseService {
    */
   protected async buildUserAccessFilter(userId: number, resource: 'verification' | 'discrepancy'): Promise<any> {
     try {
+      // Fetch user with role and geographic constraints
+      // Using 'as any' casting to bypass Type error until restart
+      const user = await this.db.user.findUnique({
+        where: { id: userId },
+        select: {
+          role: {
+            select: {
+              name: true,
+            },
+          },
+          stateId: true,
+          lgaId: true,
+        },
+      } as any) as any;
+
+      if (!user) return { campaignId: { in: [] } }; // Fail closed
+
+      const roleName = user.role.name.toUpperCase();
+
+      // 1. SUPER_ADMIN is always global
+      if (['SUPER_ADMIN', 'SUPERADMIN'].includes(roleName)) {
+        return {};
+      }
+
+      // 2. Managerial/supervisory roles depend on Geographic Scope
+      // Includes: ADMIN (National/State), MANAGER, TEAM_LEADER, SUPERVISOR, AUDITOR, OBSERVER
+      const managerialRoles = [
+        'ADMIN', 'MANAGER', 'TEAM_LEADER', 'SUPERVISOR', 'AUDITOR', 'OPERATOR',
+        'QUALITY_CONTROLLER', 'OBSERVER'
+      ];
+
+      if (managerialRoles.includes(roleName)) {
+        // Construct Geographic Filter based on User's scope
+        let geoFilter: any = {};
+
+        // Scope Priority: LGA > State > National (None)
+        if (user.lgaId) {
+          // Locked to LGA
+          // For Verifications: asset.lgaId = user.lgaId
+          // For Discrepancies: verification.asset.lgaId = user.lgaId
+          geoFilter = resource === 'verification'
+            ? { asset: { lgaId: user.lgaId } }
+            : { verification: { asset: { lgaId: user.lgaId } } };
+
+          return geoFilter;
+        }
+        else if (user.stateId) {
+          // Locked to State
+          geoFilter = resource === 'verification'
+            ? { asset: { stateId: user.stateId } }
+            : { verification: { asset: { stateId: user.stateId } } };
+
+          return geoFilter;
+        }
+        else {
+          // No State/LGA ID = National/Global View for these roles
+          return {};
+        }
+      }
+
+      // 3. For Field Roles (VERIFIERS, etc.), rely on Explicit Assignments
+      // This ensures they only see what is specifically assigned to them in a campaign
       const assignments = await this.db.verificationAssignment.findMany({
         where: { userId, status: { in: ['ACTIVE', 'COMPLETED'] } },
         select: { campaignId: true },
+        take: 1000,
       });
 
       const campaignIds = assignments.map(a => a.campaignId);
 
       if (campaignIds.length === 0) {
-        // No assignments means no access to any campaign-specific data
         return resource === 'verification'
           ? { campaignId: { in: [] } }
           : { verification: { campaignId: { in: [] } } };
@@ -139,8 +202,12 @@ export abstract class BaseService {
       return resource === 'verification'
         ? { campaignId: { in: campaignIds } }
         : { verification: { campaignId: { in: campaignIds } } };
-    } catch {
-      return {};
+
+    } catch (error) {
+      console.error('Error building user access filter:', error);
+      return resource === 'verification'
+        ? { campaignId: { in: [] } }
+        : { verification: { campaignId: { in: [] } } };
     }
   }
 
@@ -183,10 +250,10 @@ export abstract class BaseService {
 
     // Preserve custom service errors with codes
     if (error instanceof ValidationError ||
-        error instanceof NotFoundError ||
-        error instanceof UnauthorizedError ||
-        error instanceof ConflictError ||
-        error instanceof BusinessLogicError) {
+      error instanceof NotFoundError ||
+      error instanceof UnauthorizedError ||
+      error instanceof ConflictError ||
+      error instanceof BusinessLogicError) {
       throw error; // rethrow as-is to keep error.code and type
     }
 
@@ -194,11 +261,11 @@ export abstract class BaseService {
     if (error?.code === 'P2002') {
       throw new ConflictError('A record with this information already exists');
     }
-    
+
     if (error?.code === 'P2025') {
       throw new NotFoundError('Record not found');
     }
-    
+
     if (error?.code === 'P2003') {
       throw new ValidationError('Invalid reference to related record');
     }
@@ -332,7 +399,7 @@ export interface BulkResponse<T> {
 
 export class ValidationError extends Error {
   public code = 'VALIDATION_ERROR';
-  
+
   constructor(message: string, public details?: any) {
     super(message);
     this.name = 'ValidationError';
@@ -341,7 +408,7 @@ export class ValidationError extends Error {
 
 export class NotFoundError extends Error {
   public code = 'NOT_FOUND';
-  
+
   constructor(message: string = 'Resource not found') {
     super(message);
     this.name = 'NotFoundError';
@@ -350,8 +417,8 @@ export class NotFoundError extends Error {
 
 export class UnauthorizedError extends Error {
   public code = 'UNAUTHORIZED';
-  
-  constructor(message: string = 'Unauthorized access') {
+
+  constructor(message: string = 'Unauthorized access', public details?: any) {
     super(message);
     this.name = 'UnauthorizedError';
   }
@@ -359,7 +426,7 @@ export class UnauthorizedError extends Error {
 
 export class ConflictError extends Error {
   public code = 'CONFLICT';
-  
+
   constructor(message: string = 'Resource conflict') {
     super(message);
     this.name = 'ConflictError';
@@ -368,7 +435,7 @@ export class ConflictError extends Error {
 
 export class BusinessLogicError extends Error {
   public code = 'BUSINESS_LOGIC_ERROR';
-  
+
   constructor(message: string, public details?: any) {
     super(message);
     this.name = 'BusinessLogicError';

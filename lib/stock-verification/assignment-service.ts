@@ -57,11 +57,11 @@ export class AssignmentService extends BaseService {
 
       // Validate referenced entities
       await this.validateEntitiesExist('state', data.stateIds, 'One or more assigned states not found');
-      
+
       if (data.lgaIds.length > 0) {
         await this.validateEntitiesExist('lga', data.lgaIds, 'One or more assigned LGAs not found');
       }
-      
+
       if (data.categoryIds.length > 0) {
         await this.validateEntitiesExist('category', data.categoryIds, 'One or more assigned categories not found');
       }
@@ -138,7 +138,14 @@ export class AssignmentService extends BaseService {
       }
 
       // Validate campaign exists
-      await this.validateEntityExists('verificationCampaign', campaignId, 'Campaign not found');
+      const campaign = await this.db.verificationCampaign.findUnique({
+        where: { id: campaignId },
+        select: { id: true },
+      });
+
+      if (!campaign) {
+        throw new NotFoundError('Campaign not found');
+      }
 
       const assignments = await this.db.verificationAssignment.findMany({
         where: { campaignId },
@@ -250,8 +257,8 @@ export class AssignmentService extends BaseService {
       }
 
       // Validate that assignment can be updated
-      if (existingAssignment.campaign.status === 'COMPLETED' || 
-          existingAssignment.campaign.status === 'CANCELLED') {
+      if (existingAssignment.campaign.status === 'COMPLETED' ||
+        existingAssignment.campaign.status === 'CANCELLED') {
         throw new ValidationError('Cannot update assignments for completed or cancelled campaigns');
       }
 
@@ -259,11 +266,11 @@ export class AssignmentService extends BaseService {
       if (data.stateIds) {
         await this.validateEntitiesExist('state', data.stateIds, 'One or more assigned states not found');
       }
-      
+
       if (data.lgaIds && data.lgaIds.length > 0) {
         await this.validateEntitiesExist('lga', data.lgaIds, 'One or more assigned LGAs not found');
       }
-      
+
       if (data.categoryIds && data.categoryIds.length > 0) {
         await this.validateEntitiesExist('category', data.categoryIds, 'One or more assigned categories not found');
       }
@@ -487,24 +494,24 @@ export class AssignmentService extends BaseService {
             },
           });
 
-          const completedCount = verifications.filter(v => 
+          const completedCount = verifications.filter(v =>
             ['VERIFIED', 'APPROVED'].includes(v.status)
           ).length;
 
           const averageDuration = verifications
             .filter(v => v.verificationDuration)
-            .reduce((sum, v) => sum + (v.verificationDuration || 0), 0) / 
+            .reduce((sum, v) => sum + (v.verificationDuration || 0), 0) /
             Math.max(verifications.length, 1);
 
-          const discrepancyCount = verifications.reduce((sum, v) => 
+          const discrepancyCount = verifications.reduce((sum, v) =>
             sum + v.discrepancies.length, 0
           );
 
-          const qualityScore = verifications.length > 0 
+          const qualityScore = verifications.length > 0
             ? Math.max(0, 100 - ((discrepancyCount / verifications.length) * 20))
             : 0;
 
-          const efficiency = assignment.totalTarget 
+          const efficiency = assignment.totalTarget
             ? Math.min(100, (completedCount / assignment.totalTarget) * 100)
             : 0;
 
@@ -514,7 +521,7 @@ export class AssignmentService extends BaseService {
             role: assignment.role,
             totalAssigned: verifications.length,
             completedVerifications: completedCount,
-            pendingVerifications: verifications.filter(v => 
+            pendingVerifications: verifications.filter(v =>
               ['PENDING', 'IN_PROGRESS'].includes(v.status)
             ).length,
             discrepancyCount,

@@ -1,15 +1,15 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faSearch, faSave } from '@fortawesome/free-solid-svg-icons'
+import { Search, Save, FolderOpen, RefreshCcw, ArrowRight, ArrowLeft } from 'lucide-react'
 import { getAssets, getCategories, getStates, Asset, Category, State } from '@/app/actions'
 import Link from 'next/link'
+import { Badge } from '@/components/ui/badge'
 
 export default function AssetSearchPage() {
   const [searchResults, setSearchResults] = useState<Asset[]>([])
@@ -53,7 +53,7 @@ export default function AssetSearchPage() {
 
       // Apply all filters
       if (searchTerm) {
-        filtered = filtered.filter(asset => 
+        filtered = filtered.filter(asset =>
           asset.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           (asset.category?.name?.toLowerCase() ?? '').includes(searchTerm.toLowerCase()) ||
           (asset.state?.name?.toLowerCase() ?? '').includes(searchTerm.toLowerCase()) ||
@@ -148,33 +148,53 @@ export default function AssetSearchPage() {
     }
   }
 
+  const formatCurrency = (val: number) =>
+    new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(val);
+
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Advanced Asset Search</h1>
+    <div className="container py-8 max-w-7xl mx-auto space-y-8">
+      {/* Header */}
+      <div>
+        <Link
+          href="/assets"
+          className="text-sm text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1 mb-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Dashboard
+        </Link>
+        <h1 className="text-3xl font-bold tracking-tight">Advanced Search</h1>
+        <p className="text-muted-foreground mt-1">
+          Filter assets by value, date, location, and technical specifications.
+        </p>
+      </div>
 
       {/* Search Criteria */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center">
-            <FontAwesomeIcon icon={faSearch} className="mr-2" />
-            Search Criteria
+          <CardTitle className="flex items-center gap-2">
+            <Search className="h-5 w-5 text-primary" />
+            Search Filters
           </CardTitle>
+          <CardDescription>
+            Combine multiple filters to narrow down your asset list.
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* General Search */}
             <div className="col-span-full">
-              <Label htmlFor="search">General Search</Label>
+              <Label htmlFor="search">Keywords</Label>
               <Input
                 id="search"
-                placeholder="Search by name, category, location..."
+                placeholder="Search by name, category, or location..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                className="mt-1.5"
               />
             </div>
 
             {/* Category Filter */}
-            <div>
+            <div className="space-y-1.5">
               <Label htmlFor="category">Category</Label>
               <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                 <SelectTrigger>
@@ -192,7 +212,7 @@ export default function AssetSearchPage() {
             </div>
 
             {/* State Filter */}
-            <div>
+            <div className="space-y-1.5">
               <Label htmlFor="state">State</Label>
               <Select value={selectedState} onValueChange={setSelectedState}>
                 <SelectTrigger>
@@ -210,8 +230,8 @@ export default function AssetSearchPage() {
             </div>
 
             {/* Value Range */}
-            <div>
-              <Label htmlFor="minValue">Min Purchase Value ($)</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="minValue">Min Value (₦)</Label>
               <Input
                 id="minValue"
                 type="number"
@@ -221,8 +241,8 @@ export default function AssetSearchPage() {
               />
             </div>
 
-            <div>
-              <Label htmlFor="maxValue">Max Purchase Value ($)</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="maxValue">Max Value (₦)</Label>
               <Input
                 id="maxValue"
                 type="number"
@@ -233,8 +253,8 @@ export default function AssetSearchPage() {
             </div>
 
             {/* Date Range */}
-            <div>
-              <Label htmlFor="dateFrom">Purchase Date From</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="dateFrom">Purchased After</Label>
               <Input
                 id="dateFrom"
                 type="date"
@@ -243,8 +263,8 @@ export default function AssetSearchPage() {
               />
             </div>
 
-            <div>
-              <Label htmlFor="dateTo">Purchase Date To</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="dateTo">Purchased Before</Label>
               <Input
                 id="dateTo"
                 type="date"
@@ -254,8 +274,8 @@ export default function AssetSearchPage() {
             </div>
 
             {/* Useful Life Range */}
-            <div>
-              <Label htmlFor="usefulLifeMin">Min Useful Life (years)</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="usefulLifeMin">Min Life (Years)</Label>
               <Input
                 id="usefulLifeMin"
                 type="number"
@@ -265,8 +285,8 @@ export default function AssetSearchPage() {
               />
             </div>
 
-            <div>
-              <Label htmlFor="usefulLifeMax">Max Useful Life (years)</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="usefulLifeMax">Max Life (Years)</Label>
               <Input
                 id="usefulLifeMax"
                 type="number"
@@ -277,20 +297,23 @@ export default function AssetSearchPage() {
             </div>
           </div>
 
-          <div className="flex gap-4 mt-6">
-            <Button onClick={handleSearch} disabled={loading}>
-              <FontAwesomeIcon icon={faSearch} className="mr-2" />
+          <div className="flex flex-wrap gap-4 mt-8 pt-6 border-t">
+            <Button onClick={handleSearch} disabled={loading} size="lg" className="min-w-[150px]">
+              <Search className="mr-2 h-4 w-4" />
               {loading ? 'Searching...' : 'Search Assets'}
             </Button>
-            <Button variant="outline" onClick={clearSearch}>
-              Clear All
+            <Button variant="outline" onClick={clearSearch} size="lg">
+              <RefreshCcw className="mr-2 h-4 w-4" />
+              Reset Filters
             </Button>
-            <Button variant="outline" onClick={saveSearch}>
-              <FontAwesomeIcon icon={faSave} className="mr-2" />
-              Save Search
+            <div className="flex-1" />
+            <Button variant="ghost" onClick={saveSearch}>
+              <Save className="mr-2 h-4 w-4" />
+              Save Criteria
             </Button>
-            <Button variant="outline" onClick={loadSavedSearch}>
-              Load Saved Search
+            <Button variant="ghost" onClick={loadSavedSearch}>
+              <FolderOpen className="mr-2 h-4 w-4" />
+              Load Saved
             </Button>
           </div>
         </CardContent>
@@ -298,62 +321,76 @@ export default function AssetSearchPage() {
 
       {/* Search Results */}
       {hasSearched && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Search Results ({searchResults.length} assets found)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {searchResults.length > 0 ? (
-              <div className="space-y-4">
-                {/* Results Summary */}
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                    <div>
-                      <strong>Total Assets:</strong> {searchResults.length}
-                    </div>
-                    <div>
-                      <strong>Total Value:</strong> ${searchResults.reduce((sum, asset) => sum + asset.purchaseValue, 0).toLocaleString()}
-                    </div>
-                    <div>
-                      <strong>Avg Value:</strong> ${searchResults.length > 0 ? (searchResults.reduce((sum, asset) => sum + asset.purchaseValue, 0) / searchResults.length).toLocaleString() : 0}
-                    </div>
-                  </div>
-                </div>
+        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">Results Found ({searchResults.length})</h2>
+          </div>
 
-                {/* Results Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {searchResults.map((asset) => (
-                    <Card key={asset.id} className="hover:shadow-md transition-shadow">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-lg">{asset.name}</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-2 text-sm">
-                          <div><strong>Category:</strong> {asset.category?.name}</div>
-                          <div><strong>Value:</strong> ${asset.purchaseValue.toLocaleString()}</div>
-                          <div><strong>Purchase Date:</strong> {new Date(asset.purchaseDate).toLocaleDateString()}</div>
-                          <div><strong>Location:</strong> {asset.state?.name}, {asset.lga?.name}</div>
-                          <div><strong>Useful Life:</strong> {asset.usefulLife} years</div>
-                        </div>
-                        <div className="mt-4">
-                          <Link href={`/assets/${asset.id}`}>
-                            <Button variant="outline" size="sm" className="w-full">
-                              View Details
-                            </Button>
-                          </Link>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-8 text-gray-500">
-                No assets found matching your search criteria.
-              </div>
-            )}
-          </CardContent>
-        </Card>
+          {searchResults.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* Summary Card */}
+              <Card className="md:col-span-2 lg:col-span-3 bg-muted/30 border-dashed">
+                <CardContent className="p-4 flex flex-col md:flex-row gap-4 justify-around text-center">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Total Value</p>
+                    <p className="text-xl font-bold">{formatCurrency(searchResults.reduce((sum, asset) => sum + asset.purchaseValue, 0))}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Average Value</p>
+                    <p className="text-xl font-bold">{formatCurrency(searchResults.length > 0 ? searchResults.reduce((sum, asset) => sum + asset.purchaseValue, 0) / searchResults.length : 0)}</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {searchResults.map((asset) => (
+                <Card key={asset.id} className="group hover:border-primary/50 transition-all hover:shadow-md">
+                  <CardHeader className="pb-3">
+                    <div className="flex justify-between items-start gap-2">
+                      <CardTitle className="text-lg truncate group-hover:text-primary transition-colors">
+                        {asset.name}
+                      </CardTitle>
+                      <Badge variant="secondary" className=" shrink-0">{asset.category?.name}</Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2 text-sm text-muted-foreground">
+                      <div className="flex justify-between">
+                        <span>Value:</span>
+                        <span className="font-medium text-foreground">{formatCurrency(asset.purchaseValue)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Date:</span>
+                        <span>{new Date(asset.purchaseDate).toLocaleDateString()}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Location:</span>
+                        <span className="text-right">{asset.state?.name}, {asset.lga?.name}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Life:</span>
+                        <span>{asset.usefulLife} years</span>
+                      </div>
+                    </div>
+
+                    <Button asChild className="w-full mt-4" variant="outline">
+                      <Link href={`/assets/${asset.id}`}>
+                        View Details <ArrowRight className="ml-2 h-4 w-4" />
+                      </Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card className="border-dashed">
+              <CardContent className="py-12 text-center text-muted-foreground">
+                <Search className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                <p className="text-lg font-medium">No assets match your criteria</p>
+                <p>Try adjusting your filters to broaden the search.</p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       )}
     </div>
   )

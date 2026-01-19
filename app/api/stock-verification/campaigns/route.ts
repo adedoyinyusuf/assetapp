@@ -1,11 +1,12 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { CampaignService } from '@/lib/stock-verification/campaign-service';
-import { 
-  createCampaignSchema, 
+import {
+  createCampaignSchema,
   campaignQuerySchema,
-  CreateCampaignRequest 
+  CreateCampaignRequest
 } from '@/lib/stock-verification/validation';
 import { ZodError } from 'zod';
 import { redis } from '@/lib/redis';
@@ -31,12 +32,12 @@ export async function GET(request: NextRequest) {
     // Parse query parameters
     const { searchParams } = new URL(request.url);
     const queryParams = Object.fromEntries(searchParams.entries());
-    
+
     // Validate query parameters
     const validationResult = campaignQuerySchema.safeParse(queryParams);
     if (!validationResult.success) {
       return NextResponse.json(
-        { 
+        {
           error: 'Invalid query parameters',
           details: validationResult.error.issues
         },
@@ -48,8 +49,8 @@ export async function GET(request: NextRequest) {
     if (enabled) {
       try {
         const ip = request.headers.get('x-forwarded-for')?.split(',')[0] ||
-                   request.headers.get('x-real-ip') ||
-                   'unknown';
+          request.headers.get('x-real-ip') ||
+          'unknown';
         const limit = Number(process.env.SV_CAMPAIGNS_GET_RATE_LIMIT_PER_MINUTE || '120');
         const key = `sv:campaigns:get:${ip}`;
         const count = await redis.incr(key);
@@ -72,7 +73,7 @@ export async function GET(request: NextRequest) {
     // Get campaigns
     const result = await campaignService.getCampaigns(validationResult.data, userId);
 
-    return Response.json({
+    return NextResponse.json({
       success: true,
       data: result.data,
       pagination: {
@@ -84,18 +85,16 @@ export async function GET(request: NextRequest) {
         hasPrev: result.pagination.hasPrevPage,
       },
     });
-
-    return NextResponse.json(result);
   } catch (error: any) {
     console.error('Error fetching campaigns:', error);
-    
+
     if (error.code === 'UNAUTHORIZED') {
       return NextResponse.json(
         { error: error.message },
         { status: 403 }
       );
     }
-    
+
     return NextResponse.json(
       { error: 'Failed to fetch campaigns' },
       { status: 500 }
@@ -112,9 +111,9 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json(
-        { 
+        {
           success: false,
-          error: 'Authentication required' 
+          error: 'Authentication required'
         },
         { status: 401 }
       );
@@ -122,7 +121,7 @@ export async function POST(request: NextRequest) {
 
     // Parse request body
     const body = await request.json();
-    
+
     // Normalize aliases from tests (stateIds/lgaIds/categoryIds) to schema fields
     const assignedStates = Array.isArray(body.assignedStates)
       ? body.assignedStates
@@ -158,12 +157,12 @@ export async function POST(request: NextRequest) {
       assignedLgas: toNumArray(assignedLgas),
       assignedCategories: toNumArray(assignedCategories),
     };
-    
+
     // Validate request data
     const validationResult = createCampaignSchema.safeParse(normalizedBody);
     if (!validationResult.success) {
       return NextResponse.json(
-        { 
+        {
           success: false,
           error: 'Validation failed',
           details: validationResult.error.issues
@@ -176,8 +175,8 @@ export async function POST(request: NextRequest) {
     if (enabled) {
       try {
         const ip = request.headers.get('x-forwarded-for')?.split(',')[0] ||
-                   request.headers.get('x-real-ip') ||
-                   'unknown';
+          request.headers.get('x-real-ip') ||
+          'unknown';
         const limit = Number(process.env.SV_CAMPAIGNS_POST_RATE_LIMIT_PER_MINUTE || '30');
         const key = `sv:campaigns:post:${ip}`;
         const count = await redis.incr(key);
@@ -192,17 +191,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Get client info for audit logging
-    const ipAddress = request.headers.get('x-forwarded-for') || 
-                     request.headers.get('x-real-ip') || 
-                     'unknown';
+    const ipAddress = request.headers.get('x-forwarded-for') ||
+      request.headers.get('x-real-ip') ||
+      'unknown';
     const userAgent = request.headers.get('user-agent') || 'unknown';
-
-    console.log('Creating campaign with data:', {
-      ...validationResult.data,
-      userId: parseInt(session.user.id),
-      ipAddress,
-      userAgent
-    });
 
     // Initialize service
     const campaignService = new CampaignService();
@@ -217,12 +209,6 @@ export async function POST(request: NextRequest) {
       ipAddress,
       userAgent
     );
-
-    console.log('Campaign created successfully:', {
-      id: campaign.id,
-      name: campaign.name,
-      status: campaign.status
-    });
 
     return NextResponse.json(
       {
@@ -239,10 +225,10 @@ export async function POST(request: NextRequest) {
       code: error.code,
       name: error.name
     });
-    
+
     if (error instanceof ZodError) {
       return NextResponse.json(
-        { 
+        {
           success: false,
           error: 'Validation failed',
           details: error.issues
@@ -250,31 +236,41 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    
+
+    if (error.code === 'CONFLICT') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: error.message
+        },
+        { status: 409 }
+      );
+    }
+
     if (error.code === 'UNAUTHORIZED') {
       return NextResponse.json(
-        { 
+        {
           success: false,
-          error: error.message 
+          error: error.message
         },
         { status: 403 }
       );
     }
-    
+
     if (error.message.includes('not found')) {
       return NextResponse.json(
-        { 
+        {
           success: false,
-          error: error.message 
+          error: error.message
         },
         { status: 400 }
       );
     }
-    
+
     return NextResponse.json(
-      { 
+      {
         success: false,
-        error: 'Failed to create campaign' 
+        error: 'Failed to create campaign'
       },
       { status: 500 }
     );

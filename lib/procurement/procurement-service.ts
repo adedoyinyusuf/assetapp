@@ -212,6 +212,11 @@ export class ProcurementService {
                         purchaseDate: new Date(),
                         purchaseValue: poItem.unitPrice.toNumber(),
                         serialNumber: `PO-${po.poNumber}-${poItem.id}-${Date.now()}-${i}`, // Temp serial
+                        stateId: 1, // Default state
+                        lgaId: 1,   // Default LGA
+                        usefulLife: 5,
+                        salvageValue: 0,
+                        currentValue: poItem.unitPrice.toNumber(),
                     },
                 });
             }

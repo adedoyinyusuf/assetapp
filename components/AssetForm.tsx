@@ -13,8 +13,17 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { addAsset, updateAsset, getLGAs, Asset, Category, State, LGA } from '@/app/client-actions'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faSave } from '@fortawesome/free-solid-svg-icons'
+import {
+  Save,
+  Info,
+  Banknote,
+  MapPin,
+  Loader2,
+  AlertCircle,
+  CheckCircle2
+} from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 interface AssetFormProps {
   asset?: Asset;
@@ -25,33 +34,38 @@ interface AssetFormProps {
 }
 
 export default function AssetForm({ asset, categories, states, initialLgas, onDataRefresh }: AssetFormProps) {
+  const router = useRouter()
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // Form Fields
   const [name, setName] = useState(asset?.name || '')
   const [purchaseValue, setPurchaseValue] = useState(asset?.purchaseValue?.toString() || '')
-  const [purchaseDate, setPurchaseDate] = useState(asset?.purchaseDate || '')
+  const [purchaseDate, setPurchaseDate] = useState(asset?.purchaseDate ? new Date(asset.purchaseDate).toISOString().split('T')[0] : '')
   const [usefulLife, setUsefulLife] = useState(asset?.usefulLife?.toString() || '')
   const [salvageValue, setSalvageValue] = useState(asset?.salvageValue?.toString() || '0')
   const [categoryId, setCategoryId] = useState(asset?.category_id?.toString() || '')
   const [stateId, setStateId] = useState(asset?.state_id?.toString() || '')
   const [lgaId, setLgaId] = useState(asset?.lga_id?.toString() || '')
+
   const [lgas, setLgas] = useState<LGA[]>(initialLgas)
   const [loadingLgas, setLoadingLgas] = useState(false)
 
-  // Debug logging
-  console.log('AssetForm Props:', { categories: categories.length, states: states.length, initialLgas: initialLgas.length });
-  console.log('States data:', states);
-  console.log('Initial LGAs:', initialLgas);
-
-  const router = useRouter()
-
+  // Load LGAs when state changes
   useEffect(() => {
     if (stateId) {
       setLoadingLgas(true);
-      console.log('Loading LGAs for state:', stateId);
       getLGAs(parseInt(stateId))
         .then((lgaData) => {
-          console.log('Loaded LGAs:', lgaData);
           setLgas(lgaData);
-          setLgaId(''); // Reset LGA selection when state changes
+          // Only reset if the current lgaId is not in the new list (or if we just switched states manually)
+          // For simplicity in edit mode, we might want to keep it if it's valid, but usually swapping state means invalidating LGA.
+          // In edit mode initialization, we rely on initialLgas so this effect shouldn't break it if logic is right.
+          if (asset?.state_id?.toString() !== stateId) {
+            setLgaId('');
+          } else if (!lgaData.find(l => l.id.toString() === lgaId)) {
+            setLgaId('');
+          }
         })
         .catch((error) => {
           console.error('Error loading LGAs:', error);
@@ -78,257 +92,281 @@ export default function AssetForm({ asset, categories, states, initialLgas, onDa
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!categoryId) {
-      alert('Please select a category');
+    setError(null);
+    setIsSubmitting(true);
+
+    // Validation
+    if (!categoryId || !stateId || !lgaId) {
+      setError('Please fill in all required fields including Category, State, and LGA.');
+      setIsSubmitting(false);
       return;
     }
 
-    if (!stateId) {
-      alert('Please select a state');
-      return;
-    }
-
-    if (!lgaId) {
-      alert('Please select an LGA');
-      return;
-    }
-
-    // Create the base asset data with correct field names for API
     const baseAssetData = {
       name,
       purchaseValue: parseFloat(purchaseValue) || 0,
       purchaseDate,
       usefulLife: parseInt(usefulLife) || 5,
       salvageValue: parseFloat(salvageValue) || 0,
+      category_id: parseInt(categoryId),
+      state_id: parseInt(stateId),
+      lga_id: parseInt(lgaId),
+      // Include camelCase to satisfy TypeScript interface
       categoryId: parseInt(categoryId),
       stateId: parseInt(stateId),
       lgaId: parseInt(lgaId),
     };
 
-    // If we're updating, include the ID
-    const assetData = asset?.id 
+    const assetData = asset?.id
       ? { ...baseAssetData, id: asset.id }
       : baseAssetData;
 
     try {
-      let result;
       if (asset?.id) {
         await updateAsset(assetData as Asset);
-        alert('Asset updated successfully!');
       } else {
-        result = await addAsset(assetData);
-        if (result && result.id) {
-          alert('Asset added successfully!');
-        } else {
-          throw new Error('Failed to create asset');
-        }
+        const result = await addAsset(assetData);
+        if (!result || !result.id) throw new Error('Failed to create asset');
       }
+
+      // Success
       router.push('/assets');
       router.refresh();
     } catch (error) {
       console.error('Error saving asset:', error);
-      // Show more detailed error message
-      let errorMessage = 'Failed to save asset. Please try again.';
-      if (error instanceof Error) {
-        errorMessage = error.message;
-      } else if (typeof error === 'object' && error !== null && 'message' in error) {
-        errorMessage = (error as any).message;
-      }
-      alert(errorMessage);
+      setError(error instanceof Error ? error.message : 'An unexpected error occurred.');
+      setIsSubmitting(false);
     }
   }
 
+  // Debug/Init Functionality for Dev/Admin
   const handleInitializeLocations = async () => {
+    if (!confirm("This will initialize all Nigerian states and LGAs. Continue?")) return;
     try {
-      console.log('Initializing Nigerian states and LGAs...');
-      const response = await fetch('/api/initialize-states-lgas', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      
+      const response = await fetch('/api/initialize-states-lgas', { method: 'POST' });
       if (response.ok) {
-        const result = await response.json();
-        console.log('States and LGAs initialized:', result);
-        alert(`Successfully initialized: ${result.statesCreated} states and ${result.lgasCreated} LGAs created.`);
-        
-        // Use the refresh callback if available, otherwise reload the page
-        if (onDataRefresh) {
-          await onDataRefresh();
-        } else {
-          window.location.reload();
-        }
+        if (onDataRefresh) await onDataRefresh();
+        else window.location.reload();
       } else {
-        const error = await response.json();
-        console.error('Error initializing states and LGAs:', error);
-        alert('Failed to initialize states and LGAs: ' + error.error);
+        throw new Error("Failed to initialize");
       }
-    } catch (error) {
-      console.error('Error:', error);
-      alert('Failed to initialize states and LGAs');
+    } catch (e) {
+      alert("Initialization failed");
     }
   };
 
   return (
-    <div className="space-y-4">
-      {/* Debug Info */}
-      <div className="bg-gray-100 p-4 rounded text-sm">
-        <h3 className="font-bold mb-2">Debug Info:</h3>
-        <p>Categories: {categories.length}</p>
-        <p>States: {states.length}</p>
-        <p>Initial LGAs: {initialLgas.length}</p>
-        <p>Current LGAs: {lgas.length}</p>
-        {states.length === 0 && (
-          <div className="mt-2">
-            <button 
-              type="button" 
-              onClick={handleInitializeLocations}
-              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-            >
-              Initialize Nigerian States & LGAs
-            </button>
-            <p className="text-xs mt-1 text-gray-600">
-              Loads all 37 Nigerian states and 774 LGAs from official data
-            </p>
+    <form onSubmit={handleSubmit} className="space-y-8">
+
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* Section 1: Basic Information */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-xl">
+            <Info className="h-5 w-5 text-primary" />
+            Asset Details
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-2 md:col-span-2">
+            <Label htmlFor="name">Asset Name <span className="text-red-500">*</span></Label>
+            <Input
+              id="name"
+              placeholder="e.g. Dell Latitude 5420 Laptop"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              className="h-11"
+            />
           </div>
-        )}
+
+          <div className="space-y-2 md:col-span-2">
+            <Label htmlFor="category">Category <span className="text-red-500">*</span></Label>
+            <Select
+              value={categoryId}
+              onValueChange={setCategoryId}
+              required
+            >
+              <SelectTrigger className="h-11">
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((category) => (
+                  <SelectItem key={category.id} value={category.id.toString()}>
+                    <div className="flex flex-col text-left">
+                      <span className="font-medium">{category.name}</span>
+                      {category.description && (
+                        <span className="text-xs text-muted-foreground">{category.description}</span>
+                      )}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Section 2: Financials */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-xl">
+            <Banknote className="h-5 w-5 text-primary" />
+            Financial Information
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <Label htmlFor="purchaseValue">Purchase Value (₦) <span className="text-red-500">*</span></Label>
+            <Input
+              id="purchaseValue"
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="0.00"
+              value={purchaseValue}
+              onChange={(e) => setPurchaseValue(e.target.value)}
+              required
+              className="h-11 font-mono"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="purchaseDate">Purchase Date <span className="text-red-500">*</span></Label>
+            <Input
+              id="purchaseDate"
+              type="date"
+              value={purchaseDate}
+              onChange={(e) => setPurchaseDate(e.target.value)}
+              required
+              className="h-11"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="usefulLife">Useful Life (Years) <span className="text-red-500">*</span></Label>
+            <Input
+              id="usefulLife"
+              type="number"
+              min="1"
+              value={usefulLife}
+              onChange={(e) => setUsefulLife(e.target.value)}
+              required
+              className="h-11"
+            />
+            {categoryId && (
+              <p className="text-xs text-muted-foreground">
+                Default for selected category: {categories.find(c => c.id === parseInt(categoryId))?.defaultUsefulLifeYears || 5} years
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="salvageValue">Salvage Value (₦)</Label>
+            <Input
+              id="salvageValue"
+              type="number"
+              min="0"
+              step="0.01"
+              value={salvageValue}
+              onChange={(e) => setSalvageValue(e.target.value)}
+              required
+              className="h-11 font-mono"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Section 3: Location */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-xl">
+            <MapPin className="h-5 w-5 text-primary" />
+            Location & Assignment
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <Label htmlFor="state">State <span className="text-red-500">*</span></Label>
+            <Select value={stateId} onValueChange={setStateId} required>
+              <SelectTrigger className="h-11">
+                <SelectValue placeholder="Select State" />
+              </SelectTrigger>
+              <SelectContent>
+                {states.map((s) => (
+                  <SelectItem key={s.id} value={s.id.toString()}>
+                    {s.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {states.length === 0 && (
+              <div onClick={handleInitializeLocations} className="text-xs text-blue-500 cursor-pointer hover:underline mt-1">
+                No states found? Click here to initialize locations.
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="lga">LGA <span className="text-red-500">*</span></Label>
+            <Select
+              value={lgaId}
+              onValueChange={setLgaId}
+              disabled={!stateId || loadingLgas}
+              required
+            >
+              <SelectTrigger className="h-11">
+                <SelectValue placeholder={loadingLgas ? "Loading..." : "Select LGA"} />
+              </SelectTrigger>
+              <SelectContent>
+                {lgas.map((l) => (
+                  <SelectItem key={l.id} value={l.id.toString()}>
+                    {l.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Form Actions */}
+      <div className="flex justify-end gap-4 pt-4">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => router.back()}
+          disabled={isSubmitting}
+          className="h-11 px-8"
+        >
+          Cancel
+        </Button>
+        <Button
+          type="submit"
+          disabled={isSubmitting}
+          className="h-11 px-8 min-w-[150px]"
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            <>
+              <Save className="mr-2 h-4 w-4" />
+              {asset ? 'Update Asset' : 'Register Asset'}
+            </>
+          )}
+        </Button>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4 bg-white p-6 rounded-lg shadow">
-        <div>
-          <Label htmlFor="name">Asset Name</Label>
-        <Input
-          id="name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          required
-        />
-      </div>
-      {/* Category */}
-      <div className="space-y-2">
-        <Label htmlFor="category">Category *</Label>
-        <Select 
-          value={categoryId} 
-          onValueChange={(value) => {
-            setCategoryId(value);
-          }}
-          required
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select category" />
-          </SelectTrigger>
-          <SelectContent>
-            {categories.map((category) => (
-              <SelectItem key={category.id} value={category.id.toString()}>
-                <div className="flex flex-col">
-                  <span>{category.name}</span>
-                  {category.description && (
-                    <span className="text-xs text-gray-500">{category.description}</span>
-                  )}
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <div>
-        <Label htmlFor="purchaseValue">Purchase Value</Label>
-        <Input
-          id="purchaseValue"
-          type="number"
-          value={purchaseValue}
-          onChange={(e) => setPurchaseValue(e.target.value)}
-          required
-        />
-      </div>
-      <div>
-        <Label htmlFor="purchaseDate">Purchase Date</Label>
-        <Input
-          id="purchaseDate"
-          type="date"
-          value={purchaseDate}
-          onChange={(e) => setPurchaseDate(e.target.value)}
-          required
-        />
-      </div>
-      {/* Useful Life */}
-      <div className="space-y-2">
-        <Label htmlFor="usefulLife">Useful Life (years)</Label>
-        <Input
-          id="usefulLife"
-          type="number"
-          min="1"
-          value={usefulLife}
-          onChange={(e) => setUsefulLife(e.target.value)}
-          required
-        />
-        {categoryId && (
-          <p className="text-xs text-gray-500">
-            Default for this category: {categories.find(c => c.id === parseInt(categoryId))?.defaultUsefulLifeYears || 5} years
-          </p>
-        )}
-      </div>
-      <div>
-        <Label htmlFor="salvageValue">Salvage Value</Label>
-        <Input
-          id="salvageValue"
-          type="number"
-          value={salvageValue}
-          onChange={(e) => setSalvageValue(e.target.value)}
-          required
-        />
-      </div>
-      <div>
-        <Label htmlFor="state">State</Label>
-        <Select value={stateId} onValueChange={setStateId}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select a state" />
-          </SelectTrigger>
-          <SelectContent>
-            {states.map((s) => (
-              <SelectItem key={s.id} value={s.id.toString()}>
-                {s.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <div>
-        <Label htmlFor="lga">LGA</Label>
-        <Select value={lgaId} onValueChange={setLgaId} disabled={!stateId || loadingLgas}>
-          <SelectTrigger>
-            <SelectValue placeholder={
-              !stateId 
-                ? "Select a state first" 
-                : loadingLgas 
-                  ? "Loading LGAs..." 
-                  : lgas.length === 0 
-                    ? "No LGAs found" 
-                    : "Select an LGA"
-            } />
-          </SelectTrigger>
-          <SelectContent>
-            {lgas.map((l) => (
-              <SelectItem key={l.id} value={l.id.toString()}>
-                {l.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {stateId && !loadingLgas && lgas.length === 0 && (
-          <p className="text-sm text-gray-500 mt-1">
-            No LGAs found for the selected state.
-          </p>
-        )}
-      </div>
-      <Button type="submit">
-        <FontAwesomeIcon icon={faSave} className="mr-2" />
-        {asset ? 'Update Asset' : 'Add Asset'}
-      </Button>
     </form>
-    </div>
   )
 }
-

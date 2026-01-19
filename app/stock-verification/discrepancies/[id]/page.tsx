@@ -93,18 +93,19 @@ export default async function DiscrepancyDetailPage({ params }: { params: { id: 
 
     const statusColors = {
         REPORTED: 'bg-gray-100 text-gray-800',
-        ASSIGNED: 'bg-blue-100 text-blue-800',
-        IN_PROGRESS: 'bg-yellow-100 text-yellow-800',
-        PENDING_REVIEW: 'bg-purple-100 text-purple-800',
+        ACKNOWLEDGED: 'bg-blue-100 text-blue-800',
+        INVESTIGATING: 'bg-yellow-100 text-yellow-800',
+        PENDING_APPROVAL: 'bg-purple-100 text-purple-800',
+        APPROVED: 'bg-green-100 text-green-800',
         RESOLVED: 'bg-green-100 text-green-800',
-        REJECTED: 'bg-red-100 text-red-800',
+        CLOSED: 'bg-gray-500 text-white',
         ESCALATED: 'bg-orange-100 text-orange-800',
     };
 
-    const canResolve = discrepancy.status !== 'RESOLVED' && discrepancy.status !== 'REJECTED';
+    const canResolve = discrepancy.status !== 'RESOLVED' && discrepancy.status !== 'CLOSED';
 
     return (
-        <div className="container py-10 max-w-5xl">
+        <div className="container py-10 max-w-5xl" >
             <div className="mb-6">
                 <Link href="/stock-verification/discrepancies" className="text-sm text-muted-foreground hover:underline">
                     ← Back to Discrepancies
@@ -154,6 +155,37 @@ export default async function DiscrepancyDetailPage({ params }: { params: { id: 
                         )}
                     </CardContent>
                 </Card>
+
+                {/* Maintenance Request Integration */}
+                {(discrepancy.severity === 'CRITICAL' || discrepancy.severity === 'HIGH') && discrepancy.status !== 'RESOLVED' && discrepancy.status !== 'CLOSED' && (
+                    <Card className="border-orange-200 bg-orange-50/50 dark:bg-orange-950/20">
+                        <CardHeader>
+                            <CardTitle className="text-orange-800 dark:text-orange-200 flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                </svg>
+                                Action Required: Maintenance Recommended
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-sm text-muted-foreground mb-4">
+                                This {discrepancy.severity.toLowerCase()} severity discrepancy may require immediate maintenance action to prevent further deterioration or safety issues.
+                            </p>
+                            <div className="flex gap-3">
+                                <Button asChild>
+                                    <Link href={`/maintenance/new?assetId=${discrepancy.verification.asset.id}&source=discrepancy&sourceId=${discrepancy.id}&description=${encodeURIComponent(`Maintenance required due to ${discrepancy.severity.toLowerCase()} discrepancy: ${discrepancy.description}`)}&priority=${discrepancy.severity === 'CRITICAL' ? 'HIGH' : 'MEDIUM'}`}>
+                                        Create Maintenance Request
+                                    </Link>
+                                </Button>
+                                <Button asChild variant="outline">
+                                    <Link href={`/assets/${discrepancy.verification.asset.id}`}>
+                                        View Asset Details
+                                    </Link>
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
 
                 <div className="grid md:grid-cols-2 gap-6">
                     {/* Asset Information */}
@@ -397,6 +429,6 @@ export default async function DiscrepancyDetailPage({ params }: { params: { id: 
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 }

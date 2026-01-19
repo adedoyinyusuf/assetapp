@@ -30,11 +30,19 @@ export class CampaignService extends BaseService {
         throw new UnauthorizedError('Insufficient permissions to create campaigns');
       }
 
+      // Check for duplicate campaign name
+      const existingCampaign = await this.db.verificationCampaign.findFirst({
+        where: { name: data.name },
+      });
+      if (existingCampaign) {
+        throw new ConflictError('Campaign with this name already exists');
+      }
+
       // Validate referenced entities exist
       await this.validateEntitiesExist('state', data.assignedStates, 'One or more assigned states not found');
 
       if (data.assignedLgas.length > 0) {
-        await this.validateEntitiesExist('lga', data.assignedLgas, 'One or more assigned LGAs not found');
+        await this.validateEntitiesExist('lGA', data.assignedLgas, 'One or more assigned LGAs not found');
       }
 
       if (data.assignedCategories.length > 0) {
@@ -102,10 +110,27 @@ export class CampaignService extends BaseService {
     userId: number
   ): Promise<PaginatedResponse<VerificationCampaignWithStats>> {
     try {
-      // Check if user has permission to read campaigns
-      const hasPermission = await this.checkUserAccess(userId, 'campaign', 'read');
-      if (!hasPermission) {
-        throw new UnauthorizedError('Insufficient permissions to view campaigns');
+      // Check if user has global permission to read campaigns
+      const hasGlobalPermission = await this.checkUserAccess(userId, 'campaign', 'read');
+
+      let limitToAssignedIds: number[] | null = null;
+
+      if (!hasGlobalPermission) {
+        // If no global permission, check if user has any active assignments
+        const assignments = await this.db.verificationAssignment.findMany({
+          where: {
+            userId,
+            status: { in: ['ACTIVE', 'COMPLETED'] }
+          },
+          select: { campaignId: true }
+        });
+
+        if (assignments.length > 0) {
+          limitToAssignedIds = assignments.map(a => a.campaignId);
+        } else {
+          // No global permission AND no assignments -> Unauthorized
+          throw new UnauthorizedError('Insufficient permissions to view campaigns');
+        }
       }
 
       const {
@@ -127,6 +152,9 @@ export class CampaignService extends BaseService {
       // Build where clause
       const where: Prisma.VerificationCampaignWhereInput = {
         AND: [
+          // Filter by assigned campaigns if restricted
+          limitToAssignedIds ? { id: { in: limitToAssignedIds } } : {},
+
           // Status filter
           status && status.length > 0 ? { status: { in: status } } : {},
 
@@ -203,10 +231,28 @@ export class CampaignService extends BaseService {
    */
   async getCampaignById(campaignId: number, userId: number): Promise<CampaignDetailResponse> {
     try {
-      // Check if user has permission to read campaigns
-      const hasPermission = await this.checkUserAccess(userId, 'campaign', 'read');
-      if (!hasPermission) {
-        throw new UnauthorizedError('Insufficient permissions to view campaign');
+      // 1. First check global permissions
+      try {
+        const hasGlobalPermission = await this.checkUserAccess(userId, 'campaign', 'read');
+        if (!hasGlobalPermission) {
+          throw new UnauthorizedError('Insufficient permissions');
+        }
+      } catch (err) {
+        // 2. If global check fails, check for specific assignment
+        const assignment = await this.db.verificationAssignment.findFirst({
+          where: {
+            campaignId,
+            userId,
+            status: { in: ['ACTIVE', 'COMPLETED'] }
+          }
+        });
+
+        if (!assignment) {
+          throw new UnauthorizedError('You are not assigned to this campaign', {
+            campaignId,
+            userId
+          });
+        }
       }
 
       const campaign = await this.db.verificationCampaign.findUnique({
@@ -247,6 +293,7 @@ export class CampaignService extends BaseService {
                   id: true,
                   firstName: true,
                   lastName: true,
+                  email: true,
                 },
               },
             },
@@ -328,7 +375,7 @@ export class CampaignService extends BaseService {
 
       // Validate that campaign can be updated
       if (existingCampaign.status === 'COMPLETED' || existingCampaign.status === 'CANCELLED') {
-        throw new ValidationError('Cannot update completed or cancelled campaigns');
+        throw new ConflictError('Cannot update completed or cancelled campaigns');
       }
 
       // Validate referenced entities if they're being updated

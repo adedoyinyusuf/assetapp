@@ -9,17 +9,19 @@ import {
   Package,
   Plus,
   Search,
-  Filter,
   Eye,
   Edit,
   Trash2,
   Download,
   RefreshCw,
   MoreHorizontal,
-  ArrowUpDown
+  ArrowUpDown,
+  FilterX,
+  ArrowLeft,
+  MapPin
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
@@ -28,6 +30,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
 import {
   Dialog,
@@ -37,7 +40,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { toast } from 'sonner';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface Asset {
   id: number;
@@ -66,7 +78,18 @@ interface Asset {
   salvageValue: number;
   createdAt: string;
   updatedAt: string;
+  lastVerificationStatus?: string;
+  lastVerifiedAt?: string;
 }
+
+const getVerificationStatusColor = (status: string) => {
+  switch (status) {
+    case 'VERIFIED': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
+    case 'DISCREPANCY': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
+    case 'PENDING': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
+    default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
+  }
+};
 
 interface PaginationInfo {
   page: number;
@@ -181,8 +204,8 @@ export default function ManageAssetsPage() {
     }
   };
 
-  // Handle sort
-  const handleSort = (field: string) => {
+  // Handle sort (helper)
+  const toggleSort = (field: string) => {
     if (sortBy === field) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
     } else {
@@ -191,15 +214,21 @@ export default function ManageAssetsPage() {
     }
   };
 
-  // Handle export
-  const handleExport = () => {
-    router.push('/reports/export');
+  // Clear filters
+  const clearFilters = () => {
+    setSearchTerm('');
+    setCategoryFilter('');
+    setStatusFilter('');
+    setSortBy('name');
+    setSortOrder('asc');
   };
+
+  const hasFilters = searchTerm || (categoryFilter && categoryFilter !== 'all') || (statusFilter && statusFilter !== 'all');
 
   if (status === 'loading') {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -207,29 +236,29 @@ export default function ManageAssetsPage() {
   if (!session) return null;
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="container py-8 max-w-7xl mx-auto space-y-8">
       {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4"
-      >
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <Package className="h-8 w-8 text-primary" />
-            Manage Assets
-          </h1>
-          <p className="text-gray-600 mt-1">
-            View and manage all assets in your inventory
+      <div className="flex flex-col gap-4 md:flex-row justify-between items-start md:items-center border-b pb-6">
+        <div className="space-y-1">
+          <Link
+            href="/assets"
+            className="text-sm text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1 mb-1"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Dashboard
+          </Link>
+          <h1 className="text-3xl font-bold tracking-tight">Manage Inventory</h1>
+          <p className="text-muted-foreground">
+            View, filter, and manage your asset database.
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={fetchAssets}>
+        <div className="flex gap-2 w-full md:w-auto">
+          <Button variant="outline" onClick={fetchAssets} disabled={isLoading}>
             <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          <Button variant="outline" onClick={handleExport}>
+          <Button variant="outline" onClick={() => router.push('/reports/export')}>
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
@@ -240,29 +269,31 @@ export default function ManageAssetsPage() {
             </Button>
           </Link>
         </div>
-      </motion.div>
+      </div>
 
-      {/* Filters */}
+      {/* Filters Toolbar */}
       <Card>
-        <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Search</label>
-              <Input
-                placeholder="Search assets..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+        <CardContent className="p-4">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by asset name..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
             </div>
-            
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Category</label>
+
+            <div className="flex gap-2 flex-wrap">
               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All categories" />
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All categories</SelectItem>
+                  <SelectItem value="all">All Categories</SelectItem>
                   {categories.map(category => (
                     <SelectItem key={category.id} value={category.name}>
                       {category.name}
@@ -270,218 +301,227 @@ export default function ManageAssetsPage() {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Status</label>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All statuses" />
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All statuses</SelectItem>
+                  <SelectItem value="all">All Statuses</SelectItem>
                   <SelectItem value="ACTIVE">Active</SelectItem>
                   <SelectItem value="INACTIVE">Inactive</SelectItem>
                   <SelectItem value="DISPOSED">Disposed</SelectItem>
                   <SelectItem value="UNDER_MAINTENANCE">Under Maintenance</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Sort By</label>
               <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger>
-                  <SelectValue />
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Sort by" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="name">Name</SelectItem>
-                  <SelectItem value="purchaseValue">Purchase Value</SelectItem>
-                  <SelectItem value="purchaseDate">Purchase Date</SelectItem>
+                  <SelectItem value="purchaseValue">Value</SelectItem>
+                  <SelectItem value="purchaseDate">Date Added</SelectItem>
                   <SelectItem value="category">Category</SelectItem>
                 </SelectContent>
               </Select>
+
+              {hasFilters && (
+                <Button variant="ghost" onClick={clearFilters} className="px-2">
+                  <FilterX className="h-4 w-4 mr-1" />
+                  Clear
+                </Button>
+              )}
             </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Assets Table */}
-      <Card>
-        <CardHeader>
+      <Card className="overflow-hidden border-none shadow-md">
+        <CardHeader className="bg-muted/30 pb-4">
           <div className="flex justify-between items-center">
-            <CardTitle>Assets ({pagination.total})</CardTitle>
-            <Badge variant="outline">
-              Page {pagination.page} of {pagination.totalPages}
+            <CardTitle className="text-lg font-medium">Assets List</CardTitle>
+            <Badge variant="secondary">
+              {pagination.total} Records
             </Badge>
           </div>
         </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex justify-center items-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+
+        {isLoading ? (
+          <div className="p-8 space-y-4">
+            <div className="flex items-center space-x-4">
+              <Skeleton className="h-12 w-12 rounded-full" />
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-[250px]" />
+                <Skeleton className="h-4 w-[200px]" />
+              </div>
             </div>
-          ) : assets.length === 0 ? (
-            <div className="text-center py-12">
-              <Package className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No assets found</h3>
-              <p className="text-gray-500 mb-4">
-                {searchTerm || (categoryFilter && categoryFilter !== 'all') || (statusFilter && statusFilter !== 'all')
-                  ? 'No assets match your current filters.'
-                  : 'Get started by adding your first asset.'}
-              </p>
+            <Skeleton className="h-[200px] w-full rounded-xl" />
+          </div>
+        ) : assets.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="bg-muted/50 p-4 rounded-full mb-4">
+              <Package className="h-10 w-10 text-muted-foreground" />
+            </div>
+            <h3 className="text-xl font-semibold text-foreground mb-2">No assets found</h3>
+            <p className="text-muted-foreground max-w-sm mb-6">
+              {hasFilters
+                ? 'We couldn\'t find any assets matching your current filters. Try adjusting them.'
+                : 'Your inventory is currently empty. Start by adding your first asset.'}
+            </p>
+            {hasFilters ? (
+              <Button variant="outline" onClick={clearFilters}>Clear Filters</Button>
+            ) : (
               <Link href="/assets/add">
                 <Button>
                   <Plus className="h-4 w-4 mr-2" />
                   Add First Asset
                 </Button>
               </Link>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4">
-                      <Button
-                        variant="ghost"
-                        className="p-0 font-medium text-gray-700 hover:text-gray-900"
-                        onClick={() => handleSort('name')}
+            )}
+          </div>
+        ) : (
+          <div className="relative w-full overflow-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="w-[300px]">Asset Name</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Location</TableHead>
+                  <TableHead className="text-right">Value (₦)</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Verification</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {assets.map((asset) => (
+                  <TableRow key={asset.id} className="group">
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-3">
+                        <div className="h-9 w-9 rounded bg-primary/10 flex items-center justify-center text-primary">
+                          <Package className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <Link
+                            href={`/assets/${asset.id}`}
+                            className="block text-foreground hover:text-primary transition-colors font-semibold"
+                          >
+                            {asset.name}
+                          </Link>
+                          <div className="text-xs text-muted-foreground">
+                            Added {new Date(asset.purchaseDate).toLocaleDateString()}
+                          </div>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="font-normal">{asset.category.name}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center text-sm text-muted-foreground">
+                        <MapPin className="h-3 w-3 mr-1" />
+                        {asset.state?.name}, {asset.lga?.name}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right font-mono">
+                      {asset.purchaseValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        className={`
+                            ${asset.status === 'ACTIVE' ? 'bg-green-500/15 text-green-700 hover:bg-green-500/25 border-green-200' :
+                            asset.status === 'INACTIVE' ? 'bg-amber-500/15 text-amber-700 hover:bg-amber-500/25 border-amber-200' :
+                              asset.status === 'DISPOSED' ? 'bg-red-500/15 text-red-700 hover:bg-red-500/25 border-red-200' :
+                                'bg-slate-100 text-slate-700'}
+                          `}
+                        variant="outline"
                       >
-                        Name
-                        <ArrowUpDown className="h-4 w-4 ml-1" />
-                      </Button>
-                    </th>
-                    <th className="text-left py-3 px-4">
-                      <Button
-                        variant="ghost"
-                        className="p-0 font-medium text-gray-700 hover:text-gray-900"
-                        onClick={() => handleSort('category')}
-                      >
-                        Category
-                        <ArrowUpDown className="h-4 w-4 ml-1" />
-                      </Button>
-                    </th>
-                    <th className="text-left py-3 px-4">Location</th>
-                    <th className="text-right py-3 px-4">
-                      <Button
-                        variant="ghost"
-                        className="p-0 font-medium text-gray-700 hover:text-gray-900"
-                        onClick={() => handleSort('purchaseValue')}
-                      >
-                        Purchase Value
-                        <ArrowUpDown className="h-4 w-4 ml-1" />
-                      </Button>
-                    </th>
-                    <th className="text-right py-3 px-4">Current Value</th>
-                    <th className="text-left py-3 px-4">Status</th>
-                    <th className="text-right py-3 px-4">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {assets.map((asset, index) => (
-                    <motion.tr
-                      key={asset.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.1 * index }}
-                      className="border-b border-gray-100 hover:bg-gray-50"
-                    >
-                      <td className="py-4 px-4">
-                        <Link
-                          href={`/assets/${asset.id}`}
-                          className="font-medium text-primary hover:underline"
-                        >
-                          {asset.name}
-                        </Link>
-                        <p className="text-sm text-gray-500">
-                          Added {new Date(asset.purchaseDate).toLocaleDateString()}
-                        </p>
-                      </td>
-                      <td className="py-4 px-4">
-                        <Badge variant="outline">{asset.category.name}</Badge>
-                      </td>
-                      <td className="py-4 px-4 text-sm text-gray-600">
-                        {asset.state?.name || 'N/A'}, {asset.lga?.name || 'N/A'}
-                      </td>
-                      <td className="py-4 px-4 text-right font-medium">
-                        ₦{asset.purchaseValue.toLocaleString()}
-                      </td>
-                      <td className="py-4 px-4 text-right font-medium text-green-600">
-                        ₦{asset.currentValue.toLocaleString()}
-                      </td>
-                      <td className="py-4 px-4">
-                        <Badge
-                          variant={
-                            asset.status === 'ACTIVE' ? 'default' :
-                            asset.status === 'INACTIVE' ? 'secondary' :
-                            asset.status === 'DISPOSED' ? 'destructive' :
-                            'secondary'
-                          }
-                        >
-                          {asset.status ? asset.status.replace('_', ' ') : 'ACTIVE'}
-                        </Badge>
-                      </td>
-                      <td className="py-4 px-4 text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem asChild>
-                              <Link href={`/assets/${asset.id}`}>
-                                <Eye className="h-4 w-4 mr-2" />
-                                View Details
-                              </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                              <Link href={`/assets/edit/${asset.id}`}>
-                                <Edit className="h-4 w-4 mr-2" />
-                                Edit
-                              </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              className="text-red-600 focus:text-red-600"
-                              onSelect={() => setDeleteAssetId(asset.id)}
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </td>
-                    </motion.tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                        {asset.status ? asset.status.replace('_', ' ') : 'ACTIVE'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {asset.lastVerificationStatus ? (
+                        <div className="flex flex-col gap-1">
+                          <Badge className={getVerificationStatusColor(asset.lastVerificationStatus)}>
+                            {asset.lastVerificationStatus}
+                          </Badge>
+                          {asset.lastVerifiedAt && (
+                            <span className="text-[10px] text-muted-foreground">
+                              {new Date(asset.lastVerifiedAt).toLocaleDateString()}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground italic">Not Verified</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem asChild>
+                            <Link href={`/assets/${asset.id}`} className="cursor-pointer">
+                              <Eye className="h-4 w-4 mr-2" />
+                              View Details
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <Link href={`/assets/edit/${asset.id}`} className="cursor-pointer">
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit Asset
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-red-600 focus:text-red-600 cursor-pointer"
+                            onSelect={() => setDeleteAssetId(asset.id)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
 
-          {/* Pagination */}
-          {pagination.totalPages > 1 && (
-            <div className="flex justify-center items-center gap-2 mt-6">
+        {/* Pagination */}
+        {pagination.totalPages > 1 && (
+          <div className="flex items-center justify-between px-4 py-4 border-t">
+            <p className="text-sm text-muted-foreground">
+              Page {pagination.page} of {pagination.totalPages}
+            </p>
+            <div className="flex items-center gap-2">
               <Button
                 variant="outline"
+                size="sm"
                 disabled={pagination.page <= 1}
                 onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
               >
                 Previous
               </Button>
-              <span className="text-sm text-gray-600">
-                Page {pagination.page} of {pagination.totalPages}
-              </span>
               <Button
                 variant="outline"
+                size="sm"
                 disabled={pagination.page >= pagination.totalPages}
                 onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
               >
                 Next
               </Button>
             </div>
-          )}
-        </CardContent>
+          </div>
+        )}
       </Card>
 
       {/* Delete Confirmation Dialog */}
@@ -501,7 +541,7 @@ export default function ManageAssetsPage() {
               onClick={() => deleteAssetId && handleDeleteAsset(deleteAssetId)}
               className="bg-red-600 hover:bg-red-700 text-white"
             >
-              Delete
+              Delete Asset
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -509,4 +549,3 @@ export default function ManageAssetsPage() {
     </div>
   );
 }
-

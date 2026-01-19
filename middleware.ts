@@ -9,7 +9,8 @@ const protectedRoutes = [
   '/reports',
   '/team',
   '/settings',
-  '/admin'
+  '/admin',
+  '/stock-verification',
 ];
 
 const roleBasedRoutes: Record<string, string[]> = {
@@ -17,12 +18,14 @@ const roleBasedRoutes: Record<string, string[]> = {
     '/dashboard',
     '/assets',
     '/reports',
+    '/stock-verification',
   ],
   [UserRole.OPERATOR]: [
     '/dashboard',
     '/assets',
     '/operations',
     '/reports',
+    '/stock-verification',
   ],
   [UserRole.MANAGER]: [
     '/dashboard',
@@ -30,6 +33,14 @@ const roleBasedRoutes: Record<string, string[]> = {
     '/operations',
     '/reports',
     '/team',
+    '/stock-verification',
+  ],
+  [UserRole.AUDITOR]: [
+    '/dashboard',
+    '/assets',
+    '/reports',
+    '/admin/audit-logs',
+    '/stock-verification',
   ],
   [UserRole.ADMIN]: [
     '/dashboard',
@@ -39,13 +50,51 @@ const roleBasedRoutes: Record<string, string[]> = {
     '/team',
     '/settings',
     '/admin',
+    '/stock-verification',
   ],
   [UserRole.SUPER_ADMIN]: protectedRoutes, // Access to everything
+
+  // Stock Verification Specific Roles
+  [UserRole.TEAM_LEADER]: [
+    '/dashboard',
+    '/assets',
+    '/reports',
+    '/team',
+    '/stock-verification',
+  ],
+  [UserRole.SENIOR_VERIFIER]: [
+    '/dashboard',
+    '/assets',
+    '/reports',
+    '/stock-verification',
+  ],
+  [UserRole.VERIFIER]: [
+    '/dashboard',
+    '/assets',
+    '/stock-verification',
+  ],
+  [UserRole.ASSISTANT_VERIFIER]: [
+    '/dashboard',
+    '/assets',
+    '/stock-verification',
+  ],
+  [UserRole.QUALITY_CONTROLLER]: [
+    '/dashboard',
+    '/assets',
+    '/reports',
+    '/stock-verification',
+  ],
+  [UserRole.OBSERVER]: [
+    '/dashboard',
+    '/assets',
+    '/reports',
+    '/stock-verification',
+  ],
 };
 
 function isPathAllowed(path: string, allowedPaths: string[]): boolean {
-  return allowedPaths.some(allowedPath => 
-    path === allowedPath || 
+  return allowedPaths.some(allowedPath =>
+    path === allowedPath ||
     path.startsWith(`${allowedPath}/`)
   );
 }
@@ -67,22 +116,28 @@ export default withAuth(
 
     // Check role-based access
     const userRole = token?.role as UserRole;
-    
+
     if (!userRole) {
       return new NextResponse('Access Denied', { status: 403 });
     }
 
     // Get allowed routes for the user's role
     const allowedRoutes = roleBasedRoutes[userRole] || [];
-    
+
     // Check if the current path is allowed for the user's role
     const isAllowed = isPathAllowed(pathname, allowedRoutes);
-    
+
     if (!isAllowed) {
-      return new NextResponse('Access Denied', { status: 403 });
+      return NextResponse.rewrite(new URL('/unauthorized', req.url));
     }
 
-    return NextResponse.next();
+    // Set x-invoke-path header for layout reference
+    const requestHeaders = new Headers(req.headers);
+    requestHeaders.set('x-invoke-path', pathname);
+
+    return NextResponse.next({
+      headers: requestHeaders,
+    });
   },
   {
     callbacks: {
@@ -96,12 +151,14 @@ export default withAuth(
 
 export const config = {
   matcher: [
-    '/dashboard/:path*',
-    '/assets/:path*',
-    '/operations/:path*',
-    '/reports/:path*',
-    '/team/:path*',
-    '/settings/:path*',
-    '/admin/:path*',
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public folder files (images, icons, etc)
+     */
+    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ]
 };

@@ -1,4 +1,5 @@
 import './globals.css';
+import './stock-verification/enhanced-styles.css';
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import { Providers } from './providers';
@@ -45,6 +46,15 @@ export const metadata: Metadata = {
     description: 'Comprehensive asset management solution for National Population Commission',
     creator: '@npopc_ng',
   },
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'NPC Assets',
+  },
+  formatDetection: {
+    telephone: false,
+  },
 };
 
 export const viewport: Viewport = {
@@ -56,13 +66,14 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   userScalable: true,
+  colorScheme: 'light dark',
 };
 
 function AuthWrapper({ children }: { children: ReactNode }) {
   const headersList = headers();
   const pathname = headersList.get('x-invoke-path') || '';
-  const isAuthPage = pathname === '/' || pathname.startsWith('/auth') || pathname.startsWith('/api/auth');
-  
+  const isAuthPage = pathname.startsWith('/auth') || pathname.startsWith('/api/auth');
+
   if (isAuthPage) {
     return (
       <div className="min-h-screen bg-gray-50">

@@ -80,7 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const hasPermission = (resource: string, action: string): boolean => {
     if (!user) return false;
-    
+
     // Super admin has all permissions
     if (user.role === UserRole.SUPER_ADMIN) return true;
 
@@ -91,11 +91,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isAuthorized = (requiredRole?: UserRole): boolean => {
     if (!session?.user) return false;
     if (!requiredRole) return true; // No role required
-    
+
     const roleHierarchy = Object.values(UserRole);
     const userLevel = roleHierarchy.indexOf(session.user.role as UserRole);
     const requiredLevel = roleHierarchy.indexOf(requiredRole);
-    
+
     return userLevel >= requiredLevel;
   };
 
@@ -113,8 +113,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Refresh the session to get the latest user data
       await updateSession();
-      
-      router.push('/dashboard');
+
+      // Removed router.push('/dashboard'); let the caller handle redirection
     } catch (error) {
       console.error('Login error:', error);
       throw error;
@@ -148,7 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       const updatedUser = await response.json();
-      
+
       // Update the session with the new user data
       await updateSession({
         ...session,

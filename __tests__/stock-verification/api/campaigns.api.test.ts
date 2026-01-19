@@ -1,7 +1,17 @@
-import { describe, test, expect, beforeAll, afterAll, beforeEach, afterEach } from '@jest/globals';
+import { describe, test, expect, beforeAll, afterAll, beforeEach, afterEach, jest } from '@jest/globals';
 import { testClient } from '../../utils/test-client';
 import { seedTestData, cleanupTestData } from '../../utils/test-data';
 import { createTestUser, getTestSession } from '../../utils/test-auth';
+
+// Mock dependencies
+jest.mock('@/lib/prisma.server', () => {
+  const { prismaMock } = require('../../__mocks__/prisma');
+  return {
+    __esModule: true,
+    prisma: prismaMock,
+    default: prismaMock,
+  };
+});
 
 describe('Stock Verification Campaign API', () => {
   let testUser: any;
@@ -12,7 +22,7 @@ describe('Stock Verification Campaign API', () => {
     await seedTestData();
     testUser = await createTestUser({
       email: 'campaign-test@example.com',
-      permissions: ['campaign.create', 'campaign.read', 'campaign.update', 'campaign.delete'],
+      permissions: ['campaign.create', 'campaign.read', 'campaign.update', 'campaign.delete', 'campaign.manage'],
     });
     authHeaders = await getTestSession(testUser.id);
   });
@@ -175,7 +185,7 @@ describe('Stock Verification Campaign API', () => {
 
       // Assert
       expect(response.body.success).toBe(true);
-      expect(response.body.data).toBeInstanceOf(Array);
+      expect(Array.isArray(response.body.data)).toBe(true);
       expect(response.body.data.length).toBeGreaterThan(0);
       expect(response.body.pagination).toMatchObject({
         page: 1,
@@ -501,13 +511,14 @@ describe('Stock Verification Campaign API', () => {
         categoryIds: [5],
       };
 
-      const requests = Array(5).fill(null).map((_, index) => 
+      const requests = Array(5).fill(null).map((_, index) =>
         testClient.post('/api/stock-verification/campaigns')
           .set(authHeaders)
           .send({
             ...campaignData,
             name: `${campaignData.name} ${index}`,
           })
+          .expect(201)
       );
 
       // Act

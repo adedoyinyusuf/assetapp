@@ -17,7 +17,7 @@ export default async function ReportsOverviewPage() {
         db.asset.count(),
         procurementService.getRequests({ limit: 5 }),
         maintenanceService.getRequests({ limit: 5 }),
-        disposals.getRequests({ limit: 5 }),
+        disposalService.getRequests({ limit: 5 }),
     ]);
 
     // Count assets by status

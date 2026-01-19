@@ -29,7 +29,38 @@ export async function GET(request: NextRequest) {
             dateFilter.lte = end;
         }
 
+        // Fetch user context for scoping
+        const user = await prisma.user.findUnique({
+            where: { email: session.user.email },
+            include: { role: true }
+        });
+
+        if (!user) {
+            return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
+        }
+
+        // Build Access Filter
+        const roleName = user.role.name.toUpperCase();
+        let accessFilter: any = {};
+
+        // Exclude Super Admin from filtering
+        if (!['SUPER_ADMIN', 'SUPERADMIN'].includes(roleName)) {
+            // Check Geographic Constraints
+            // Note: We use raw property access here assuming schema update is active
+            // Cast to any to avoid TS errors if types aren't fully synced in IDE
+            const userAny = user as any;
+
+            if (userAny.lgaId) {
+                accessFilter = { asset: { lgaId: userAny.lgaId } };
+            } else if (userAny.stateId) {
+                accessFilter = { asset: { stateId: userAny.stateId } };
+            }
+            // If National Manager (no state/lga), accessFilter remains {}
+        }
+
         // Get campaign statistics
+        // Filter campaigns that have ANY relevance to the scope (optional optimization)
+        // For now, we fetch all campaigns but scope the stats INSIDE them.
         const campaigns = await prisma.verificationCampaign.findMany({
             where: Object.keys(dateFilter).length > 0 ? {
                 OR: [
@@ -47,11 +78,12 @@ export async function GET(request: NextRequest) {
             },
         });
 
-        // Get verification statistics
+        // Get verification statistics (SCOPED)
         const allVerifications = await prisma.assetVerification.findMany({
-            where: Object.keys(dateFilter).length > 0 ? {
-                verificationDate: dateFilter,
-            } : undefined,
+            where: {
+                ...(Object.keys(dateFilter).length > 0 ? { verificationDate: dateFilter } : {}),
+                ...accessFilter // Apply Geographic Scope
+            },
             select: {
                 status: true,
                 physicalCondition: true,
@@ -90,8 +122,12 @@ export async function GET(request: NextRequest) {
         // Prepare campaign reports
         const campaignReports = await Promise.all(
             campaigns.map(async (campaign) => {
+                // Apply Scope to Campaign Verifications
                 const verifications = await prisma.assetVerification.findMany({
-                    where: { campaignId: campaign.id },
+                    where: {
+                        campaignId: campaign.id,
+                        ...accessFilter
+                    },
                     select: { status: true },
                 });
 
@@ -102,16 +138,21 @@ export async function GET(request: NextRequest) {
                     ['PENDING', 'IN_PROGRESS'].includes(v.status)
                 ).length;
 
+                // Adjust target count? 
+                // Currently database 'targetAssetCount' is static for the campaign.
+                // Dynamic target for state would require counting assets in state for that campaign.
+                // For now, we leave targetCount as is (Campaign Total) vs Local Verified.
                 const targetCount = campaign.targetAssetCount || 0;
                 const completionRate = targetCount > 0
                     ? (verifiedCount / targetCount) * 100
                     : 0;
 
-                // Get discrepancy count for this campaign
+                // Get discrepancy count for this campaign (SCOPED)
                 const discrepancyCount = await prisma.verificationDiscrepancy.count({
                     where: {
                         verification: {
                             campaignId: campaign.id,
+                            ...accessFilter // Apply Geographic Scope
                         },
                     },
                 });

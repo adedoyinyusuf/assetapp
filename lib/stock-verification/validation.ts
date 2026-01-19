@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import { 
-  VerificationCampaignStatus, 
-  AssetVerificationStatus, 
+import {
+  VerificationCampaignStatus,
+  AssetVerificationStatus,
   PhysicalCondition,
   DiscrepancyType,
   DiscrepancySeverity,
@@ -36,7 +36,7 @@ export const createCampaignSchema = baseCampaignSchema.refine(
   }
 );
 
-export const updateCampaignSchema = baseCampaignSchema.extend({
+export const updateCampaignSchema = baseCampaignSchema.partial().extend({
   status: z.nativeEnum(VerificationCampaignStatus).optional(),
   targetAssetCount: z.number().int().positive().optional(),
   verificationProgress: z.number().min(0).max(100).optional(),
@@ -45,7 +45,12 @@ export const updateCampaignSchema = baseCampaignSchema.extend({
 export const campaignQuerySchema = z.object({
   page: z.string().regex(/^\d+$/).transform(Number).default('1'),
   limit: z.string().regex(/^\d+$/).transform(Number).default('10'),
-  status: z.array(z.nativeEnum(VerificationCampaignStatus)).optional(),
+  status: z.union([z.nativeEnum(VerificationCampaignStatus), z.array(z.nativeEnum(VerificationCampaignStatus))])
+    .optional()
+    .transform(val => {
+      if (!val) return undefined;
+      return Array.isArray(val) ? val : [val];
+    }),
   startDate: z.string().datetime().optional(),
   endDate: z.string().datetime().optional(),
   createdBy: z.string().regex(/^\d+$/).transform(Number).optional(),
@@ -69,6 +74,22 @@ export const createVerificationsSchema = z.object({
   instructions: z.string().max(2000).optional(),
   notes: z.string().max(2000).optional(),
   metadata: z.record(z.any()).optional(),
+});
+
+export const submitVerificationSchema = z.object({
+  campaignId: z.number().int().positive(),
+  assetId: z.number().int().positive().optional(),
+  qrCode: z.string().optional(),
+  physicalCondition: z.nativeEnum(PhysicalCondition),
+  locationAccurate: z.boolean(),
+  notes: z.string().max(2000).optional(),
+  createDiscrepancy: z.boolean().optional(),
+  createMaintenance: z.boolean().optional(),
+  photoUrls: z.array(z.string()).optional(),
+  coordinates: z.string().max(100).optional(),
+}).refine(data => data.assetId || data.qrCode, {
+  message: "Either Asset ID or QR Code must be provided",
+  path: ["assetId"]
 });
 
 export const updateVerificationSchema = z.object({
@@ -238,6 +259,7 @@ export type UpdateCampaignRequest = z.infer<typeof updateCampaignSchema>;
 export type CampaignQueryParams = z.infer<typeof campaignQuerySchema>;
 
 export type CreateVerificationsRequest = z.infer<typeof createVerificationsSchema>;
+export type SubmitVerificationRequest = z.infer<typeof submitVerificationSchema>;
 export type UpdateVerificationRequest = z.infer<typeof updateVerificationSchema>;
 export type VerificationQueryParams = z.infer<typeof verificationQuerySchema>;
 
@@ -260,7 +282,7 @@ export function validateCampaignDates(startDate: string, endDate: string): boole
   const start = new Date(startDate);
   const end = new Date(endDate);
   const now = new Date();
-  
+
   return start >= now && end > start;
 }
 

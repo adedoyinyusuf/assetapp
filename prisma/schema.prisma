@@ -48,10 +48,17 @@ model User {
   lastLogin      DateTime?      @map("last_login")
   createdAt      DateTime       @default(now()) @map("created_at")
   updatedAt      DateTime       @updatedAt @map("updated_at")
+  image          String?        @map("image")
   auditLogs      AuditLog[]
   refreshTokens  RefreshToken[]
   sessions       UserSession[]
   role           UserRole       @relation(fields: [roleId], references: [id])
+  
+  // Geographic Scoping
+  stateId        Int?           @map("state_id")
+  lgaId          Int?           @map("lga_id")
+  state          State?         @relation("UserState", fields: [stateId], references: [id])
+  lga            LGA?           @relation("UserLGA", fields: [lgaId], references: [id])
   
   // Stock Verification relationships
   verificationAssignments    VerificationAssignment[]  @relation("VerificationAssignments")
@@ -164,6 +171,7 @@ model State {
   
   // Stock Verification relationships
   verificationActualStates AssetVerification[] @relation("VerificationActualState")
+  users                    User[]              @relation("UserState")
 
   @@map("states")
 }
@@ -181,6 +189,7 @@ model LGA {
   
   // Stock Verification relationships
   verificationActualLgas AssetVerification[] @relation("VerificationActualLGA")
+  users                  User[]              @relation("UserLGA")
 
   @@unique([name, stateId])
   @@map("lgas")
@@ -213,6 +222,8 @@ model Asset {
 
   // Stock Verification relationships
   verifications AssetVerification[] @relation("AssetVerifications")
+  lastVerificationStatus String?   @map("last_verification_status")
+  lastVerifiedAt         DateTime? @map("last_verified_at")
   
   // Maintenance relationships
   maintenanceRequests MaintenanceRequest[]
@@ -358,6 +369,9 @@ model AssetVerification {
   @@index([verifierId])
   @@index([status])
   @@index([verificationDate])
+  @@index([campaignId, status])
+  @@index([verifierId, status])
+  @@index([updatedAt])
   @@map("asset_verifications")
 }
 
@@ -401,6 +415,7 @@ model VerificationDiscrepancy {
   @@index([discrepancyType])
   @@index([assignedTo])
   @@index([dueDate])
+  @@index([status, severity])
   @@map("verification_discrepancies")
 }
 

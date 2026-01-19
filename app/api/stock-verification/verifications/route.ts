@@ -12,22 +12,35 @@ const enabled = process.env.STOCK_VERIFICATION_RATE_LIMITING_ENABLED !== 'false'
 
 export async function GET(request: NextRequest) {
   try {
-    // Get user session
-    const session = await getSession();
+    console.log('[Verifications API] Starting request...');
+    
+    // Get user session with timeout
+    const sessionPromise = getSession();
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Session timeout')), 5000)
+    );
+    
+    const session = await Promise.race([sessionPromise, timeoutPromise]) as any;
+    
     if (!session?.user) {
+      console.log('[Verifications API] No session found');
       return Response.json(
         { success: false, error: 'Authentication required' },
         { status: 401 }
       );
     }
 
+    console.log('[Verifications API] Session found, userId:', session.user.id);
+
     // Parse query parameters
     const { searchParams } = new URL(request.url);
     const queryParams = Object.fromEntries(searchParams.entries());
+    console.log('[Verifications API] Query params:', queryParams);
 
     // Validate query parameters
     const validationResult = verificationQuerySchema.safeParse(queryParams);
     if (!validationResult.success) {
+      console.log('[Verifications API] Validation failed:', validationResult.error.errors);
       return Response.json(
         { 
           success: false, 
@@ -38,7 +51,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Per-IP rate limiting for verifications list
+    // Per-IP rate limiting for verifications list (skip if redis unavailable)
     if (enabled) {
       try {
         const ip = request.headers.get('x-forwarded-for')?.split(',')[0] ||
@@ -46,7 +59,10 @@ export async function GET(request: NextRequest) {
                    'unknown';
         const limit = Number(process.env.SV_VERIFICATIONS_GET_RATE_LIMIT_PER_MINUTE || '120');
         const key = `sv:verifications:get:${ip}`;
-        const count = await redis.incr(key);
+        const count = await Promise.race([
+          redis.incr(key),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Redis timeout')), 2000))
+        ]) as number;
         await redis.expire(key, 60);
         if (count > limit) {
           return Response.json(
@@ -54,7 +70,10 @@ export async function GET(request: NextRequest) {
             { status: 429 }
           );
         }
-      } catch (_) { /* skip if redis unavailable */ }
+      } catch (redisError) {
+        console.log('[Verifications API] Redis unavailable, skipping rate limit');
+        // Continue without rate limiting
+      }
     }
 
     // Initialize service
@@ -62,25 +81,41 @@ export async function GET(request: NextRequest) {
 
     // Ensure numeric userId for service calls
     const userId = parseInt(String(session.user.id), 10);
+    console.log('[Verifications API] Fetching verifications for userId:', userId);
 
-    // Get verifications
-    const result = await verificationService.getVerifications(validationResult.data, userId);
+    // Get verifications with timeout protection
+    const resultPromise = verificationService.getVerifications(validationResult.data, userId);
+    const serviceTimeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Service timeout')), 25000)
+    );
+    
+    const result = await Promise.race([resultPromise, serviceTimeoutPromise]) as any;
+    
+    console.log('[Verifications API] Success, returning', result.data?.length || 0, 'verifications');
 
     return Response.json({
       success: true,
-      data: result.data,
+      data: result.data || [],
       pagination: {
-        page: result.pagination.page,
-        limit: result.pagination.limit,
-        total: result.pagination.total,
-        totalPages: result.pagination.totalPages,
-        hasNext: result.pagination.hasNextPage,
-        hasPrev: result.pagination.hasPrevPage,
+        page: result.pagination?.page || 1,
+        limit: result.pagination?.limit || 15,
+        total: result.pagination?.total || 0,
+        totalPages: result.pagination?.totalPages || 0,
+        hasNext: result.pagination?.hasNextPage || false,
+        hasPrev: result.pagination?.hasPrevPage || false,
       },
     });
 
   } catch (error: any) {
-    console.error('Error fetching verifications:', error);
+    console.error('[Verifications API] Error:', error.message || error);
+    console.error('[Verifications API] Stack:', error.stack);
+
+    if (error.message?.includes('timeout') || error.message?.includes('Timeout')) {
+      return Response.json(
+        { success: false, error: 'Request timed out. Please try again.' },
+        { status: 504 }
+      );
+    }
 
     if (error.message?.includes('Insufficient permissions')) {
       return Response.json(
@@ -90,7 +125,11 @@ export async function GET(request: NextRequest) {
     }
 
     return Response.json(
-      { success: false, error: 'Failed to fetch verifications' },
+      { 
+        success: false, 
+        error: error.message || 'Failed to fetch verifications',
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      },
       { status: 500 }
     );
   }

@@ -2,9 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, Button, Badge, Alert, AlertDescription, Progress, StatusIndicator } from '@/components/ui/design-system';
-import { RefreshCw, Activity, Database, Users, CheckCircle, AlertTriangle, BarChart3, FileText, Shield } from 'lucide-react';
+import { RefreshCw, Activity, Database, Users, CheckCircle, AlertTriangle, BarChart3, FileText, Shield, Play, List, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import StockVerificationAnalytics from '@/components/stock-verification/StockVerificationAnalytics';
+import RecentActivityWidget from '@/components/stock-verification/RecentActivityWidget';
 
 interface ModuleStatus {
   success: boolean;
@@ -16,6 +20,13 @@ interface ModuleStatus {
     connected: boolean;
     campaigns: number;
     totalUsers: number;
+  };
+  userContext?: {
+    role: string;
+    scope: string;
+    location: string;
+    firstName: string;
+    lastName?: string;
   };
   features: {
     photoUpload: boolean;
@@ -32,30 +43,71 @@ interface ModuleStatus {
 }
 
 export default function StockVerificationDashboard() {
+  const { data: session } = useSession();
+  const router = useRouter();
+  const userRole = session?.user?.role;
+  const isManagerial = ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'TEAM_LEADER'].includes(userRole || '');
+
   const [status, setStatus] = useState<ModuleStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  /* New State for Reports */
+  const [reportData, setReportData] = useState<any | null>(null);
+  const [reportLoading, setReportLoading] = useState(true);
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+
+  // Fetch both system status and report data
   useEffect(() => {
-    const fetchStatus = async () => {
+    const fetchAllData = async () => {
       try {
-        const response = await fetch('/api/stock-verification');
-        const data = await response.json();
-        
-        if (data.success) {
-          setStatus(data);
-        } else {
-          setError(data.error || 'Failed to load module status');
+        const [statusRes, reportRes, activityRes] = await Promise.all([
+          fetch('/api/stock-verification'),
+          fetch('/api/stock-verification/reports'),
+          fetch('/api/stock-verification/verifications?limit=8')
+        ]);
+
+        const statusData = await statusRes.json();
+        const reportDataJson = await reportRes.json();
+        const activityData = await activityRes.json();
+
+        if (statusData.success) setStatus(statusData);
+        if (reportDataJson.success) setReportData(reportDataJson);
+        if (activityData.success) setRecentActivity(activityData.data || []);
+
+        if (!statusData.success && !reportDataJson.success) {
+          setError('Failed to load dashboard data');
         }
+
       } catch (err) {
-        setError('Failed to connect to Stock Verification API');
-        console.error('Error fetching status:', err);
+        setError('Failed to connect to API');
+        console.error('Error fetching dashboard data:', err);
       } finally {
         setLoading(false);
+        setReportLoading(false);
       }
     };
 
-    fetchStatus();
+    fetchAllData();
+
+    // Real-time updates
+    const onVerificationNew = (data: any) => {
+      console.log('Real-time update received:', data);
+      // Refresh data
+      fetchAllData();
+      // Optional: Show toast
+      // toast.success("New verification received!"); 
+    };
+
+    import('@/lib/socket').then(({ socket }) => {
+      socket.on('verification:new', onVerificationNew);
+    });
+
+    return () => {
+      import('@/lib/socket').then(({ socket }) => {
+        socket.off('verification:new', onVerificationNew);
+      });
+    };
   }, []);
 
   if (loading) {
@@ -72,8 +124,8 @@ export default function StockVerificationDashboard() {
                 <RefreshCw className="h-12 w-12 text-primary" />
               </motion.div>
               <div className="space-y-2">
-                <h3 className="text-lg font-semibold">Loading Stock Verification Module</h3>
-                <p className="text-sm text-muted-foreground">Please wait while we initialize the system...</p>
+                <h3 className="text-lg font-semibold">Loading Dashboard</h3>
+                <p className="text-sm text-muted-foreground">Initializing analytics & system status...</p>
               </div>
             </div>
           </CardContent>
@@ -96,7 +148,7 @@ export default function StockVerificationDashboard() {
             <CardDescription>{error}</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button 
+            <Button
               onClick={() => window.location.reload()}
               className="w-full"
               variant="destructive"
@@ -114,21 +166,37 @@ export default function StockVerificationDashboard() {
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8 space-y-8">
         {/* Header */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="text-center space-y-4"
         >
-          <div className="flex items-center justify-center space-x-3">
-            <div className="p-3 bg-primary/10 rounded-full">
-              <Shield className="h-8 w-8 text-primary" />
+          <div className="flex flex-col md:flex-row items-center justify-center gap-4">
+            <div className="flex items-center justify-center space-x-3">
+              <div className="p-3 bg-primary/10 rounded-full">
+                <Shield className="h-8 w-8 text-primary" />
+              </div>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                {status?.userContext?.scope === 'STATE' || status?.userContext?.scope === 'LGA'
+                  ? `${status.userContext.location} Dashboard`
+                  : 'Stock Verification Module'}
+              </h1>
             </div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              Stock Verification Module
-            </h1>
+            {isManagerial && (
+              <Button
+                onClick={() => router.push('/stock-verification/verifications/new')}
+                variant="outline"
+                className="ml-4"
+              >
+                <Play className="mr-2 h-4 w-4" /> Start Verification
+              </Button>
+            )}
           </div>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Complete asset verification and discrepancy management system with real-time analytics
+            {isManagerial
+              ? "Manage campaigns, assignments, and monitor verification progress"
+              : "Verify assets, manage assignments, and track your performance"
+            }
           </p>
           <Badge variant="success" className="text-sm">
             <CheckCircle className="mr-1 h-3 w-3" />
@@ -136,279 +204,185 @@ export default function StockVerificationDashboard() {
           </Badge>
         </motion.div>
 
-        {/* Status Cards */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
-        >
-          <Card className="hover:shadow-elevation-3 transition-all duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-4">
-                <div className="p-3 bg-success/10 rounded-full">
-                  <Activity className="h-6 w-6 text-success" />
+        {/* Verifier Specific View */}
+        {!isManagerial && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-12"
+          >
+            {/* Primary Action: Start Verification */}
+            <Card
+              className="border-2 border-primary/20 bg-primary/5 cursor-pointer hover:border-primary hover:bg-primary/10 transition-all group"
+              onClick={() => router.push('/stock-verification/verifications/new')}
+            >
+              <CardContent className="flex flex-col items-center justify-center min-h-[200px] text-center p-6 space-y-4">
+                <div className="p-4 bg-primary text-primary-foreground rounded-full group-hover:scale-110 transition-transform">
+                  <Play className="h-8 w-8" />
                 </div>
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-muted-foreground">Module Status</p>
-                  <StatusIndicator status="online">Active</StatusIndicator>
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 group-hover:text-primary transition-colors">Start New Verification</h2>
+                  <p className="text-gray-500 mt-2">Scan an asset QR code or enter details manually</p>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          <Card className="hover:shadow-elevation-3 transition-all duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-4">
-                <div className={`p-3 rounded-full ${
-                  status.database.connected 
-                    ? 'bg-success/10' 
-                    : 'bg-destructive/10'
-                }`}>
-                  <Database className={`h-6 w-6 ${
-                    status.database.connected 
-                      ? 'text-success' 
-                      : 'text-destructive'
-                  }`} />
+            {/* Secondary Action: My Assignments */}
+            <Card
+              className="border-dashed border-2 hover:border-solid hover:border-blue-500 cursor-pointer transition-all group"
+              onClick={() => router.push('/stock-verification/campaigns')} // Verifiers are redirected to their assignments or campaigns list
+            >
+              <CardContent className="flex flex-col items-center justify-center min-h-[200px] text-center p-6 space-y-4">
+                <div className="p-4 bg-blue-100 text-blue-600 rounded-full group-hover:scale-110 transition-transform">
+                  <List className="h-8 w-8" />
                 </div>
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-muted-foreground">Database</p>
-                  <StatusIndicator status={status.database.connected ? 'online' : 'offline'}>
-                    {status.database.connected ? 'Connected' : 'Disconnected'}
-                  </StatusIndicator>
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">My Assignments</h2>
+                  <p className="text-gray-500 mt-2">View assets assigned to you for verification</p>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
 
-          <Card className="hover:shadow-elevation-3 transition-all duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-4">
-                <div className="p-3 bg-accent/10 rounded-full">
-                  <BarChart3 className="h-6 w-6 text-accent" />
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-muted-foreground">Campaigns</p>
-                  <p className="text-2xl font-bold">{status.database.campaigns}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Analytics Section - Visible to All (Verifiers see restricted data if API handles it, or simplify this) */}
+        {isManagerial && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8"
+          >
+            <div className="lg:col-span-2">
+              <StockVerificationAnalytics data={reportData} loading={reportLoading} />
+            </div>
+            <div className="lg:col-span-1">
+              <RecentActivityWidget data={recentActivity} loading={reportLoading} />
+            </div>
+          </motion.div>
+        )}
 
-          <Card className="hover:shadow-elevation-3 transition-all duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-4">
-                <div className="p-3 bg-primary/10 rounded-full">
-                  <Users className="h-6 w-6 text-primary" />
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-muted-foreground">Total Users</p>
-                  <p className="text-2xl font-bold">{status.database.totalUsers}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+        {/* Quick Links Row - Manager Only OR limited links for verifier */}
+        {isManagerial ? (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="grid grid-cols-1 md:grid-cols-4 gap-4"
+          >
+            <Link href="/stock-verification/campaigns" className="block">
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="flex flex-col items-center p-6 bg-card rounded-xl border shadow-sm hover:shadow-md transition-all cursor-pointer text-center h-full justify-center"
+              >
+                <Database className="h-8 w-8 text-primary mb-3" />
+                <h3 className="font-semibold text-lg">Campaigns & Assignments</h3>
+                <p className="text-sm text-muted-foreground mt-1">Manage & Track</p>
+              </motion.div>
+            </Link>
+            {/* Other manager links... */}
+            <Link href="/stock-verification/verifications" className="block">
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="flex flex-col items-center p-6 bg-card rounded-xl border shadow-sm hover:shadow-md transition-all cursor-pointer text-center h-full justify-center"
+              >
+                <Shield className="h-8 w-8 text-success mb-3" />
+                <h3 className="font-semibold text-lg">Verifications</h3>
+                <p className="text-sm text-muted-foreground mt-1">Log & Review</p>
+              </motion.div>
+            </Link>
 
-        {/* Features and Quick Links */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="grid grid-cols-1 lg:grid-cols-2 gap-8"
-        >
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Activity className="h-5 w-5 text-primary" />
-                <span>Features Status</span>
-              </CardTitle>
-              <CardDescription>Current module capabilities and configurations</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {Object.entries(status.features).map(([feature, enabled]) => (
-                  <div key={feature} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                    <span className="font-medium capitalize">
-                      {feature.replace(/([A-Z])/g, ' $1').trim()}
-                    </span>
-                    <Badge variant={enabled ? 'success' : 'secondary'}>
-                      {enabled ? (
-                        <><CheckCircle className="mr-1 h-3 w-3" />Enabled</>
-                      ) : (
-                        <>Disabled</>
-                      )}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+            <Link href="/stock-verification/discrepancies" className="block">
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="flex flex-col items-center p-6 bg-card rounded-xl border shadow-sm hover:shadow-md transition-all cursor-pointer text-center h-full justify-center"
+              >
+                <AlertTriangle className="h-8 w-8 text-warning mb-3" />
+                <h3 className="font-semibold text-lg">Discrepancies</h3>
+                <p className="text-sm text-muted-foreground mt-1">Resolve Issues</p>
+              </motion.div>
+            </Link>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <FileText className="h-5 w-5 text-accent" />
-                <span>Quick Actions</span>
-              </CardTitle>
-              <CardDescription>Navigate to key system functions</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-3">
-                <Link href="/stock-verification/campaigns">
-                  <motion.div
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="flex items-center p-4 rounded-lg border hover:border-primary/50 hover:bg-primary/5 transition-all group cursor-pointer"
-                  >
-                    <BarChart3 className="h-5 w-5 text-accent group-hover:text-primary mr-3" />
-                    <div className="flex-1">
-                      <p className="font-medium group-hover:text-primary">Campaigns</p>
-                      <p className="text-sm text-muted-foreground">Manage verification campaigns</p>
-                    </div>
-                  </motion.div>
-                </Link>
-                
-                <Link href="/stock-verification/verifications">
-                  <motion.div
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="flex items-center p-4 rounded-lg border hover:border-primary/50 hover:bg-primary/5 transition-all group cursor-pointer"
-                  >
-                    <Shield className="h-5 w-5 text-success group-hover:text-primary mr-3" />
-                    <div className="flex-1">
-                      <p className="font-medium group-hover:text-primary">Verifications</p>
-                      <p className="text-sm text-muted-foreground">View asset verifications</p>
-                    </div>
-                  </motion.div>
-                </Link>
-                
-                <Link href="/stock-verification/discrepancies">
-                  <motion.div
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="flex items-center p-4 rounded-lg border hover:border-warning/50 hover:bg-warning/5 transition-all group cursor-pointer"
-                  >
-                    <AlertTriangle className="h-5 w-5 text-warning group-hover:text-warning mr-3" />
-                    <div className="flex-1">
-                      <p className="font-medium group-hover:text-warning">Discrepancies</p>
-                      <p className="text-sm text-muted-foreground">Track issues and problems</p>
-                    </div>
-                  </motion.div>
-                </Link>
-                
-                <Link href="/stock-verification/reports">
-                  <motion.div
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="flex items-center p-4 rounded-lg border hover:border-primary/50 hover:bg-primary/5 transition-all group cursor-pointer"
-                  >
-                    <FileText className="h-5 w-5 text-primary group-hover:text-primary mr-3" />
-                    <div className="flex-1">
-                      <p className="font-medium group-hover:text-primary">Reports & Analytics</p>
-                      <p className="text-sm text-muted-foreground">Comprehensive reporting tools</p>
-                    </div>
-                  </motion.div>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+            <Link href="/stock-verification/reports" className="block">
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="flex flex-col items-center p-6 bg-card rounded-xl border shadow-sm hover:shadow-md transition-all cursor-pointer text-center h-full justify-center"
+              >
+                <FileText className="h-8 w-8 text-accent mb-3" />
+                <h3 className="font-semibold text-lg">Reports</h3>
+                <p className="text-sm text-muted-foreground mt-1">Export Data</p>
+              </motion.div>
+            </Link>
+          </motion.div>
+        ) : (
+          // Verifier Minor Links
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto"
+          >
+            <Link href="/stock-verification/verifications" className="block">
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="flex flex-row items-center p-4 bg-white rounded-lg border shadow-sm hover:shadow-md transition-all cursor-pointer"
+              >
+                <div className="p-3 bg-gray-100 rounded-full mr-4">
+                  <Clock className="h-6 w-6 text-gray-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-base">My Recent Verifications</h3>
+                  <p className="text-xs text-muted-foreground mt-1">View history</p>
+                </div>
+              </motion.div>
+            </Link>
 
-        {/* System Information */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-        >
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Database className="h-5 w-5 text-muted-foreground" />
-                <span>System Information</span>
-              </CardTitle>
-              <CardDescription>Current system status and configuration details</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-muted-foreground">Version</p>
-                  <Badge variant="outline" className="font-mono">{status.version}</Badge>
+            {/* Could add 'My Performance' or similar here later */}
+            <Card className="bg-muted/10 border-dashed">
+              <CardContent className="flex items-center p-4">
+                <Activity className="h-5 w-5 text-muted-foreground mr-3" />
+                <div className="text-sm text-muted-foreground">
+                  Your performance stats will appear here
                 </div>
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-muted-foreground">Environment</p>
-                  <Badge variant={status.environment === 'production' ? 'destructive' : 'warning'} className="capitalize">
-                    {status.environment}
-                  </Badge>
-                </div>
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-muted-foreground">Last Updated</p>
-                  <p className="text-sm font-mono bg-muted/30 px-2 py-1 rounded">
-                    {new Date(status.timestamp).toLocaleString()}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+              </CardContent>
+            </Card>
 
-        {/* Development Progress */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-        >
-          <Card className="bg-gradient-to-br from-primary/5 via-accent/5 to-success/5 border-primary/20">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Activity className="h-5 w-5 text-primary" />
-                <span>Implementation Status</span>
-              </CardTitle>
-              <CardDescription>Complete Stock Verification system implementation progress</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium">Overall Progress</span>
-                    <span className="text-primary font-semibold">85%</span>
-                  </div>
-                  <Progress value={85} className="h-3" />
+          </motion.div>
+        )}
+
+        {/* System Information (Collapsed/Lower Priority) - Only for Managers */}
+        {isManagerial && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <Card className="bg-muted/10 border-dashed">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center text-muted-foreground">
+                  <Activity className="h-4 w-4 mr-2" /> System Health
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex gap-4 text-sm text-muted-foreground">
+                  <span className="flex items-center">
+                    <div className={`w-2 h-2 rounded-full mr-2 ${status.database.connected ? 'bg-success' : 'bg-destructive'}`} />
+                    Database: {status.database.connected ? 'Connected' : 'Offline'}
+                  </span>
+                  <span className="flex items-center">
+                    <Badge variant="outline" className="ml-2 font-mono text-xs">{status.version}</Badge>
+                  </span>
                 </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-3">
-                    <h4 className="font-semibold text-success flex items-center">
-                      <CheckCircle className="mr-2 h-4 w-4" />
-                      Completed Features
-                    </h4>
-                    <ul className="space-y-2 text-sm">
-                      <li className="flex items-center"><CheckCircle className="mr-2 h-3 w-3 text-success" />Campaign Management System</li>
-                      <li className="flex items-center"><CheckCircle className="mr-2 h-3 w-3 text-success" />Asset Assignment Engine</li>
-                      <li className="flex items-center"><CheckCircle className="mr-2 h-3 w-3 text-success" />Analytics & Reporting</li>
-                      <li className="flex items-center"><CheckCircle className="mr-2 h-3 w-3 text-success" />Team Management</li>
-                      <li className="flex items-center"><CheckCircle className="mr-2 h-3 w-3 text-success" />API Infrastructure</li>
-                    </ul>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <h4 className="font-semibold text-accent flex items-center">
-                      <Activity className="mr-2 h-4 w-4" />
-                      In Development
-                    </h4>
-                    <ul className="space-y-2 text-sm">
-                      <li className="flex items-center"><Activity className="mr-2 h-3 w-3 text-accent" />User Interface Components</li>
-                      <li className="flex items-center"><Activity className="mr-2 h-3 w-3 text-accent" />Mobile App Integration</li>
-                      <li className="flex items-center"><Activity className="mr-2 h-3 w-3 text-accent" />Real-time Notifications</li>
-                      <li className="flex items-center"><Activity className="mr-2 h-3 w-3 text-accent" />Advanced Analytics</li>
-                      <li className="flex items-center"><Activity className="mr-2 h-3 w-3 text-accent" />Workflow Automation</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
       </div>
     </div>
   );

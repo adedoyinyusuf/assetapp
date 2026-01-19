@@ -79,7 +79,7 @@ export interface LGA {
 // Asset Movement functions (using fetch - safe for client)
 export async function getAssetMovements(assetId?: number): Promise<AssetMovement[]> {
   try {
-    const url = assetId ? `http://localhost:3000/api/assets/${assetId}/movements` : 'http://localhost:3000/api/asset-movements';
+    const url = assetId ? `/api/assets/${assetId}/movements` : '/api/asset-movements';
     const res = await fetch(url);
     if (!res.ok) return [];
     return await res.json();
@@ -89,7 +89,7 @@ export async function getAssetMovements(assetId?: number): Promise<AssetMovement
 }
 
 export async function addAssetMovement(movement: Omit<AssetMovement, 'id' | 'asset_name' | 'from_state' | 'from_lga' | 'to_state' | 'to_lga'>): Promise<AssetMovement> {
-  const res = await fetch('http://localhost:3000/api/asset-movements', {
+  const res = await fetch('/api/asset-movements', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -109,12 +109,12 @@ export async function addAsset(asset: Omit<Asset, 'id'>): Promise<Asset> {
     },
     body: JSON.stringify(asset),
   });
-  
+
   if (!res.ok) {
     const errorData = await res.json();
     throw new Error(errorData.error || 'Failed to create asset');
   }
-  
+
   return res.json();
 }
 
@@ -126,7 +126,7 @@ export async function updateAsset(asset: Asset): Promise<void> {
     },
     body: JSON.stringify(asset),
   });
-  
+
   if (!res.ok) {
     const errorData = await res.json();
     throw new Error(errorData.error || 'Failed to update asset');
@@ -134,7 +134,7 @@ export async function updateAsset(asset: Asset): Promise<void> {
 }
 
 export async function deleteAsset(id: number): Promise<void> {
-  await fetch(`http://localhost:3000/api/assets/${id}`, {
+  await fetch(`/api/assets/${id}`, {
     method: 'DELETE',
   });
 }
@@ -157,7 +157,7 @@ export async function calculateDepreciation(asset: Asset, currentDate: Date): Pr
 // Category functions (using fetch - safe for client)
 export async function getCategories(): Promise<Category[]> {
   try {
-    const res = await fetch('http://localhost:3000/api/categories');
+    const res = await fetch('/api/categories');
     if (!res.ok) return [];
     return await res.json();
   } catch {
@@ -171,20 +171,20 @@ export async function getStates(): Promise<State[]> {
     console.log('Fetching states from API...');
     const res = await fetch('/api/states');
     console.log('States API response status:', res.status);
-    
+
     if (!res.ok) {
       const errorText = await res.text();
       console.error('States API error:', res.status, errorText);
       return [];
     }
-    
+
     const response = await res.json();
     console.log('States API response:', response);
-    
+
     // Handle paginated response - extract data array
     const states = response.data || response;
     console.log('Processed states:', states);
-    
+
     return states;
   } catch (error) {
     console.error('Error fetching states:', error);
@@ -197,16 +197,16 @@ export async function getLGAs(stateId: number): Promise<LGA[]> {
     console.log('Fetching LGAs for state:', stateId);
     const res = await fetch(`/api/states/${stateId}/lgas`);
     console.log('LGAs API response status:', res.status);
-    
+
     if (!res.ok) {
       const errorText = await res.text();
       console.error('LGAs API error:', res.status, errorText);
       return [];
     }
-    
+
     const lgas = await res.json();
     console.log('LGAs API response:', lgas);
-    
+
     return lgas;
   } catch (error) {
     console.error('Error fetching LGAs:', error);

@@ -15,7 +15,7 @@ declare module "next-auth" {
     lastLogin: Date | null;
     permissions: string[];
   }
-  
+
   interface Session extends DefaultSession {
     user: User;
   }
@@ -37,6 +37,7 @@ interface UserWithPermissions {
   email: string;
   firstName: string | null;
   lastName: string | null;
+  image?: string | null;
   role: {
     name: UserRole;
     permissions: {
@@ -97,22 +98,23 @@ export const authOptions: AuthOptions = {
 
           // Convert ID to string for NextAuth compatibility
           const userId = user.id.toString();
-          
+
           // Normalize role name and validate against UserRole enum
           const roleName = user.role.name.replace(/[\s-]+/g, '_').toUpperCase();
           const normalizedRole = roleName === 'SUPERADMIN' ? UserRole.SUPER_ADMIN : roleName as UserRole;
           const validRole = Object.values(UserRole).find(r => r === normalizedRole) as UserRole;
-          
+
           if (!validRole) {
             console.error('Invalid role:', user.role.name, 'Normalized to:', roleName, 'Valid roles:', Object.values(UserRole));
             throw new Error('Invalid user role');
           }
-          
+
           // Return user data for the session
           return {
             id: userId,
             name: user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.email,
             email: user.email,
+            image: user.image,
             firstName: user.firstName,
             lastName: user.lastName,
             role: validRole, // Use the validated role
@@ -135,7 +137,7 @@ export const authOptions: AuthOptions = {
         const roleName = (user.role as unknown as string).replace(/[\s-]+/g, '_').toUpperCase();
         const normalizedRole = roleName === 'SUPERADMIN' ? UserRole.SUPER_ADMIN : roleName as UserRole;
         const validRole = Object.values(UserRole).find(r => r === normalizedRole);
-        
+
         if (!validRole) {
           console.error('Invalid role in JWT callback:', user.role);
           throw new Error('Invalid user role');
@@ -145,6 +147,7 @@ export const authOptions: AuthOptions = {
           ...token,
           id: user.id,
           email: user.email,
+          image: user.image,
           firstName: user.firstName,
           lastName: user.lastName,
           role: validRole,
@@ -161,7 +164,7 @@ export const authOptions: AuthOptions = {
         const roleName = (token.role as unknown as string)?.replace(/[\s-]+/g, '_').toUpperCase();
         const normalizedRole = roleName === 'SUPERADMIN' ? UserRole.SUPER_ADMIN : roleName as UserRole;
         const validRole = Object.values(UserRole).find(r => r === normalizedRole);
-        
+
         if (!validRole) {
           console.error('Invalid role in session callback:', token.role);
           throw new Error('Invalid user role in session');
@@ -171,6 +174,7 @@ export const authOptions: AuthOptions = {
           ...session.user,
           id: token.id as string,
           email: token.email as string,
+          image: token.image as string | null,
           firstName: token.firstName as string | null,
           lastName: token.lastName as string | null,
           role: validRole,

@@ -3,6 +3,8 @@
 import { db } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth/auth-options';
 
 export async function createCampaign(formData: FormData) {
     const name = formData.get('name') as string;
@@ -56,100 +58,73 @@ export async function createCampaign(formData: FormData) {
     }
 }
 
-export async function createVerification(formData: FormData) {
-    const campaignId = Number(formData.get('campaignId'));
-    const assetId = Number(formData.get('assetId'));
-    const physicalCondition = formData.get('physicalCondition') as string;
-    const locationAccurate = formData.get('locationAccurate') === 'true';
-    const notes = formData.get('notes') as string;
-    const qrCode = formData.get('qrCode') as string;
+import { join } from 'path';
+import { writeFile, mkdir } from 'fs/promises';
 
-    // TODO: Get actual user ID from session
-    const userId = 1;
+export async function createVerification(formData: FormData) {
+    const photoFiles = formData.getAll('photos') as File[];
+    const photoUrls: string[] = [];
+
+    // Handle File Uploads
+    if (photoFiles.length > 0) {
+        try {
+            const uploadRelativePath = 'uploads/verifications';
+            const uploadDir = join(process.cwd(), 'public', uploadRelativePath);
+            await mkdir(uploadDir, { recursive: true });
+
+            for (const file of photoFiles) {
+                if (file.size > 0 && file.type.startsWith('image/')) {
+                    const bytes = await file.arrayBuffer();
+                    const buffer = Buffer.from(bytes);
+                    const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+                    const filename = `${Date.now()}-${Math.round(Math.random() * 10000)}-${safeName}`;
+                    const filepath = join(uploadDir, filename);
+
+                    await writeFile(filepath, buffer);
+                    photoUrls.push(`/${uploadRelativePath}/${filename}`);
+                }
+            }
+        } catch (error) {
+            console.error('Error uploading photos:', error);
+            // Continue without photos or throw? For now, continue but log.
+        }
+    }
+
+    const data = {
+        campaignId: Number(formData.get('campaignId')),
+        assetId: formData.get('assetId') ? Number(formData.get('assetId')) : undefined,
+        qrCode: formData.get('qrCode') as string || undefined,
+        physicalCondition: formData.get('physicalCondition') as any,
+        locationAccurate: formData.get('locationAccurate') === 'true',
+        notes: formData.get('notes') as string || undefined,
+        createMaintenance: formData.get('createMaintenance') === 'on',
+        photoUrls: photoUrls,
+        coordinates: formData.get('coordinates') as string || undefined,
+    };
+
+    // Get actual user ID from session
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+        throw new Error('Unauthorized');
+    }
+    const userId = Number(session.user.id);
 
     try {
-        // If QR code provided, lookup asset
-        let actualAssetId = assetId;
-        if (qrCode && !assetId) {
-            const asset = await db.asset.findFirst({
-                where: {
-                    serialNumber: qrCode
-                }
-            });
-            if (asset) {
-                actualAssetId = asset.id;
-            }
-        }
+        const { VerificationService } = await import('@/lib/stock-verification/verification-service');
+        const service = new VerificationService();
 
-        // Determine status based on condition and location
-        let status: 'VERIFIED' | 'DISCREPANCY_FOUND' | 'MISSING' | 'DAMAGED' = 'VERIFIED';
-
-        if (physicalCondition === 'MISSING') {
-            status = 'MISSING';
-        } else if (physicalCondition === 'DAMAGED') {
-            status = 'DAMAGED';
-        } else if (!locationAccurate || ['POOR', 'DAMAGED'].includes(physicalCondition)) {
-            status = 'DISCREPANCY_FOUND';
-        }
-
-        const verification = await db.assetVerification.create({
-            data: {
-                campaignId,
-                assetId: actualAssetId,
-                verifierId: userId,
-                status,
-                physicalCondition: physicalCondition as any,
-                locationAccurate,
-                notes: notes || undefined,
-                photoUrls: [], // TODO: Handle file upload
-                verificationDate: new Date(),
-            }
-        });
-
-        // Update campaign progress
-        await db.verificationCampaign.update({
-            where: { id: campaignId },
-            data: {
-                verifiedAssetCount: {
-                    increment: 1
-                }
-            }
-        });
-
-        // Create discrepancy if issues found
-        if (status === 'DISCREPANCY_FOUND' && formData.get('createDiscrepancy')) {
-            await db.verificationDiscrepancy.create({
-                data: {
-                    verificationId: verification.id,
-                    reportedBy: userId,
-                    discrepancyType: !locationAccurate ? 'LOCATION_MISMATCH' : 'CONDITION_MISMATCH',
-                    description: notes || 'Discrepancy found during verification',
-                    severity: physicalCondition === 'POOR' ? 'HIGH' : 'MEDIUM',
-                    status: 'REPORTED',
-                }
-            });
-        }
-
-        // Create maintenance request if needed
-        if (status === 'DAMAGED' && formData.get('createMaintenance')) {
-            await db.maintenanceRequest.create({
-                data: {
-                    assetId: actualAssetId,
-                    requestedBy: userId,
-                    title: `Verification: Asset Damaged`,
-                    description: notes || 'Asset found damaged during verification',
-                    priority: physicalCondition === 'DAMAGED' ? 'HIGH' : 'MEDIUM',
-                    status: 'PENDING',
-                }
-            });
-        }
+        await service.submitVerification(data, userId);
 
         revalidatePath('/stock-verification/verifications');
-        revalidatePath(`/stock-verification/campaigns/${campaignId}`);
+        revalidatePath(`/stock-verification/campaigns/${data.campaignId}`);
         redirect('/stock-verification/verifications');
     } catch (error) {
+        // If it's a redirect error, rethrow it so Next.js handles it
+        if ((error as any).digest?.startsWith('NEXT_REDIRECT')) {
+            throw error;
+        }
         console.error('Failed to create verification:', error);
-        throw new Error('Failed to create verification');
+        throw new Error(error instanceof Error ? error.message : 'Failed to create verification');
     }
 }
 
@@ -162,7 +137,7 @@ export async function assignDiscrepancy(formData: FormData) {
             where: { id: discrepancyId },
             data: {
                 assignedTo: assigneeId,
-                status: 'ASSIGNED',
+                status: 'INVESTIGATING',
             }
         });
 
@@ -186,7 +161,7 @@ export async function resolveDiscrepancy(formData: FormData) {
         await db.verificationDiscrepancy.update({
             where: { id: discrepancyId },
             data: {
-                status: action === 'resolve' ? 'RESOLVED' : 'REJECTED',
+                status: action === 'resolve' ? 'RESOLVED' : 'CLOSED',
                 resolutionNotes,
                 resolvedBy: userId,
                 resolutionDate: new Date(),

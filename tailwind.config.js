@@ -53,7 +53,7 @@ module.exports = {
         'body-medium': ['14px', { lineHeight: '20px', letterSpacing: '0.25px', fontWeight: '400' }],
         'body-small': ['12px', { lineHeight: '16px', letterSpacing: '0.4px', fontWeight: '400' }],
       },
-      
+
       // Enhanced Shadows with Theme Colors
       boxShadow: {
         'none': 'none',
@@ -74,7 +74,7 @@ module.exports = {
         'elevation-4': '0px 2px 3px 0px rgba(36, 48, 16, 0.3), 0px 6px 10px 4px rgba(36, 48, 16, 0.15)',
         'elevation-5': '0px 4px 4px 0px rgba(36, 48, 16, 0.3), 0px 8px 12px 6px rgba(36, 48, 16, 0.15)',
       },
-      
+
       // Theme Gradients
       backgroundImage: {
         'gradient-primary': 'linear-gradient(135deg, #87a330 0%, #a1c349 100%)',
@@ -88,7 +88,7 @@ module.exports = {
         'gradient-success': 'linear-gradient(135deg, #87a330 0%, #a1c349 100%)',
         'gradient-error': 'linear-gradient(135deg, #ba1f33 0%, #cd5d67 100%)',
       },
-      
+
       // Material 3 Animation Curves
       transitionTimingFunction: {
         'emphasis-decelerate': 'cubic-bezier(0.05, 0.7, 0.1, 1.0)',
@@ -98,7 +98,7 @@ module.exports = {
         'legacy-decelerate': 'cubic-bezier(0, 0, 0.2, 1)',
         'legacy-accelerate': 'cubic-bezier(0.4, 0, 1, 1)',
       },
-      
+
       // Material 3 Animation Durations
       transitionDuration: {
         'short1': '50ms',
@@ -118,7 +118,7 @@ module.exports = {
         'extra-long3': '900ms',
         'extra-long4': '1000ms',
       },
-      
+
       colors: {
         // New Color Palette - Green & Red Theme
         'pakistan-green': '#243010',
@@ -131,7 +131,7 @@ module.exports = {
         'red-ncs': '#ba1f33',
         'chocolate-cosmos-2': '#421820',
         'carmine': '#91171f',
-        
+
         // Updated Primary Color Scale (Green Theme)
         primary: {
           DEFAULT: '#87a330', // apple-green
@@ -148,7 +148,7 @@ module.exports = {
           950: '#1a2408',
           hover: '#2a3c24', // cal-poly-green
         },
-        
+
         // Updated Secondary Color Scale (Red Theme)
         secondary: {
           DEFAULT: '#cd5d67', // indian-red
@@ -165,7 +165,7 @@ module.exports = {
           950: '#2d0709',
           hover: '#91171f', // carmine
         },
-        
+
         // Updated Status Colors to Match Theme
         success: {
           DEFAULT: '#87a330', // apple-green
@@ -183,7 +183,7 @@ module.exports = {
           bg: 'rgba(135, 163, 48, 0.1)',
           border: '#a1c349',
         },
-        
+
         warning: {
           DEFAULT: '#ffc107',
           50: '#fffbeb',
@@ -200,7 +200,7 @@ module.exports = {
           bg: 'rgba(255, 193, 7, 0.1)',
           border: '#ffca2c',
         },
-        
+
         error: {
           DEFAULT: '#ba1f33', // red-ncs
           50: '#fceaec',
@@ -217,27 +217,27 @@ module.exports = {
           bg: 'rgba(186, 31, 51, 0.1)',
           border: '#cd5d67',
         },
-        
+
         info: {
           DEFAULT: '#17a2b8',
           bg: 'rgba(23, 162, 184, 0.1)',
           border: '#20c997',
         },
-        
+
         // Component Specific Colors
         sidebar: {
-          bg: '#243010', // pakistan-green
+          bg: '#004b23', // Updated to match requested interface color
           text: '#cad593', // sage
           hover: '#2a3c24', // cal-poly-green
           active: '#87a330', // apple-green
         },
-        
+
         header: {
           bg: '#87a330', // apple-green
           text: '#ffffff',
           hover: '#a1c349', // yellow-green
         },
-        
+
         // Verification Module Specific Colors
         campaign: {
           draft: '#cad593', // sage
@@ -246,7 +246,7 @@ module.exports = {
           completed: '#2a3c24', // cal-poly-green
           cancelled: '#91171f', // carmine
         },
-        
+
         verification: {
           pending: '#cad593', // sage
           'in-progress': '#a1c349', // yellow-green
@@ -254,21 +254,21 @@ module.exports = {
           approved: '#2a3c24', // cal-poly-green
           rejected: '#ba1f33', // red-ncs
         },
-        
+
         discrepancy: {
           open: '#cd5d67', // indian-red
           'in-progress': '#a1c349', // yellow-green
           resolved: '#87a330', // apple-green
           closed: '#2a3c24', // cal-poly-green
         },
-        
+
         priority: {
           low: '#cad593', // sage
           medium: '#a1c349', // yellow-green
           high: '#cd5d67', // indian-red
           critical: '#91171f', // carmine
         },
-        
+
         condition: {
           excellent: '#87a330', // apple-green
           good: '#a1c349', // yellow-green
@@ -282,7 +282,7 @@ module.exports = {
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
-        
+
         /* Material 3 Color System */
         'md-primary': "hsl(var(--md-sys-color-primary))",
         'md-on-primary': "hsl(var(--md-sys-color-on-primary))",
@@ -292,22 +292,22 @@ module.exports = {
         'md-on-primary-fixed': "hsl(var(--md-sys-color-on-primary-fixed))",
         'md-primary-fixed-dim': "hsl(var(--md-sys-color-primary-fixed-dim))",
         'md-on-primary-fixed-variant': "hsl(var(--md-sys-color-on-primary-fixed-variant))",
-        
+
         'md-secondary': "hsl(var(--md-sys-color-secondary))",
         'md-on-secondary': "hsl(var(--md-sys-color-on-secondary))",
         'md-secondary-container': "hsl(var(--md-sys-color-secondary-container))",
         'md-on-secondary-container': "hsl(var(--md-sys-color-on-secondary-container))",
-        
+
         'md-tertiary': "hsl(var(--md-sys-color-tertiary))",
         'md-on-tertiary': "hsl(var(--md-sys-color-on-tertiary))",
         'md-tertiary-container': "hsl(var(--md-sys-color-tertiary-container))",
         'md-on-tertiary-container': "hsl(var(--md-sys-color-on-tertiary-container))",
-        
+
         'md-error': "hsl(var(--md-sys-color-error))",
         'md-on-error': "hsl(var(--md-sys-color-on-error))",
         'md-error-container': "hsl(var(--md-sys-color-error-container))",
         'md-on-error-container': "hsl(var(--md-sys-color-on-error-container))",
-        
+
         'md-surface-dim': "hsl(var(--md-sys-color-surface-dim))",
         'md-surface': "hsl(var(--md-sys-color-surface))",
         'md-surface-bright': "hsl(var(--md-sys-color-surface-bright))",
@@ -319,10 +319,10 @@ module.exports = {
         'md-surface-container': "hsl(var(--md-sys-color-surface-container))",
         'md-surface-container-high': "hsl(var(--md-sys-color-surface-container-high))",
         'md-surface-container-highest': "hsl(var(--md-sys-color-surface-container-highest))",
-        
+
         'md-outline': "hsl(var(--md-sys-color-outline))",
         'md-outline-variant': "hsl(var(--md-sys-color-outline-variant))",
-        
+
         'md-inverse-surface': "hsl(var(--md-sys-color-inverse-surface))",
         'md-inverse-on-surface': "hsl(var(--md-sys-color-inverse-on-surface))",
         'md-inverse-primary': "hsl(var(--md-sys-color-inverse-primary))",
@@ -358,7 +358,7 @@ module.exports = {
       borderRadius: {
         'none': '0',
         'xs': '4px',
-        'sm': '8px', 
+        'sm': '8px',
         'md': '12px',
         'lg': '16px',
         'xl': '20px',
@@ -368,5 +368,7 @@ module.exports = {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    require("tailwindcss-animate"),
+  ],
 }

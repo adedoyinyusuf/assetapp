@@ -26,6 +26,12 @@ interface User {
   updatedAt: string
 }
 
+interface Role {
+  id: number;
+  name: string;
+  description: string;
+}
+
 interface UsersResponse {
   data: User[]
   pagination: {
@@ -38,6 +44,7 @@ interface UsersResponse {
 
 export default function UsersManagementPage() {
   const [users, setUsers] = useState<User[]>([])
+  const [roles, setRoles] = useState<Role[]>([])
   const [loading, setLoading] = useState(true)
   const [showAddForm, setShowAddForm] = useState(false)
   const [filterRole, setFilterRole] = useState('')
@@ -49,15 +56,38 @@ export default function UsersManagementPage() {
     totalPages: 0
   })
 
+  // Fetch roles from API
+  const fetchRoles = async () => {
+    try {
+      const response = await fetch('/api/admin/roles');
+      if (response.ok) {
+        const data = await response.json();
+        setRoles(Array.isArray(data) ? data : data.data || []);
+      } else {
+        console.error('Failed to fetch roles');
+      }
+    } catch (error) {
+      console.error('Error fetching roles:', error);
+    }
+  }
+
   // Fetch users from API
   const fetchUsers = async () => {
     try {
       setLoading(true)
       const response = await fetch('/api/admin/users')
       if (response.ok) {
-        const data: UsersResponse = await response.json()
-        setUsers(data.data)
-        setPagination(data.pagination)
+        const data = await response.json();
+        // Handle both response formats
+        if (data.success && data.data) {
+          setUsers(data.data)
+          if (data.pagination) setPagination(data.pagination)
+        } else if (Array.isArray(data.data)) {
+          setUsers(data.data)
+          if (data.pagination) setPagination(data.pagination)
+        } else if (Array.isArray(data)) {
+          setUsers(data);
+        }
       } else {
         toast.error('Failed to fetch users')
       }
@@ -70,7 +100,8 @@ export default function UsersManagementPage() {
   }
 
   useEffect(() => {
-    fetchUsers()
+    fetchUsers();
+    fetchRoles();
   }, [])
 
   const getUserDisplayName = (user: User) => {
@@ -86,45 +117,95 @@ export default function UsersManagementPage() {
     firstName: '',
     lastName: '',
     email: '',
-    role: 'USER',
+    role: 'VIEWER',
     isActive: true
   })
 
-  const handleAddUser = () => {
-    // TODO: Implement API call to add user
-    toast.info('Add user functionality will be implemented')
+  const getRoleId = (roleName: string) => {
+    const role = roles.find(r => r.name === roleName);
+    return role ? role.id : null;
+  };
+
+  const handleAddUser = async () => {
+    try {
+      if (!newUser.firstName || !newUser.lastName || !newUser.email) {
+        toast.error('Please fill in all required fields');
+        return;
+      }
+
+      setLoading(true);
+
+      // Map role name to ID
+      const roleId = getRoleId(newUser.role) || 2; // Default to Operator/Viewer if not found
+
+      const response = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          firstName: newUser.firstName,
+          lastName: newUser.lastName,
+          email: newUser.email,
+          roleId: roleId,
+          isActive: newUser.isActive,
+        }),
+      });
+
+      if (response.ok) {
+        toast.success('User created successfully');
+        setShowAddForm(false);
+        setNewUser({
+          firstName: '',
+          lastName: '',
+          email: '',
+          role: 'VIEWER',
+          isActive: true
+        });
+        fetchUsers();
+      } else {
+        const data = await response.json();
+        toast.error(data.error || 'Failed to create user');
+      }
+    } catch (error) {
+      console.error('Error adding user:', error);
+      toast.error('Failed to create user');
+    } finally {
+      setLoading(false);
+    }
   }
 
   const handleDeleteUser = (id: number) => {
-    // TODO: Implement API call to delete user
     if (confirm('Are you sure you want to delete this user?')) {
       toast.info('Delete user functionality will be implemented')
     }
   }
 
   const toggleUserStatus = (id: number) => {
-    // TODO: Implement API call to toggle user status
     toast.info('Toggle user status functionality will be implemented')
   }
 
   const getRoleBadge = (role: string) => {
     const variants: Record<string, 'destructive' | 'default' | 'secondary' | 'outline'> = {
       'SUPER_ADMIN': 'destructive',
-      'ADMIN': 'destructive', 
+      'ADMIN': 'destructive',
       'MANAGER': 'default',
       'OPERATOR': 'secondary',
-      'VIEWER': 'outline'
+      'VIEWER': 'outline',
+      'AUDITOR': 'outline',
+      'TEAM_LEADER': 'default',
+      'SENIOR_VERIFIER': 'secondary',
+      'VERIFIER': 'secondary',
+      'ASSISTANT_VERIFIER': 'outline',
+      'OBSERVER': 'outline',
+      'QUALITY_CONTROLLER': 'default'
     }
 
-    const displayNames: Record<string, string> = {
-      'SUPER_ADMIN': 'Super Admin',
-      'ADMIN': 'Admin',
-      'MANAGER': 'Manager', 
-      'OPERATOR': 'Operator',
-      'VIEWER': 'Viewer'
-    }
+    const formatRoleName = (name: string) => {
+      return name.split('_').map(word => word.charAt(0) + word.slice(1).toLowerCase()).join(' ');
+    };
 
-    return <Badge variant={variants[role] || 'outline'}>{displayNames[role] || role}</Badge>
+    return <Badge variant={variants[role] || 'outline'}>{formatRoleName(role)}</Badge>
   }
 
   const getStatusBadge = (isActive: boolean) => {
@@ -144,12 +225,71 @@ export default function UsersManagementPage() {
     return true
   })
 
+  // Calculate role stats dynamically
   const roleStats = {
     ADMIN: users.filter(u => u.role === 'ADMIN').length,
     MANAGER: users.filter(u => u.role === 'MANAGER').length,
-    OPERATOR: users.filter(u => u.role === 'OPERATOR').length,
-    VIEWER: users.filter(u => u.role === 'VIEWER').length,
     SUPER_ADMIN: users.filter(u => u.role === 'SUPER_ADMIN').length
+  }
+
+  const [editingUser, setEditingUser] = useState<User | null>(null)
+  const [showEditDialog, setShowEditDialog] = useState(false)
+  const [editForm, setEditForm] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    roleId: 0,
+    isActive: true
+  })
+
+  const handleEditClick = (user: User) => {
+    setEditingUser(user)
+    // Find role ID from loaded roles or fallback to user.roleId
+    const foundRole = roles.find(r => r.name === user.role);
+    setEditForm({
+      firstName: user.firstName || '',
+      lastName: user.lastName || '',
+      email: user.email,
+      roleId: user.roleId || (foundRole ? foundRole.id : 0),
+      isActive: user.isActive
+    })
+    setShowEditDialog(true)
+  }
+
+  const handleUpdateUser = async () => {
+    if (!editingUser) return
+
+    try {
+      setLoading(true)
+      const response = await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: editingUser.id,
+          firstName: editForm.firstName,
+          lastName: editForm.lastName,
+          email: editForm.email,
+          roleId: editForm.roleId,
+          isActive: editForm.isActive
+        }),
+      })
+
+      if (response.ok) {
+        toast.success('User updated successfully')
+        setShowEditDialog(false)
+        fetchUsers() // Refresh the list
+      } else {
+        const data = await response.json()
+        toast.error(data.error || 'Failed to update user')
+      }
+    } catch (error) {
+      console.error('Error updating user:', error)
+      toast.error('Error updating user')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -226,7 +366,7 @@ export default function UsersManagementPage() {
                 <Input
                   id="userFirstName"
                   value={newUser.firstName}
-                  onChange={(e) => setNewUser({...newUser, firstName: e.target.value})}
+                  onChange={(e) => setNewUser({ ...newUser, firstName: e.target.value })}
                   placeholder="Enter first name"
                 />
               </div>
@@ -235,7 +375,7 @@ export default function UsersManagementPage() {
                 <Input
                   id="userLastName"
                   value={newUser.lastName}
-                  onChange={(e) => setNewUser({...newUser, lastName: e.target.value})}
+                  onChange={(e) => setNewUser({ ...newUser, lastName: e.target.value })}
                   placeholder="Enter last name"
                 />
               </div>
@@ -245,28 +385,28 @@ export default function UsersManagementPage() {
                   id="userEmail"
                   type="email"
                   value={newUser.email}
-                  onChange={(e) => setNewUser({...newUser, email: e.target.value})}
+                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
                   placeholder="user@npc.gov.ng"
                 />
               </div>
               <div>
                 <Label htmlFor="userRole">Role</Label>
-                <Select value={newUser.role} onValueChange={(value) => setNewUser({...newUser, role: value})}>
+                <Select value={newUser.role} onValueChange={(value) => setNewUser({ ...newUser, role: value })}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="VIEWER">Viewer</SelectItem>
-                    <SelectItem value="OPERATOR">Operator</SelectItem>
-                    <SelectItem value="MANAGER">Manager</SelectItem>
-                    <SelectItem value="ADMIN">Admin</SelectItem>
-                    <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
+                    {roles.length > 0 ? roles.map((role) => (
+                      <SelectItem key={role.id} value={role.name}>
+                        {role.name.split('_').map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(' ')}
+                      </SelectItem>
+                    )) : <SelectItem value="VIEWER">Loading Roles...</SelectItem>}
                   </SelectContent>
                 </Select>
               </div>
               <div>
                 <Label htmlFor="userStatus">Status</Label>
-                <Select value={newUser.isActive ? 'Active' : 'Inactive'} onValueChange={(value) => setNewUser({...newUser, isActive: value === 'Active'})}>
+                <Select value={newUser.isActive ? 'Active' : 'Inactive'} onValueChange={(value) => setNewUser({ ...newUser, isActive: value === 'Active' })}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -285,6 +425,86 @@ export default function UsersManagementPage() {
         </Card>
       )}
 
+      {/* Edit User Dialog */}
+      {showEditDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-lg mx-4">
+            <CardHeader>
+              <CardTitle>Edit User</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="editFirstName">First Name</Label>
+                    <Input
+                      id="editFirstName"
+                      value={editForm.firstName}
+                      onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="editLastName">Last Name</Label>
+                    <Input
+                      id="editLastName"
+                      value={editForm.lastName}
+                      onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="editEmail">Email</Label>
+                  <Input
+                    id="editEmail"
+                    value={editForm.email}
+                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="editRole">Role</Label>
+                  <Select
+                    value={String(editForm.roleId)}
+                    onValueChange={(value) => setEditForm({ ...editForm, roleId: Number(value) })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {roles.map((role) => (
+                        <SelectItem key={role.id} value={String(role.id)}>
+                          {role.name.split('_').map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(' ')}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="editStatus">Status</Label>
+                  <Select
+                    value={editForm.isActive ? 'true' : 'false'}
+                    onValueChange={(value) => setEditForm({ ...editForm, isActive: value === 'true' })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="true">Active</SelectItem>
+                      <SelectItem value="false">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="flex justify-end gap-3 mt-4">
+                <Button variant="outline" onClick={() => setShowEditDialog(false)}>Cancel</Button>
+                <Button onClick={handleUpdateUser} disabled={loading}>
+                  {loading ? 'Saving...' : 'Save Changes'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* Users Table */}
       <Card>
         <CardHeader>
@@ -297,11 +517,11 @@ export default function UsersManagementPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Roles</SelectItem>
-                  <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
-                  <SelectItem value="ADMIN">Admin</SelectItem>
-                  <SelectItem value="MANAGER">Manager</SelectItem>
-                  <SelectItem value="OPERATOR">Operator</SelectItem>
-                  <SelectItem value="VIEWER">Viewer</SelectItem>
+                  {roles.map((role) => (
+                    <SelectItem key={role.id} value={role.name}>
+                      {role.name.split('_').map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(' ')}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <Select value={filterStatus} onValueChange={setFilterStatus}>
@@ -331,7 +551,7 @@ export default function UsersManagementPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {loading ? (
+                {loading && !showEditDialog ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center py-8">
                       Loading users...
@@ -352,19 +572,23 @@ export default function UsersManagementPage() {
                     <TableCell>{user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}</TableCell>
                     <TableCell>
                       <div className="flex gap-2">
-                        <Button size="sm" variant="outline">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEditClick(user)}
+                        >
                           <FontAwesomeIcon icon={faEdit} className="mr-1" />
                           Edit
                         </Button>
-                        <Button 
-                          size="sm" 
+                        <Button
+                          size="sm"
                           variant={user.isActive ? 'secondary' : 'default'}
                           onClick={() => toggleUserStatus(user.id)}
                         >
                           {user.isActive ? 'Deactivate' : 'Activate'}
                         </Button>
-                        <Button 
-                          size="sm" 
+                        <Button
+                          size="sm"
                           variant="destructive"
                           onClick={() => handleDeleteUser(user.id)}
                         >

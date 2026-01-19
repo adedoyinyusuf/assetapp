@@ -29,15 +29,15 @@ function calculateCurrentValue(asset: {
   const purchaseDate = new Date(asset.purchaseDate);
   const now = new Date();
   const yearsElapsed = (now.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
-  
+
   if (asset.usefulLife <= 0) return asset.salvageValue;
-  
+
   const annualDepreciation = (asset.purchaseValue - asset.salvageValue) / asset.usefulLife;
   const totalDepreciation = Math.min(
     annualDepreciation * yearsElapsed,
     asset.purchaseValue - asset.salvageValue
   );
-  
+
   return Math.max(
     asset.purchaseValue - totalDepreciation,
     asset.salvageValue
@@ -198,6 +198,12 @@ export async function PUT(
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Role verification
+    const allowedRoles = [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.OPERATOR];
+    if (!allowedRoles.includes(session.user.role as UserRole)) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
     const assetId = parseInt(params.id);

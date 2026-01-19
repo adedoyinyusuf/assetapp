@@ -58,14 +58,41 @@ pool.on('error', (err) => {
 
 // Initialize the application
 app.prepare().then(() => {
+  // Create HTTP server
+  const http = require('http');
   const server = express();
-  
+  const httpServer = http.createServer(server);
+
+  console.log("------------------------------------------");
+  console.log("Asset Manager Server v1.1 - Schema Fixes Applied");
+  console.log("------------------------------------------");
+
+  // Initialize Socket.IO
+  const { Server } = require("socket.io");
+  const io = new Server(httpServer);
+
+  io.on('connection', (socket) => {
+    console.log('Client connected:', socket.id);
+
+    socket.on('disconnect', () => {
+      console.log('Client disconnected:', socket.id);
+    });
+  });
+
+  // Internal endpoint to trigger real-time updates (called by Server Actions)
+  server.post('/api/notify-update', (req, res) => {
+    const { type, data } = req.body;
+    // Emit event to all connected clients
+    io.emit(type, data);
+    res.json({ success: true });
+  });
+
   // Parse JSON request bodies
   server.use(express.json());
-  
+
   // Serve static files from the Next.js build directory
   const staticPath = path.join(__dirname, '.next');
-  
+
   // Serve static files
   server.use('/_next/static', express.static(path.join(staticPath, 'static'), {
     maxAge: '1y',
@@ -74,16 +101,61 @@ app.prepare().then(() => {
 
   // Serve other static files
   server.use(express.static(staticPath));
-  
-  // API routes
+
+  // Get assets (list or summary)
   server.get('/api/assets', async (req, res) => {
+    console.log(`[API] GET /api/assets query=${JSON.stringify(req.query)}`);
     try {
+      if (req.query.summary === 'true') {
+        // Fetch summary stats
+        const assetStats = await pool.query('SELECT COUNT(*) as count, SUM(purchase_value) as value FROM assets');
+
+        // Fetch category stats
+        const catStats = await pool.query(`
+          SELECT c.name, COUNT(a.id) as count, SUM(a.purchase_value) as value 
+          FROM categories c 
+          LEFT JOIN assets a ON c.id = a.category_id 
+          GROUP BY c.id, c.name
+        `);
+
+        // Fetch recent assets
+        const recentAssets = await pool.query(`
+          SELECT a.id, a.name, a.purchase_value as "purchaseValue", a.purchase_date as "purchaseDate", c.name as category
+          FROM assets a
+          LEFT JOIN categories c ON a.category_id = c.id
+          ORDER BY a.created_at DESC
+          LIMIT 5
+        `);
+
+        return res.json({
+          summary: {
+            totalAssets: parseInt(assetStats.rows[0].count) || 0,
+            totalValue: parseFloat(assetStats.rows[0].value) || 0,
+            categories: catStats.rows.map(row => ({
+              name: row.name,
+              count: parseInt(row.count),
+              value: parseFloat(row.value) || 0
+            })),
+            recentAssets: recentAssets.rows
+          }
+        });
+      }
+
+      // Default List with pagination
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 1000;
+      const offset = (page - 1) * limit;
+
+      // Count total assets
+      const countResult = await pool.query('SELECT COUNT(*) FROM assets');
+      const total = parseInt(countResult.rows[0].count);
+      const totalPages = Math.ceil(total / limit);
+
       const { rows } = await pool.query(`
         SELECT 
           a.*, 
           c.id as category_id, 
           c.name as category_name,
-          c.default_useful_life_years,
           c.description as category_description,
           s.id as state_id,
           s.name as state_name,
@@ -94,9 +166,10 @@ app.prepare().then(() => {
         LEFT JOIN states s ON a.state_id = s.id
         LEFT JOIN lgas l ON a.lga_id = l.id
         ORDER BY a.name
-      `);
-      
-      res.json(rows.map(row => ({
+        LIMIT $1 OFFSET $2
+      `, [limit, offset]);
+
+      const assets = rows.map(row => ({
         id: row.id,
         name: row.name,
         purchaseDate: row.purchase_date,
@@ -110,7 +183,6 @@ app.prepare().then(() => {
         category: row.category_id ? {
           id: row.category_id,
           name: row.category_name,
-          defaultUsefulLifeYears: row.default_useful_life_years,
           description: row.category_description
         } : null,
         state: row.state_id ? {
@@ -125,8 +197,21 @@ app.prepare().then(() => {
         // Legacy fields for backward compatibility
         category_name: row.category_name,
         state_name: row.state_name,
-        lga_name: row.lga_name
-      })));
+        lga_name: row.lga_name,
+        // Verification Status
+        lastVerificationStatus: row.last_verification_status,
+        lastVerifiedAt: row.last_verified_at
+      }));
+
+      res.json({
+        data: assets,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages
+        }
+      });
     } catch (error) {
       console.error('Error fetching assets:', error);
       res.status(500).json({ error: 'Internal server error' });
@@ -142,7 +227,6 @@ app.prepare().then(() => {
           a.*, 
           c.id as category_id, 
           c.name as category_name,
-          c.default_useful_life_years,
           c.description as category_description,
           s.id as state_id,
           s.name as state_name,
@@ -154,11 +238,11 @@ app.prepare().then(() => {
         LEFT JOIN lgas l ON a.lga_id = l.id
         WHERE a.id = $1
       `, [id]);
-      
+
       if (rows.length === 0) {
         return res.status(404).json({ error: 'Asset not found' });
       }
-      
+
       const asset = rows[0];
       res.json({
         id: asset.id,
@@ -174,7 +258,6 @@ app.prepare().then(() => {
         category: asset.category_id ? {
           id: asset.category_id,
           name: asset.category_name,
-          defaultUsefulLifeYears: asset.default_useful_life_years,
           description: asset.category_description
         } : null,
         state: asset.state_id ? {
@@ -200,44 +283,43 @@ app.prepare().then(() => {
   // Create new asset
   server.post('/api/assets', async (req, res) => {
     const { name, purchaseDate, purchaseValue, salvageValue, usefulLife, category_id, state_id, lga_id } = req.body;
-    
+
     // Validate required fields
     if (!name || !purchaseDate || purchaseValue === undefined || !category_id) {
-      return res.status(400).json({ 
-        error: 'Missing required fields. Name, purchase date, purchase value, and category are required.' 
+      return res.status(400).json({
+        error: 'Missing required fields. Name, purchase date, purchase value, and category are required.'
       });
     }
-    
+
     try {
       // Start transaction
       await pool.query('BEGIN');
-      
+
       // Insert the new asset
       const { rows } = await pool.query(
         `INSERT INTO assets 
-         (name, purchase_date, purchase_value, salvage_value, useful_life, category_id, state_id, lga_id) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+         (name, purchase_date, purchase_value, current_value, salvage_value, useful_life, category_id, state_id, lga_id, updated_at) 
+         VALUES ($1, $2, $3, $3, $4, $5, $6, $7, $8, NOW()) 
          RETURNING *`,
         [
-          name, 
-          purchaseDate, 
-          parseFloat(purchaseValue) || 0, 
-          parseFloat(salvageValue) || 0, 
-          parseInt(usefulLife) || 5, 
+          name,
+          purchaseDate,
+          parseFloat(purchaseValue) || 0,
+          parseFloat(salvageValue) || 0,
+          parseInt(usefulLife) || 5,
           parseInt(category_id),
           state_id ? parseInt(state_id) : null,
           lga_id ? parseInt(lga_id) : null
         ]
       );
-      
+
       const newAsset = rows[0];
-      
+
       // Get the full asset data with relationships
       const { rows: [fullAsset] } = await pool.query(
         `SELECT 
            a.*, 
            c.name as category_name,
-           c.default_useful_life_years,
            c.description as category_description,
            s.name as state_name,
            l.name as lga_name
@@ -248,10 +330,10 @@ app.prepare().then(() => {
          WHERE a.id = $1`,
         [newAsset.id]
       );
-      
+
       // Commit transaction
       await pool.query('COMMIT');
-      
+
       // Return the full asset data
       res.status(201).json({
         id: fullAsset.id,
@@ -267,7 +349,6 @@ app.prepare().then(() => {
         category: fullAsset.category_id ? {
           id: fullAsset.category_id,
           name: fullAsset.category_name,
-          defaultUsefulLifeYears: fullAsset.default_useful_life_years,
           description: fullAsset.category_description
         } : null,
         state: fullAsset.state_id ? {
@@ -284,12 +365,12 @@ app.prepare().then(() => {
         state_name: fullAsset.state_name,
         lga_name: fullAsset.lga_name
       });
-      
+
     } catch (error) {
       // Rollback transaction on error
       await pool.query('ROLLBACK');
       console.error('Error creating asset:', error);
-      res.status(500).json({ error: 'Failed to create asset' });
+      res.status(500).json({ error: `Database Error: ${error.message}` });
     }
   });
 
@@ -300,7 +381,7 @@ app.prepare().then(() => {
     try {
       // Start transaction
       await pool.query('BEGIN');
-      
+
       // Update the asset
       const { rows } = await pool.query(
         `UPDATE assets 
@@ -308,18 +389,18 @@ app.prepare().then(() => {
          WHERE id = $9 
          RETURNING *`,
         [
-          name, 
-          parseFloat(purchaseValue) || 0, 
-          purchaseDate, 
-          parseInt(usefulLife) || 5, 
-          parseFloat(salvageValue) || 0, 
+          name,
+          parseFloat(purchaseValue) || 0,
+          purchaseDate,
+          parseInt(usefulLife) || 5,
+          parseFloat(salvageValue) || 0,
           parseInt(category_id),
           state_id ? parseInt(state_id) : null,
           lga_id ? parseInt(lga_id) : null,
           id
         ]
       );
-      
+
       if (rows.length === 0) {
         res.status(404).json({ message: 'Asset not found' });
       } else {
@@ -484,7 +565,7 @@ app.prepare().then(() => {
   server.post('/api/initialize-locations', async (req, res) => {
     try {
       await pool.query('BEGIN');
-      
+
       // Insert all 36 Nigerian states + FCT
       const states = [
         { id: 1, name: 'ABIA' },
@@ -525,14 +606,14 @@ app.prepare().then(() => {
         { id: 36, name: 'YOBE' },
         { id: 37, name: 'ZAMFARA' }
       ];
-      
+
       for (const state of states) {
         await pool.query(
           'INSERT INTO states (id, name) VALUES ($1, $2) ON CONFLICT (id) DO UPDATE SET name = $2',
           [state.id, state.name]
         );
       }
-      
+
       // Insert Sokoto LGAs from the provided data
       const sokotoLgas = [
         { id: 1, name: 'GUDU', state_id: 34 },
@@ -559,14 +640,14 @@ app.prepare().then(() => {
         { id: 22, name: 'TAMBUWAL', state_id: 34 },
         { id: 23, name: 'KEBBE', state_id: 34 }
       ];
-      
+
       for (const lga of sokotoLgas) {
         await pool.query(
           'INSERT INTO lgas (id, name, state_id) VALUES ($1, $2, $3) ON CONFLICT (id) DO UPDATE SET name = $2, state_id = $3',
           [lga.id, lga.name, lga.state_id]
         );
       }
-      
+
       await pool.query('COMMIT');
       res.json({ message: 'Nigerian states and Sokoto LGAs initialized successfully' });
     } catch (error) {
@@ -576,7 +657,7 @@ app.prepare().then(() => {
     }
   });
 
-    // In-memory cache for categories
+  // In-memory cache for categories
   const categoryCache = {
     data: null,
     lastUpdated: null,
@@ -596,7 +677,7 @@ app.prepare().then(() => {
     try {
       const { search, minLife, maxLife, parentId } = req.query;
       const cacheKey = JSON.stringify({ search, minLife, maxLife, parentId });
-      
+
       // Return cached data if available and not stale
       if (!categoryCache.isStale && categoryCache.data?.[cacheKey]) {
         return res.json(categoryCache.data[cacheKey]);
@@ -617,10 +698,10 @@ app.prepare().then(() => {
           FROM categories 
           WHERE 1=1
       `;
-      
+
       const queryParams = [];
       let paramIndex = 1;
-      
+
       // Add parent filter if specified
       if (parentId === 'null' || parentId === null || parentId === undefined) {
         query += ` AND parent_id IS NULL`;
@@ -628,24 +709,24 @@ app.prepare().then(() => {
         query += ` AND parent_id = $${paramIndex++}`;
         queryParams.push(parentId);
       }
-      
+
       // Add search filter if specified
       if (search) {
         query += ` AND to_tsvector('english', name || ' ' || COALESCE(description, '')) @@ plainto_tsquery($${paramIndex++})`;
         queryParams.push(search);
       }
-      
+
       // Add useful life filters if specified
       if (minLife) {
         query += ` AND default_useful_life_years >= $${paramIndex++}`;
         queryParams.push(parseInt(minLife));
       }
-      
+
       if (maxLife) {
         query += ` AND default_useful_life_years <= $${paramIndex++}`;
         queryParams.push(parseInt(maxLife));
       }
-      
+
       // Complete the recursive query
       query += `
         UNION ALL
@@ -663,12 +744,12 @@ app.prepare().then(() => {
         JOIN category_tree ct ON c.parent_id = ct.id
         WHERE 1=1
       `;
-      
+
       // Add search filter to recursive part if needed
       if (search) {
         query += ` AND to_tsvector('english', c.name || ' ' || COALESCE(c.description, '')) @@ plainto_tsquery($1)`;
       }
-      
+
       query += `
       )
       SELECT 
@@ -682,13 +763,13 @@ app.prepare().then(() => {
       FROM category_tree
       ORDER BY path;
       `;
-      
+
       const { rows } = await pool.query(query, queryParams);
-      
+
       // Build hierarchical structure
       const categoryMap = new Map();
       const rootCategories = [];
-      
+
       // First pass: create all nodes
       rows.forEach(cat => {
         const category = {
@@ -702,7 +783,7 @@ app.prepare().then(() => {
         };
         categoryMap.set(cat.id, category);
       });
-      
+
       // Second pass: build the tree
       rows.forEach(cat => {
         const category = categoryMap.get(cat.id);
@@ -715,24 +796,24 @@ app.prepare().then(() => {
           rootCategories.push(category);
         }
       });
-      
+
       const result = {
         flat: rows,
         hierarchical: rootCategories,
         timestamp: new Date().toISOString(),
         cacheHit: false
       };
-      
+
       // Update cache
       if (!categoryCache.data) categoryCache.data = {};
       categoryCache.data[cacheKey] = result;
       categoryCache.lastUpdated = Date.now();
-      
+
       res.json(result);
-      
+
     } catch (error) {
       console.error('Error fetching category hierarchy:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: 'Failed to load category hierarchy',
         details: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
@@ -744,9 +825,8 @@ app.prepare().then(() => {
     return handle(req, res);
   });
 
-  server.listen(3000, (err) => {
+  httpServer.listen(3000, (err) => {
     if (err) throw err;
     console.log('> Ready on http://localhost:3000');
   });
 });
-

@@ -5,7 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Button } from "@/components/ui/button"
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faList } from '@fortawesome/free-solid-svg-icons/faList'
+import { faList } from '@fortawesome/free-solid-svg-icons'
 import './globals.css';
 
 const banners = [

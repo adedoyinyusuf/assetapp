@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { z } from 'zod';
+import { UserRole } from '@/lib/auth/roles';
 
 // Input validation schemas
 const assetSchema = z.object({
@@ -42,15 +43,15 @@ function calculateCurrentValue(asset: {
   const purchaseDate = new Date(asset.purchaseDate);
   const now = new Date();
   const yearsElapsed = (now.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
-  
+
   if (asset.usefulLife <= 0) return asset.salvageValue;
-  
+
   const annualDepreciation = (asset.purchaseValue - asset.salvageValue) / asset.usefulLife;
   const totalDepreciation = Math.min(
     annualDepreciation * yearsElapsed,
     asset.purchaseValue - asset.salvageValue
   );
-  
+
   return Math.max(
     asset.purchaseValue - totalDepreciation,
     asset.salvageValue
@@ -138,7 +139,7 @@ export async function GET(req: Request) {
     // Format assets with calculated current values
     const formattedAssets = assets.map((asset) => {
       const currentValue = calculateCurrentValue(asset);
-      
+
       return {
         id: asset.id,
         name: asset.name,
@@ -148,7 +149,9 @@ export async function GET(req: Request) {
         usefulLife: asset.usefulLife,
         salvageValue: asset.salvageValue,
         currentValue,
-        status: 'ACTIVE', // Default status - can be enhanced later with actual status field
+        status: asset.status,
+        lastVerificationStatus: asset.lastVerificationStatus,
+        lastVerifiedAt: asset.lastVerifiedAt,
         category: asset.category,
         state: asset.state,
         lga: asset.lga,
@@ -181,6 +184,12 @@ export async function POST(req: Request) {
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Role verification
+    const allowedRoles = [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.OPERATOR];
+    if (!allowedRoles.includes(session.user.role as UserRole)) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
     const body = await req.json();

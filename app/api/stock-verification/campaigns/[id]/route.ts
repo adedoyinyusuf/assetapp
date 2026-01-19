@@ -49,21 +49,21 @@ export async function GET(
     });
   } catch (error: any) {
     console.error('Error fetching campaign:', error);
-    
+
     if (error.code === 'NOT_FOUND') {
       return NextResponse.json(
         { success: false, error: 'Campaign not found' },
         { status: 404 }
       );
     }
-    
+
     if (error.code === 'UNAUTHORIZED') {
       return NextResponse.json(
         { success: false, error: error.message },
         { status: 403 }
       );
     }
-    
+
     return NextResponse.json(
       { success: false, error: 'Failed to fetch campaign' },
       { status: 500 }
@@ -99,12 +99,12 @@ export async function PUT(
 
     // Parse request body
     const body = await request.json();
-    
+
     // Validate request data
     const validationResult = updateCampaignSchema.safeParse(body);
     if (!validationResult.success) {
       return NextResponse.json(
-        { 
+        {
           error: 'Validation failed',
           details: validationResult.error.issues
         },
@@ -113,9 +113,9 @@ export async function PUT(
     }
 
     // Get client info for audit logging
-    const ipAddress = request.headers.get('x-forwarded-for') || 
-                     request.headers.get('x-real-ip') || 
-                     'unknown';
+    const ipAddress = request.headers.get('x-forwarded-for') ||
+      request.headers.get('x-real-ip') ||
+      'unknown';
     const userAgent = request.headers.get('user-agent') || 'unknown';
 
     // Initialize service
@@ -140,47 +140,55 @@ export async function PUT(
     });
   } catch (error: any) {
     console.error('Error updating campaign:', error);
-    
+
     if (error instanceof ZodError) {
       return NextResponse.json(
-        { 
+        {
+          success: false,
           error: 'Validation failed',
           details: error.issues
         },
         { status: 400 }
       );
     }
-    
+
     if (error.code === 'NOT_FOUND') {
       return NextResponse.json(
-        { error: 'Campaign not found' },
+        { success: false, error: 'Campaign not found' },
         { status: 404 }
       );
     }
-    
+
     if (error.code === 'UNAUTHORIZED') {
       return NextResponse.json(
-        { error: error.message },
+        { success: false, error: error.message },
         { status: 403 }
       );
     }
-    
+
     if (error.code === 'VALIDATION_ERROR') {
       return NextResponse.json(
-        { error: error.message },
+        { success: false, error: error.message },
         { status: 400 }
       );
     }
-    
+
     if (error.message.includes('not found')) {
       return NextResponse.json(
-        { error: error.message },
+        { success: false, error: error.message },
         { status: 400 }
       );
     }
-    
+
+    if (error.code === 'CONFLICT') {
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 409 }
+      );
+    }
+
     return NextResponse.json(
-      { error: 'Failed to update campaign' },
+      { success: false, error: 'Failed to update campaign' },
       { status: 500 }
     );
   }
@@ -227,14 +235,14 @@ export async function DELETE(
     });
   } catch (error: any) {
     console.error('Error deleting campaign:', error);
-    
+
     if (error.code === 'NOT_FOUND') {
       return NextResponse.json(
         { success: false, error: 'Campaign not found' },
         { status: 404 }
       );
     }
-    
+
     if (error.code === 'UNAUTHORIZED') {
       return NextResponse.json(
         { success: false, error: error.message },
@@ -248,7 +256,7 @@ export async function DELETE(
         { status: 409 }
       );
     }
-    
+
     return NextResponse.json(
       { success: false, error: 'Failed to delete campaign' },
       { status: 500 }

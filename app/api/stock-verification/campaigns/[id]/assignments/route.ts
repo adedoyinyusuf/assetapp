@@ -2,8 +2,8 @@ import { NextRequest } from 'next/server';
 import { getSession } from '@/lib/auth/auth-utils';
 import { AssignmentService } from '@/lib/stock-verification/assignment-service';
 import { createAssignmentSchema } from '@/lib/stock-verification/validation';
-import { redis } from '@/lib/redis';
-const enabled = process.env.STOCK_VERIFICATION_RATE_LIMITING_ENABLED !== 'false';
+// import { redis } from '@/lib/redis';
+const enabled = false; // process.env.STOCK_VERIFICATION_RATE_LIMITING_ENABLED !== 'false';
 
 // =============================================================================
 // GET /api/stock-verification/campaigns/[id]/assignments
@@ -33,11 +33,13 @@ export async function GET(
     }
 
     // Per-IP rate limiting for campaign assignments list
+    // Per-IP rate limiting for campaign assignments list
+    /*
     if (enabled) {
       try {
         const ip = request.headers.get('x-forwarded-for')?.split(',')[0] ||
-                   request.headers.get('x-real-ip') ||
-                   'unknown';
+          request.headers.get('x-real-ip') ||
+          'unknown';
         const limit = Number(process.env.SV_CAMPAIGN_ASSIGNMENTS_GET_RATE_LIMIT_PER_MINUTE || '120');
         const key = `sv:campaign:${campaignId}:assignments:get:${ip}`;
         const count = await redis.incr(key);
@@ -48,8 +50,9 @@ export async function GET(
             { status: 429 }
           );
         }
-      } catch (_) { /* skip if redis unavailable */ }
+      } catch (_) { // skip if redis unavailable }
     }
+    */
 
     // Initialize service
     const assignmentService = new AssignmentService();
@@ -122,21 +125,23 @@ export async function POST(
 
     if (!validationResult.success) {
       return Response.json(
-        { 
-          success: false, 
+        {
+          success: false,
           error: 'Validation failed',
-          details: validationResult.error.errors 
+          details: validationResult.error.errors
         },
         { status: 400 }
       );
     }
 
     // Per-IP rate limiting for assignment creation
+    // Per-IP rate limiting for assignment creation
+    /*
     if (enabled) {
       try {
         const ip = request.headers.get('x-forwarded-for')?.split(',')[0] ||
-                   request.headers.get('x-real-ip') ||
-                   'unknown';
+          request.headers.get('x-real-ip') ||
+          'unknown';
         const limit = Number(process.env.SV_CAMPAIGN_ASSIGNMENTS_POST_RATE_LIMIT_PER_MINUTE || '60');
         const key = `sv:campaign:${campaignId}:assignments:post:${ip}`;
         const count = await redis.incr(key);
@@ -147,13 +152,14 @@ export async function POST(
             { status: 429 }
           );
         }
-      } catch (_) { /* skip if redis unavailable */ }
+      } catch (_) { // skip if redis unavailable }
     }
+    */
 
     // Get IP and User-Agent for audit log
-    const ipAddress = request.headers.get('x-forwarded-for')?.split(',')[0] || 
-                     request.headers.get('x-real-ip') || 
-                     'unknown';
+    const ipAddress = request.headers.get('x-forwarded-for')?.split(',')[0] ||
+      request.headers.get('x-real-ip') ||
+      'unknown';
     const userAgent = request.headers.get('user-agent') || 'unknown';
 
     // Initialize service
@@ -194,8 +200,8 @@ export async function POST(
       );
     }
 
-    if (error.message?.includes('already assigned') || 
-        error.message?.includes('Cannot assign users')) {
+    if (error.message?.includes('already assigned') ||
+      error.message?.includes('Cannot assign users')) {
       return Response.json(
         { success: false, error: error.message },
         { status: 409 }
@@ -210,7 +216,7 @@ export async function POST(
     }
 
     return Response.json(
-      { success: false, error: 'Failed to create assignment' },
+      { success: false, error: 'Failed to create assignment', details: error.message, stack: error.stack },
       { status: 500 }
     );
   }

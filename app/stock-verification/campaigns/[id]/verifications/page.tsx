@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { toast } from 'react-toastify';
+import { useSession } from 'next-auth/react';
 
 interface AssetVerification {
   id: number;
@@ -27,7 +28,7 @@ interface AssetVerification {
     state: {
       name: string;
     };
-    lGA: {
+    lga: {
       name: string;
     };
   };
@@ -128,6 +129,11 @@ export default function CampaignVerificationsPage() {
   const [selectedVerifications, setSelectedVerifications] = useState<number[]>([]);
   const [bulkActionLoading, setBulkActionLoading] = useState(false);
 
+  const { data: session } = useSession();
+  const userRole = session?.user?.role;
+  // Define roles that have management capabilities
+  const isManagerial = ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'TEAM_LEADER'].includes(userRole || '');
+
   const fetchCampaign = async () => {
     try {
       const response = await fetch(`/api/stock-verification/campaigns/${campaignId}`);
@@ -160,13 +166,13 @@ export default function CampaignVerificationsPage() {
       });
 
       const response = await fetch(`/api/stock-verification/campaigns/${campaignId}/verifications?${params}`);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
-      
+
       if (data.success) {
         setVerifications(data.data);
         setCurrentPage(data.pagination.page);
@@ -198,7 +204,7 @@ export default function CampaignVerificationsPage() {
 
     try {
       setBulkActionLoading(true);
-      
+
       const response = await fetch(`/api/stock-verification/campaigns/${campaignId}/verifications/bulk-action`, {
         method: 'POST',
         headers: {
@@ -211,7 +217,7 @@ export default function CampaignVerificationsPage() {
       });
 
       const data = await response.json();
-      
+
       if (data.success) {
         toast.success(`Bulk ${action} completed successfully`);
         setSelectedVerifications([]);
@@ -236,7 +242,7 @@ export default function CampaignVerificationsPage() {
   };
 
   const handleSelectVerification = (verificationId: number) => {
-    setSelectedVerifications(prev => 
+    setSelectedVerifications(prev =>
       prev.includes(verificationId)
         ? prev.filter(id => id !== verificationId)
         : [...prev, verificationId]
@@ -300,6 +306,8 @@ export default function CampaignVerificationsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+
         {/* Header */}
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
@@ -328,14 +336,25 @@ export default function CampaignVerificationsPage() {
                 Manage asset verifications for {campaign?.name}
               </p>
             </div>
-            
+
             <div className="flex gap-3 mt-4 sm:mt-0">
               <button
-                onClick={() => router.push(`/stock-verification/campaigns/${campaignId}/assignments`)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                onClick={() => router.push(`/stock-verification/verifications/new?campaignId=${campaignId}`)}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 shadow-sm"
               >
-                👥 Assignments
+                <span>➕</span>
+                New Verification
               </button>
+
+              {isManagerial && (
+                <button
+                  onClick={() => router.push(`/stock-verification/campaigns/${campaignId}/assignments`)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                >
+                  👥 Assignments
+                </button>
+              )}
+
               <button
                 onClick={() => router.push(`/stock-verification/campaigns/${campaignId}`)}
                 className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
@@ -518,8 +537,8 @@ export default function CampaignVerificationsPage() {
             </div>
           ) : (
             <>
-              {/* Table Header */}
-              <div className="bg-gray-50 px-6 py-3 border-b">
+              {/* Table Header - Hidden on Mobile */}
+              <div className="hidden md:block bg-gray-50 px-6 py-3 border-b">
                 <div className="grid grid-cols-12 gap-4 text-sm font-medium text-gray-700">
                   <div className="col-span-1">
                     <input
@@ -543,29 +562,39 @@ export default function CampaignVerificationsPage() {
                 {verifications.map((verification) => (
                   <div
                     key={verification.id}
-                    className={`px-6 py-4 hover:bg-gray-50 transition-colors ${
-                      selectedVerifications.includes(verification.id) ? 'bg-blue-50' : ''
-                    }`}
+                    className={`px-6 py-4 hover:bg-gray-50 transition-colors ${selectedVerifications.includes(verification.id) ? 'bg-blue-50' : ''
+                      }`}
                   >
-                    <div className="grid grid-cols-12 gap-4 items-center">
-                      {/* Checkbox */}
-                      <div className="col-span-1">
+                    <div className="flex flex-col md:grid md:grid-cols-12 gap-4 items-start md:items-center">
+                      {/* Checkbox - Always Visible */}
+                      <div className="flex items-center justify-between w-full md:w-auto md:col-span-1 border-b md:border-none pb-2 md:pb-0 mb-2 md:mb-0">
                         <input
                           type="checkbox"
                           checked={selectedVerifications.includes(verification.id)}
                           onChange={() => handleSelectVerification(verification.id)}
                           className="rounded border-gray-300"
                         />
+                        {/* Mobile-only status badge for quick glance */}
+                        <span className="md:hidden inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                          ID: {verification.asset.id}
+                        </span>
                       </div>
 
                       {/* Asset Info */}
-                      <div className="col-span-3">
-                        <div className="font-medium text-gray-900">{verification.asset.name}</div>
+                      <div className="md:col-span-3 w-full">
+                        <div className="font-medium text-gray-900 flex items-center justify-between">
+                          {verification.asset.name}
+                          <span className="md:hidden text-xs text-gray-500">{verification.asset.category.name}</span>
+                        </div>
                         <div className="text-sm text-gray-600">
                           {verification.asset.serialNumber && `SN: ${verification.asset.serialNumber}`}
                         </div>
-                        <div className="text-xs text-gray-500">
-                          {verification.asset.category.name} • {verification.asset.state.name}, {verification.asset.lGA.name}
+                        <div className="text-xs text-gray-500 hidden md:block">
+                          {verification.asset.category.name} • {verification.asset.state.name}, {verification.asset.lga.name}
+                        </div>
+                        {/* Mobile Location */}
+                        <div className="text-xs text-gray-500 md:hidden">
+                          {verification.asset.state.name}, {verification.asset.lga.name}
                         </div>
                         {verification.asset.currentValue && (
                           <div className="text-xs text-green-600 font-medium">
@@ -575,23 +604,27 @@ export default function CampaignVerificationsPage() {
                       </div>
 
                       {/* Status */}
-                      <div className="col-span-2">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[verification.status]}`}>
-                          <span className="mr-1">{statusIcons[verification.status]}</span>
-                          {verification.status.replace(/_/g, ' ')}
-                        </span>
-                        {!verification.locationAccurate && (
-                          <div className="text-xs text-orange-600 mt-1">📍 Location Issue</div>
-                        )}
-                        {verification.discrepancies.length > 0 && (
-                          <div className="text-xs text-red-600 mt-1">
-                            ⚠️ {verification.discrepancies.length} discrepanc{verification.discrepancies.length > 1 ? 'ies' : 'y'}
-                          </div>
-                        )}
+                      <div className="md:col-span-2 w-full flex flex-row md:flex-col items-center justify-between md:items-start">
+                        <span className="md:hidden text-xs text-gray-500 font-medium">Status:</span>
+                        <div className="text-right md:text-left">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[verification.status]}`}>
+                            <span className="mr-1">{statusIcons[verification.status]}</span>
+                            {verification.status.replace(/_/g, ' ')}
+                          </span>
+                          {!verification.locationAccurate && (
+                            <div className="text-xs text-orange-600 mt-1">📍 Location Issue</div>
+                          )}
+                          {verification.discrepancies.length > 0 && (
+                            <div className="text-xs text-red-600 mt-1">
+                              ⚠️ {verification.discrepancies.length} discrepanc{verification.discrepancies.length > 1 ? 'ies' : 'y'}
+                            </div>
+                          )}
+                        </div>
                       </div>
 
                       {/* Priority */}
-                      <div className="col-span-1">
+                      <div className="md:col-span-1 w-full flex flex-row md:flex-col items-center justify-between md:items-start">
+                        <span className="md:hidden text-xs text-gray-500 font-medium">Priority:</span>
                         {verification.priority ? (
                           <span className={`text-sm font-medium ${priorityColors[verification.priority]}`}>
                             {verification.priority}
@@ -602,59 +635,65 @@ export default function CampaignVerificationsPage() {
                       </div>
 
                       {/* Condition */}
-                      <div className="col-span-2">
-                        {verification.physicalCondition ? (
-                          <span className={`text-sm font-medium ${conditionColors[verification.physicalCondition]}`}>
-                            {verification.physicalCondition}
-                          </span>
-                        ) : (
-                          <span className="text-gray-400 text-sm">Not assessed</span>
-                        )}
-                        {verification.photoUrls.length > 0 && (
-                          <div className="text-xs text-blue-600 mt-1">
-                            📸 {verification.photoUrls.length} photo{verification.photoUrls.length > 1 ? 's' : ''}
-                          </div>
-                        )}
-                        {verification.verificationDuration && (
-                          <div className="text-xs text-gray-500 mt-1">
-                            ⏱️ {formatDuration(verification.verificationDuration)}
-                          </div>
-                        )}
+                      <div className="md:col-span-2 w-full flex flex-row md:flex-col items-center justify-between md:items-start">
+                        <span className="md:hidden text-xs text-gray-500 font-medium">Condition:</span>
+                        <div className="text-right md:text-left">
+                          {verification.physicalCondition ? (
+                            <span className={`text-sm font-medium ${conditionColors[verification.physicalCondition]}`}>
+                              {verification.physicalCondition}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400 text-sm">Not assessed</span>
+                          )}
+                          {verification.photoUrls.length > 0 && (
+                            <div className="text-xs text-blue-600 mt-1">
+                              📸 {verification.photoUrls.length} photo{verification.photoUrls.length > 1 ? 's' : ''}
+                            </div>
+                          )}
+                          {verification.verificationDuration && (
+                            <div className="text-xs text-gray-500 mt-1">
+                              ⏱️ {formatDuration(verification.verificationDuration)}
+                            </div>
+                          )}
+                        </div>
                       </div>
 
                       {/* Verifier */}
-                      <div className="col-span-2 text-sm">
-                        {verification.verifier ? (
-                          <>
-                            <div className="text-gray-900">
-                              {verification.verifier.firstName} {verification.verifier.lastName}
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {verification.verifier.email}
-                            </div>
-                          </>
-                        ) : (
-                          <span className="text-orange-600 font-medium">Unassigned</span>
-                        )}
+                      <div className="md:col-span-2 text-sm w-full flex flex-row md:flex-col items-center justify-between md:items-start">
+                        <span className="md:hidden text-xs text-gray-500 font-medium">Verifier:</span>
+                        <div className="text-right md:text-left">
+                          {verification.verifier ? (
+                            <>
+                              <div className="text-gray-900">
+                                {verification.verifier.firstName} {verification.verifier.lastName}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {verification.verifier.email}
+                              </div>
+                            </>
+                          ) : (
+                            <span className="text-orange-600 font-medium">Unassigned</span>
+                          )}
+                        </div>
                       </div>
 
                       {/* Actions */}
-                      <div className="col-span-1">
-                        <div className="flex gap-1">
+                      <div className="md:col-span-1 w-full flex justify-end md:justify-start pt-2 md:pt-0 border-t md:border-none">
+                        <div className="flex gap-4 md:gap-1">
                           <button
                             onClick={() => router.push(`/stock-verification/verifications/${verification.id}`)}
-                            className="text-green-600 hover:text-green-800 text-sm font-medium"
+                            className="text-green-600 hover:text-green-800 text-sm font-medium flex items-center md:block"
                             title="View Details"
                           >
-                            👁️
+                            <span className="md:hidden mr-1">View</span> 👁️
                           </button>
                           {verification.status === 'PENDING' && (
                             <button
                               onClick={() => router.push(`/stock-verification/verifications/${verification.id}/edit`)}
-                              className="text-blue-600 hover:text-blue-800 text-sm font-medium ml-2"
+                              className="text-blue-600 hover:text-blue-800 text-sm font-medium ml-2 flex items-center md:block"
                               title="Edit"
                             >
-                              ✏️
+                              <span className="md:hidden mr-1">Edit</span> ✏️
                             </button>
                           )}
                         </div>

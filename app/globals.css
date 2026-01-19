@@ -26,7 +26,7 @@
     --popover-foreground: 222 47% 11%;
     
     /* AssetHub primary brand colors - Enhanced */
-    --primary: 163 72% 41%;
+    --primary: 148 100% 15%;
     --primary-foreground: 0 0% 100%;
     
     /* Secondary neutral colors */
@@ -54,10 +54,10 @@
     /* Form and interaction elements */
     --border: 214 32% 91%;
     --input: 214 32% 91%;
-    --ring: 163 72% 41%;
+    --ring: 148 100% 15%;
     
     /* Chart colors for data visualization */
-    --chart-1: 163 72% 41%;
+    --chart-1: 148 100% 15%;
     --chart-2: 199 89% 48%;
     --chart-3: 142 76% 36%;
     --chart-4: 38 92% 50%;
@@ -82,8 +82,9 @@
     --popover-foreground: 210 40% 98%;
     
     /* AssetHub primary - adapted for dark mode */
-    --primary: 163 72% 50%;
-    --primary-foreground: 163 72% 10%;
+    /* AssetHub primary - adapted for dark mode */
+    --primary: 148 100% 30%;
+    --primary-foreground: 148 100% 95%;
     
     /* Secondary colors - adapted for dark mode */
     --secondary: 217 33% 18%;
@@ -110,10 +111,10 @@
     /* Form and interaction elements - adapted for dark mode */
     --border: 217 33% 18%;
     --input: 217 33% 18%;
-    --ring: 163 72% 50%;
+    --ring: 148 100% 30%;
     
     /* Chart colors for data visualization - adapted for dark mode */
-    --chart-1: 163 72% 50%;
+    --chart-1: 148 100% 30%;
     --chart-2: 199 89% 58%;
     --chart-3: 142 76% 46%;
     --chart-4: 38 92% 60%;

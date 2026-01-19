@@ -1,3 +1,4 @@
+
 import { AssetVerification, AssetVerificationStatus, PhysicalCondition, Prisma } from '@prisma/client';
 import { BaseService, PaginatedResponse, NotFoundError, UnauthorizedError, ValidationError, ConflictError } from './base-service';
 import { CreateVerificationsRequest, UpdateVerificationRequest, VerificationQueryParams, PhotoUploadRequest, validateFileSize, validateImageType } from './validation';
@@ -5,6 +6,7 @@ import { generateUniqueFileName, formatFileSize, validateImageDimensions } from 
 import { writeFile, mkdir, unlink } from 'fs/promises';
 import { join } from 'path';
 import { existsSync } from 'fs';
+import { headers } from 'next/headers'; // Added import for headers
 
 // =============================================================================
 // ASSET VERIFICATION SERVICE CLASS
@@ -84,7 +86,7 @@ export class VerificationService extends BaseService {
 
       if (alreadyVerified.length > 0) {
         throw new ConflictError(
-          `Assets already verified: ${alreadyVerified.map(a => a.name).join(', ')}`
+          `Assets already verified: ${alreadyVerified.map(a => a.name).join(', ')} `
         );
       }
 
@@ -169,6 +171,176 @@ export class VerificationService extends BaseService {
   }
 
   /**
+   * Submit a single verification with optional side effects
+   */
+  async submitVerification(
+    data: import('./validation').SubmitVerificationRequest,
+    userId: number,
+    ipAddress?: string,
+    userAgent?: string
+  ): Promise<AssetVerificationWithDetails> {
+    try {
+      // Check permission
+      const hasPermission = await this.checkUserAccess(userId, 'verification', 'create');
+      if (!hasPermission) {
+        throw new UnauthorizedError('Insufficient permissions to submit verification');
+      }
+
+      // Resolve Asset ID from QR if needed
+      let assetId = data.assetId;
+      if (!assetId && data.qrCode) {
+        const extractedId = this.extractAssetIdFromQR(data.qrCode);
+        if (extractedId) {
+          assetId = extractedId;
+        } else {
+          // Fallback: try to find by serial number
+          const asset = await this.db.asset.findFirst({
+            where: { serialNumber: data.qrCode }
+          });
+          if (asset) assetId = asset.id;
+        }
+      }
+
+      if (!assetId) {
+        throw new ValidationError('Asset could not be identified');
+      }
+
+      // Validate Asset Exists
+      const asset = await this.db.asset.findUnique({ where: { id: assetId } });
+      if (!asset) {
+        throw new NotFoundError('Asset not found');
+      }
+
+      // Validate Campaign
+      const campaign = await this.db.verificationCampaign.findUnique({
+        where: { id: data.campaignId },
+        include: { assignments: { where: { userId } } }
+      });
+
+      if (!campaign) throw new NotFoundError('Campaign not found');
+      if (campaign.status !== 'ACTIVE') throw new ValidationError('Campaign is not active');
+
+      // Strict assignment check can be optional depending on requirements, but generally good
+      if (campaign.assignments.length === 0) {
+        // Check if user is maybe an admin or campaign creator? 
+        // For now adhere to assignment rule or check if user created it (if creator allowed to verify)
+        const isCreator = campaign.createdBy === userId;
+        if (!isCreator) {
+          throw new UnauthorizedError('User is not assigned to this campaign');
+        }
+      }
+
+      // Determine Status
+      let status: import('@prisma/client').AssetVerificationStatus = 'VERIFIED';
+      if (data.physicalCondition === 'MISSING') {
+        status = 'MISSING';
+      } else if (data.physicalCondition === 'DAMAGED') {
+        status = 'DAMAGED';
+      } else if (!data.locationAccurate || ['POOR', 'DAMAGED'].includes(data.physicalCondition)) {
+        status = 'DISCREPANCY_FOUND';
+      }
+
+      // Execute in Transaction
+      const result = await this.db.$transaction(async (tx) => {
+        // Create Verification
+        const verification = await tx.assetVerification.create({
+          data: {
+            campaignId: data.campaignId,
+            assetId: assetId!,
+            verifierId: userId,
+            status,
+            physicalCondition: data.physicalCondition,
+            locationAccurate: data.locationAccurate,
+            notes: data.notes,
+            photoUrls: data.photoUrls || [],
+            coordinates: data.coordinates,
+            verificationDate: new Date(),
+          },
+          include: {
+            asset: { select: { id: true, name: true, category: true, state: true, lga: true } },
+            verifier: { select: { id: true, firstName: true, lastName: true, email: true } },
+            campaign: { select: { id: true, name: true, status: true } }
+          }
+        });
+
+        // Update Campaign Counts
+        await tx.verificationCampaign.update({
+          where: { id: data.campaignId },
+          data: {
+            actualAssetCount: { increment: 1 }
+          }
+        });
+
+        // Create Discrepancy if needed
+        if (status === 'DISCREPANCY_FOUND' && data.createDiscrepancy) {
+          await tx.verificationDiscrepancy.create({
+            data: {
+              verificationId: verification.id,
+              reportedBy: userId,
+              discrepancyType: !data.locationAccurate ? 'LOCATION_MISMATCH' : 'CONDITION_DISCREPANCY',
+              description: data.notes || 'Discrepancy found during verification',
+              severity: data.physicalCondition === 'POOR' ? 'HIGH' : 'MEDIUM',
+              status: 'REPORTED'
+            }
+          });
+        }
+
+        // Create Maintenance Request if needed
+        if (status === 'DAMAGED' && data.createMaintenance) {
+          await tx.maintenanceRequest.create({
+            data: {
+              assetId: assetId!,
+              requestedBy: userId,
+              title: `Verification: Asset Damaged`,
+              description: data.notes || 'Asset found damaged during verification',
+              priority: data.physicalCondition === 'DAMAGED' ? 'HIGH' : 'MEDIUM',
+              status: 'PENDING'
+            }
+          });
+        }
+
+        // Update Asset Last Verification Status
+        await tx.asset.update({
+          where: { id: assetId! },
+          data: {
+            lastVerificationStatus: status,
+            lastVerifiedAt: new Date(),
+            // Optionally update the main status if it's a critical issue
+            ...(status === 'MISSING' ? { status: 'MISSING' } : {}),
+            ...(status === 'DAMAGED' ? { status: 'MAINTENANCE' } : {}),
+          }
+        });
+
+        return verification;
+      });
+
+      // Audit Log
+      await this.createAuditLog(
+        userId,
+        'CREATE_VERIFICATION',
+        'AssetVerification',
+        result.id,
+        null,
+        result,
+        ipAddress,
+        userAgent
+      );
+
+
+      // Trigger real-time update (fire and forget)
+      this.notifyDashboard('verification:new', {
+        campaignId: data.campaignId,
+        verificationId: result.id
+      }).catch(err => console.error('Failed to notify dashboard:', err));
+
+      return result;
+
+    } catch (error) {
+      this.handleError(error, 'VerificationService.submitVerification');
+    }
+  }
+
+  /**
  * Get paginated verifications
  */
   async getVerifications(
@@ -201,7 +373,11 @@ export class VerificationService extends BaseService {
         ...(filters.search && {
           OR: [
             { asset: { name: { contains: filters.search, mode: 'insensitive' } } },
+            { asset: { serialNumber: { contains: filters.search, mode: 'insensitive' } } },
             { notes: { contains: filters.search, mode: 'insensitive' } },
+            { verifier: { firstName: { contains: filters.search, mode: 'insensitive' } } },
+            { verifier: { lastName: { contains: filters.search, mode: 'insensitive' } } },
+            { verifier: { email: { contains: filters.search, mode: 'insensitive' } } },
           ],
         }),
       };
@@ -227,6 +403,7 @@ export class VerificationService extends BaseService {
               select: {
                 id: true,
                 name: true,
+                serialNumber: true,
                 category: true,
                 state: true,
                 lga: true,
@@ -370,7 +547,7 @@ export class VerificationService extends BaseService {
 
       // Validate status transitions
       if (data.status && !this.isValidStatusTransition(existingVerification.status, data.status)) {
-        throw new ValidationError(`Invalid status transition from ${existingVerification.status} to ${data.status}`);
+        throw new ValidationError(`Invalid status transition from ${existingVerification.status} to ${data.status} `);
       }
 
       // Update verification
@@ -433,6 +610,49 @@ export class VerificationService extends BaseService {
         ipAddress,
         userAgent
       );
+
+      // =========================================================================
+      // ASSET LIFECYCLE SYNC
+      // Automatically update asset status based on verification outcome
+      // =========================================================================
+
+      if (updatedVerification.assetId) {
+        const assetUpdateData: any = {};
+
+        // Always update last verification info
+        if (['VERIFIED', 'APPROVED'].includes(updatedVerification.status)) {
+          assetUpdateData.lastVerifiedAt = new Date();
+          assetUpdateData.lastVerificationStatus = updatedVerification.status;
+        }
+
+        // Handle Status Transitions
+        if (updatedVerification.status === 'MISSING' || updatedVerification.physicalCondition === 'MISSING') {
+          assetUpdateData.status = 'MISSING';
+        } else if (updatedVerification.status === 'DAMAGED' || updatedVerification.physicalCondition === 'DAMAGED') {
+          assetUpdateData.status = 'MAINTENANCE';
+        }
+
+        if (Object.keys(assetUpdateData).length > 0) {
+          await this.db.asset.update({
+            where: { id: updatedVerification.assetId },
+            data: assetUpdateData
+          });
+
+          // If status changed to MISSING or MAINTENANCE, log it
+          if (assetUpdateData.status) {
+            await this.createAuditLog(
+              userId,
+              'UPDATE_ASSET_STATUS_FROM_VERIFICATION',
+              'Asset',
+              updatedVerification.assetId,
+              { triggeredBy: verificationId },
+              { status: assetUpdateData.status },
+              ipAddress,
+              userAgent
+            );
+          }
+        }
+      }
 
       return updatedVerification;
     } catch (error) {
@@ -535,7 +755,7 @@ export class VerificationService extends BaseService {
             try {
               await unlink(join(this.uploadPath, fileName));
             } catch (cleanupError) {
-              console.error(`Failed to clean up file ${fileName}:`, cleanupError);
+              console.error(`Failed to clean up file ${fileName}: `, cleanupError);
             }
           })
         );
@@ -728,6 +948,26 @@ export class VerificationService extends BaseService {
       return parsed.assetId || parsed.id || null;
     } catch {
       return null;
+    }
+  }
+
+
+  /**
+ * Helper to notify the dashboard via internal API
+ */
+  private async notifyDashboard(type: string, payload: any) {
+    try {
+      // We need absolute URL since this runs on server
+      const host = headers().get('host') || 'localhost:3000';
+      const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+
+      await fetch(`${protocol}://${host}/api/notify-update`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type, data: payload })
+      });
+    } catch (error) {
+      console.error('Socket notification error:', error);
     }
   }
 }

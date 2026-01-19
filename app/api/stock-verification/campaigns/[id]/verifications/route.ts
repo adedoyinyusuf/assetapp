@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { getSession } from '@/lib/auth/auth-utils';
 import { prisma } from '@/lib/prisma';
-import { redis } from '@/lib/redis';
+// import { redis } from '@/lib/redis';
 const enabled = process.env.STOCK_VERIFICATION_RATE_LIMITING_ENABLED !== 'false';
 
 // =============================================================================
@@ -56,6 +56,7 @@ export async function GET(
     const skip = (page - 1) * limit;
 
     // Per-IP rate limiting for campaign verifications list
+    /*
     if (enabled) {
       try {
         const ip = request.headers.get('x-forwarded-for')?.split(',')[0] ||
@@ -71,8 +72,9 @@ export async function GET(
             { status: 429 }
           );
         }
-      } catch (_) { /* skip if redis unavailable */ }
+      } catch (_) { // skip if redis unavailable }
     }
+    */
 
     // Build where clause
     const where: any = {
@@ -193,7 +195,7 @@ export async function GET(
   } catch (error: any) {
     console.error('Error fetching campaign verifications:', error);
     return Response.json(
-      { success: false, error: 'Failed to fetch campaign verifications' },
+      { success: false, error: 'Failed to fetch campaign verifications', details: error.message, stack: error.stack },
       { status: 500 }
     );
   }

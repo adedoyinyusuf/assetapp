@@ -278,7 +278,11 @@ npm run test:watch
 ## 📚 Documentation
 
 ### Available Documentation
+- **Quick Start Guide**: `docs/QUICK_START_GUIDE.md`
 - **Development Guide**: `docs/DEVELOPMENT.md`
+- **Stock Verification**: `docs/STOCK_VERIFICATION_QUICKSTART.md`
+- **Material 3 Design**: `docs/MATERIAL3_QUICKSTART.md`
+- **Warp Terminal**: `docs/WARP.md`
 - **API Documentation**: Comprehensive API reference
 - **User Manual**: End-user documentation
 - **Admin Guide**: Administrative functions guide

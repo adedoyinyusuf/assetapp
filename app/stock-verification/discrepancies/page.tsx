@@ -2,9 +2,43 @@ import { db } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth/auth-options";
 
 export default async function DiscrepanciesPage() {
+    const session = await getServerSession(authOptions);
+    let accessFilter: any = {};
+
+    if (session?.user?.email) {
+        const user = await db.user.findUnique({
+            where: { email: session.user.email },
+            include: { role: true }
+        });
+
+        if (user) {
+            const roleName = user.role.name.toUpperCase();
+            if (!['SUPER_ADMIN', 'SUPERADMIN'].includes(roleName)) {
+                // Cast to any for dynamic properties
+                const userAny = user as any;
+                if (userAny.lgaId) {
+                    accessFilter = {
+                        verification: {
+                            asset: { lgaId: userAny.lgaId }
+                        }
+                    };
+                } else if (userAny.stateId) {
+                    accessFilter = {
+                        verification: {
+                            asset: { stateId: userAny.stateId }
+                        }
+                    };
+                }
+            }
+        }
+    }
+
     const discrepancies = await db.verificationDiscrepancy.findMany({
+        where: accessFilter,
         include: {
             verification: {
                 include: {
@@ -45,8 +79,8 @@ export default async function DiscrepanciesPage() {
     const stats = {
         total: discrepancies.length,
         reported: discrepancies.filter(d => d.status === 'REPORTED').length,
-        assigned: discrepancies.filter(d => d.status === 'ASSIGNED').length,
-        inProgress: discrepancies.filter(d => d.status === 'IN_PROGRESS').length,
+        investigating: discrepancies.filter(d => d.status === 'INVESTIGATING').length,
+        pendingApproval: discrepancies.filter(d => d.status === 'PENDING_APPROVAL').length,
         resolved: discrepancies.filter(d => d.status === 'RESOLVED').length,
     };
 
@@ -57,13 +91,14 @@ export default async function DiscrepanciesPage() {
         CRITICAL: 'bg-red-100 text-red-800',
     };
 
-    const statusColors = {
+    const statusColors: Record<string, string> = {
         REPORTED: 'bg-gray-100 text-gray-800',
-        ASSIGNED: 'bg-blue-100 text-blue-800',
-        IN_PROGRESS: 'bg-yellow-100 text-yellow-800',
-        PENDING_REVIEW: 'bg-purple-100 text-purple-800',
+        ACKNOWLEDGED: 'bg-blue-100 text-blue-800',
+        INVESTIGATING: 'bg-yellow-100 text-yellow-800',
+        PENDING_APPROVAL: 'bg-purple-100 text-purple-800',
+        APPROVED: 'bg-green-100 text-green-800',
         RESOLVED: 'bg-green-100 text-green-800',
-        REJECTED: 'bg-red-100 text-red-800',
+        CLOSED: 'bg-gray-500 text-white',
         ESCALATED: 'bg-orange-100 text-orange-800',
     };
 
@@ -94,18 +129,18 @@ export default async function DiscrepanciesPage() {
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Assigned</CardTitle>
+                        <CardTitle className="text-sm font-medium">Investigating</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-blue-600">{stats.assigned}</div>
+                        <div className="text-2xl font-bold text-blue-600">{stats.investigating}</div>
                     </CardContent>
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">In Progress</CardTitle>
+                        <CardTitle className="text-sm font-medium">Pending Review</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-yellow-600">{stats.inProgress}</div>
+                        <div className="text-2xl font-bold text-yellow-600">{stats.pendingApproval}</div>
                     </CardContent>
                 </Card>
                 <Card>

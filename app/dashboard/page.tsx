@@ -22,7 +22,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import Link from 'next/link';
-import { UserRole } from '@/lib/auth/roles'
+import { UserRole } from '@/lib/auth/roles';
+import { useVerificationSocket } from '@/lib/websocket/verification-socket';
+import { ConnectionStatus } from '@/components/ui/connection-status'
 
 interface DashboardData {
   totalAssets: number;
@@ -40,6 +42,7 @@ interface DashboardData {
     };
     purchaseValue: number;
     purchaseDate: string;
+    lastVerificationStatus?: string;
   }>;
   assetMovements: number;
   categories: number;
@@ -67,6 +70,10 @@ export default function DashboardPage() {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
+  const [error, setError] = useState<string | null>(null);
+
+  // WebSocket for real-time updates
+  const { isConnected, subscribeToVerifications } = useVerificationSocket();
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -76,28 +83,65 @@ export default function DashboardPage() {
     }
   }, [session, status, router]);
 
+  // Subscribe to real-time verification events
+  useEffect(() => {
+    if (!dashboardData) return;
+
+    const unsubscribe = subscribeToVerifications((event) => {
+      // Show toast notification for new verifications
+      if (event.type === 'created') {
+        toast.success(`New verification: ${event.assetName} by ${event.verifiedBy}`);
+      }
+
+      // Update dashboard data
+      setDashboardData(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          totalAssets: event.type === 'created' ? prev.totalAssets + 1 : prev.totalAssets
+        };
+      });
+
+      // Refresh dashboard data to get latest stats
+      fetchDashboardData();
+    });
+
+    return unsubscribe;
+  }, [dashboardData, subscribeToVerifications]);
+
   // Fetch dashboard data from API
   const fetchDashboardData = async () => {
     try {
       setIsLoading(true);
-      
+      setError(null);
+
       // Fetch all assets to calculate summary data
       const [assetsRes, categoriesRes] = await Promise.all([
-        fetch('/api/assets?limit=1000'), // Get a large number to capture all assets
-        fetch('/api/categories')
+        fetch('/api/assets?limit=1000', { cache: 'no-store' }),
+        fetch('/api/categories', { cache: 'no-store' })
       ]);
+
+      if (!assetsRes.ok) {
+        const text = await assetsRes.text();
+        throw new Error(`Assets fetch failed (${assetsRes.status}): ${text}`);
+      }
+      if (!categoriesRes.ok) {
+        const text = await categoriesRes.text();
+        throw new Error(`Categories fetch failed (${categoriesRes.status}): ${text}`);
+      }
 
       const assetsData = await assetsRes.json();
       const categoriesData = await categoriesRes.json();
-      
+
       // Calculate summary data from the assets
-      const assets = assetsData.data || [];
+      // Handle both old array format and new { data: [] } format
+      const assets = Array.isArray(assetsData) ? assetsData : (assetsData.data || []);
       const categories = Array.isArray(categoriesData) ? categoriesData : (categoriesData.data || []);
-      
+
       // Calculate totals
       const totalAssets = assets.length;
       const totalValue = assets.reduce((sum: number, asset: any) => sum + (asset.purchaseValue || 0), 0);
-      
+
       // Get recent assets (last 5)
       const recentAssets = assets.slice(0, 5).map((asset: any) => ({
         id: asset.id,
@@ -110,9 +154,10 @@ export default function DashboardPage() {
           lga: asset.lga?.name || 'Unknown'
         },
         purchaseValue: asset.purchaseValue || 0,
-        purchaseDate: asset.purchaseDate
+        purchaseDate: asset.purchaseDate,
+        lastVerificationStatus: asset.lastVerificationStatus
       }));
-      
+
       // Calculate category breakdown
       const categoryMap = new Map();
       assets.forEach((asset: any) => {
@@ -139,8 +184,9 @@ export default function DashboardPage() {
       };
 
       setDashboardData(data);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching dashboard data:', error);
+      setError(error.message || 'Failed to load dashboard data');
       toast.error('Failed to load dashboard data');
     } finally {
       setIsLoading(false);
@@ -189,7 +235,8 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex items-center gap-3">
+          <ConnectionStatus isConnected={isConnected} />
           <Link href="/assets/search">
             <Button variant="outline">
               <Search className="h-4 w-4 mr-2" />
@@ -209,6 +256,15 @@ export default function DashboardPage() {
       {isLoading ? (
         <div className="flex justify-center items-center py-24">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
+      ) : error ? (
+        <div className="p-8 border border-red-200 bg-red-50 rounded-lg text-center">
+          <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-red-900 mb-2">Failed to load dashboard</h3>
+          <p className="text-red-600 mb-4">{error}</p>
+          <Button onClick={fetchDashboardData} variant="outline" className="border-red-200 hover:bg-red-100 text-red-700">
+            Try Again
+          </Button>
         </div>
       ) : (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -303,16 +359,30 @@ export default function DashboardPage() {
                     ) : (
                       <div className="space-y-3">
                         {dashboardData?.recentAssets.slice(0, 5).map((asset) => (
-                          <div key={asset.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                          <div key={asset.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
                             <div className="flex-1 min-w-0">
-                              <Link href={`/assets/${asset.id}`} className="font-medium text-primary hover:underline">
-                                {asset.name}
-                              </Link>
-                              <p className="text-sm text-gray-500">
+                              <div className="flex items-center gap-2">
+                                <Link href={`/assets/${asset.id}`} className="font-medium text-primary hover:underline truncate">
+                                  {asset.name}
+                                </Link>
+                                {asset.lastVerificationStatus && (
+                                  <Badge
+                                    variant="outline"
+                                    className={`text-[10px] h-5 px-1.5 ${asset.lastVerificationStatus === 'VERIFIED' ? 'bg-green-100 text-green-800' :
+                                      asset.lastVerificationStatus === 'DISCREPANCY' ? 'bg-red-100 text-red-800' :
+                                        asset.lastVerificationStatus === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                                          'bg-gray-100 text-gray-800'
+                                      }`}
+                                  >
+                                    {asset.lastVerificationStatus}
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-sm text-gray-500 mt-0.5">
                                 {asset.category.name} • {asset.location.state}, {asset.location.lga}
                               </p>
                             </div>
-                            <div className="text-right">
+                            <div className="text-right pl-4">
                               <p className="text-sm font-medium text-green-600">
                                 ₦{asset.purchaseValue.toLocaleString()}
                               </p>

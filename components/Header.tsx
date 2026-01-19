@@ -5,16 +5,16 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Menu, 
-  X, 
-  FileText, 
-  BarChart2, 
-  Download, 
-  Home, 
-  Package, 
-  Move, 
-  TrendingDown, 
+import {
+  Menu,
+  X,
+  FileText,
+  BarChart2,
+  Download,
+  Home,
+  Package,
+  Move,
+  TrendingDown,
   Plus,
   ChevronDown,
   User,
@@ -59,7 +59,7 @@ export function Header() {
         setScrolled(isScrolled);
       }
     };
-    
+
     document.addEventListener('scroll', handleScroll);
     return () => document.removeEventListener('scroll', handleScroll);
   }, [scrolled]);
@@ -104,14 +104,14 @@ export function Header() {
 
   const renderNavigationItem = useCallback((item: MenuItem, isMobile = false) => {
     if (!isAllowed(item)) return null;
-    
-    const isActive = pathname === item.href || 
-                    (item.href !== '/' && pathname.startsWith(item.href));
-    
+
+    const isActive = pathname === item.href ||
+      (item.href !== '/' && pathname.startsWith(item.href));
+
     const linkContent = (
       <>
         {item.icon && (
-          <motion.span 
+          <motion.span
             className={cn(
               'mr-3 flex-shrink-0 transition-all duration-200',
               isActive ? 'text-primary' : 'text-gray-500 group-hover:text-gray-700'
@@ -125,7 +125,7 @@ export function Header() {
         <span className="relative">
           {item.title}
           {isActive && !isMobile && (
-            <motion.span 
+            <motion.span
               className="absolute -bottom-6 left-1/2 h-0.5 w-full -translate-x-1/2 bg-gradient-to-r from-primary to-primary/60 rounded-full"
               layoutId="activeIndicator"
               transition={{
@@ -143,11 +143,11 @@ export function Header() {
       'relative flex items-center px-4 py-2.5 text-sm font-medium transition-all duration-200',
       'group hover:bg-gradient-to-r hover:from-gray-50 hover:to-gray-100/50 rounded-xl',
       'hover:scale-105 hover:shadow-sm',
-      isActive 
-        ? 'text-primary font-semibold bg-gradient-to-r from-primary/5 to-primary/10 shadow-sm' 
+      isActive
+        ? 'text-primary font-semibold bg-gradient-to-r from-primary/5 to-primary/10 shadow-sm'
         : 'text-gray-700 hover:text-gray-900',
-      isMobile 
-        ? 'w-full px-4 py-3.5 text-left hover:bg-primary/5 border-l-4 border-transparent hover:border-primary/20' 
+      isMobile
+        ? 'w-full px-4 py-3.5 text-left hover:bg-primary/5 border-l-4 border-transparent hover:border-primary/20'
         : 'mx-1 px-4 py-2.5'
     );
 
@@ -181,7 +181,7 @@ export function Header() {
           onClick={isMobile ? closeMobileMenu : undefined}
         >
           {linkContent}
-          <motion.span 
+          <motion.span
             className="ml-2 text-xs opacity-60"
             whileHover={{ scale: 1.2, opacity: 1 }}
           >
@@ -192,9 +192,9 @@ export function Header() {
     }
 
     return (
-      <Link 
-        key={item.href} 
-        href={item.href} 
+      <Link
+        key={item.href}
+        href={item.href}
         className={className}
         onClick={isMobile ? closeMobileMenu : undefined}
       >
@@ -229,8 +229,8 @@ export function Header() {
     const filteredItems = items.filter(isAllowed);
     if (filteredItems.length === 0) return null;
 
-    const isActive = filteredItems.some(item => 
-      pathname === item.href || 
+    const isActive = filteredItems.some(item =>
+      pathname === item.href ||
       (item.href !== '/' && pathname.startsWith(item.href))
     );
 
@@ -238,8 +238,8 @@ export function Header() {
 
     if (isMobile) {
       return (
-        <motion.div 
-          key={title} 
+        <motion.div
+          key={title}
           className="w-full"
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -263,7 +263,7 @@ export function Header() {
           </button>
           <AnimatePresence>
             {isOpen && (
-              <motion.div 
+              <motion.div
                 className="mt-2 space-y-1 pl-2 border-l-2 border-gray-100 overflow-hidden"
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
@@ -296,8 +296,8 @@ export function Header() {
             'flex items-center h-full px-4 py-2.5 text-sm font-medium transition-all duration-200',
             'hover:bg-gradient-to-r hover:from-gray-50 hover:to-gray-100/50 rounded-xl',
             'hover:scale-105 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20',
-            isActive 
-              ? 'text-primary bg-gradient-to-r from-primary/5 to-primary/10 font-semibold' 
+            isActive
+              ? 'text-primary bg-gradient-to-r from-primary/5 to-primary/10 font-semibold'
               : 'text-gray-600 hover:text-gray-900'
           )}
           whileHover={{ scale: 1.05 }}
@@ -311,10 +311,10 @@ export function Header() {
             <ChevronDown className="ml-2 h-4 w-4" />
           </motion.div>
         </motion.button>
-        
+
         <AnimatePresence>
           {isOpen && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95, y: -10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: -10 }}
@@ -387,7 +387,7 @@ export function Header() {
                   <p className="font-medium text-gray-900">{session.user?.name || session.user?.email}</p>
                   <p className="text-sm text-gray-500 capitalize">{userRole.toLowerCase().replace('_', ' ')}</p>
                 </div>
-                
+
                 <motion.button
                   onClick={() => {
                     router.push('/profile');
@@ -399,19 +399,21 @@ export function Header() {
                   <User className="h-4 w-4" />
                   <span>Profile</span>
                 </motion.button>
-                
-                <motion.button
-                  onClick={() => {
-                    router.push('/admin/settings');
-                    setUserMenuOpen(false);
-                  }}
-                  className="flex items-center gap-3 w-full px-3 py-2.5 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all duration-200"
-                  whileHover={{ x: 4 }}
-                >
-                  <Settings className="h-4 w-4" />
-                  <span>Settings</span>
-                </motion.button>
-                
+
+                {(userRole === UserRole.ADMIN || userRole === UserRole.SUPER_ADMIN) && (
+                  <motion.button
+                    onClick={() => {
+                      router.push('/admin/settings');
+                      setUserMenuOpen(false);
+                    }}
+                    className="flex items-center gap-3 w-full px-3 py-2.5 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all duration-200"
+                    whileHover={{ x: 4 }}
+                  >
+                    <Settings className="h-4 w-4" />
+                    <span>Settings</span>
+                  </motion.button>
+                )}
+
                 {(userRole === UserRole.ADMIN || userRole === UserRole.SUPER_ADMIN) && (
                   <motion.button
                     onClick={() => {
@@ -425,7 +427,7 @@ export function Header() {
                     <span>Admin Panel</span>
                   </motion.button>
                 )}
-                
+
                 <div className="border-t border-gray-100 mt-2 pt-2">
                   <motion.button
                     onClick={handleSignOut}
@@ -466,13 +468,6 @@ export function Header() {
       requiredPermission: { action: Action.READ, resource: Resource.ASSET }
     },
     {
-      href: '/assets/add',
-      title: 'Add Asset',
-      description: 'Register a new asset',
-      icon: <Plus className="h-4 w-4" />,
-      requiredPermission: { action: Action.CREATE, resource: Resource.ASSET }
-    },
-    {
       href: '/asset-movement',
       title: 'Asset Movement',
       description: 'Track and manage asset movements',
@@ -485,6 +480,20 @@ export function Header() {
       description: 'View and manage asset depreciation',
       icon: <TrendingDown className="h-4 w-4" />,
       requiredPermission: { action: Action.READ, resource: Resource.REPORT }
+    },
+    {
+      href: '/stock-verification',
+      title: 'Stock Verification',
+      description: 'Manage verification campaigns',
+      icon: <Shield className="h-4 w-4" />,
+      allowedRoles: [
+        UserRole.SUPER_ADMIN,
+        UserRole.ADMIN,
+        UserRole.MANAGER,
+        UserRole.TEAM_LEADER,
+        UserRole.SENIOR_VERIFIER,
+        UserRole.VERIFIER
+      ]
     },
   ], []);
 
@@ -577,12 +586,12 @@ export function Header() {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Element;
-      
+
       // Close user menu if clicking outside
       if (userMenuOpen && !target.closest('[data-user-menu]')) {
         setUserMenuOpen(false);
       }
-      
+
       // Close dropdowns if clicking outside
       const clickedDropdown = target.closest('[data-dropdown]');
       if (!clickedDropdown) {
@@ -595,7 +604,7 @@ export function Header() {
   }, [userMenuOpen]);
 
   return (
-    <motion.header 
+    <motion.header
       className={cn(
         'sticky top-0 z-50 w-full transition-all duration-300',
         'bg-white/90 backdrop-blur-xl border-b border-gray-200/50',
@@ -608,7 +617,7 @@ export function Header() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo Section */}
-          <motion.div 
+          <motion.div
             className="flex items-center"
             whileHover={{ scale: 1.02 }}
           >
@@ -621,7 +630,7 @@ export function Header() {
               </span>
             </Link>
           </motion.div>
-          
+
           <div className="flex items-center gap-6">
             {/* Desktop Navigation */}
             {session && !isLoading && renderNavigation()}
@@ -642,8 +651,8 @@ export function Header() {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  <Link 
-                    href="/auth/signin" 
+                  <Link
+                    href="/auth/signin"
                     className="inline-flex items-center justify-center rounded-xl px-6 py-2.5 text-sm font-medium bg-gradient-to-r from-primary to-primary/90 text-white hover:from-primary/90 hover:to-primary/80 transition-all duration-200 shadow-sm hover:shadow-md border border-primary/20"
                   >
                     Sign In
@@ -689,7 +698,7 @@ export function Header() {
       {/* Enhanced Mobile menu with animations */}
       <AnimatePresence>
         {mobileMenuOpen && (
-          <motion.div 
+          <motion.div
             className="md:hidden bg-white/95 backdrop-blur-xl border-t border-gray-200/50 shadow-lg"
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
@@ -721,7 +730,7 @@ export function Header() {
                     </Link>
                   </motion.div>
                 ))}
-                
+
                 {/* Dashboard Item */}
                 {hasPermission(Action.READ, Resource.DASHBOARD) && (
                   <motion.div
@@ -747,7 +756,7 @@ export function Header() {
                     </Link>
                   </motion.div>
                 )}
-                
+
                 {/* Asset Operations Section */}
                 {assetOperations.filter(isAllowed).length > 0 && (
                   <motion.div
@@ -759,7 +768,7 @@ export function Header() {
                     {renderDropdownMenu('Asset Operations', assetOperations, true)}
                   </motion.div>
                 )}
-                
+
                 {/* Reports Section */}
                 {reports.filter(isAllowed).length > 0 && (
                   <motion.div
@@ -771,7 +780,7 @@ export function Header() {
                     {renderDropdownMenu('Reports', reports, true)}
                   </motion.div>
                 )}
-                
+
                 {/* Management Section */}
                 {management.filter(isAllowed).length > 0 && (
                   <motion.div
@@ -783,7 +792,7 @@ export function Header() {
                     {renderDropdownMenu('Management', management, true)}
                   </motion.div>
                 )}
-                
+
                 {/* Administration Section */}
                 {administration.filter(isAllowed).length > 0 && (
                   <motion.div
@@ -795,9 +804,9 @@ export function Header() {
                     {renderDropdownMenu('Administration', administration, true)}
                   </motion.div>
                 )}
-                
+
                 {/* User Section */}
-                <motion.div 
+                <motion.div
                   className="border-t border-gray-200/50 pt-4 mt-6"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -818,7 +827,7 @@ export function Header() {
                           </div>
                         </div>
                       </div>
-                      
+
                       <motion.button
                         onClick={handleSignOut}
                         className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl transition-all duration-200"

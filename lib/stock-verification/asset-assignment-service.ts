@@ -2,9 +2,10 @@ import { prisma } from '@/lib/prisma';
 import { stockVerificationConfig } from '@/config/stock-verification';
 import { stockVerificationLogger } from './logging';
 import { stockVerificationCache } from './performance';
-import { 
-  AssetVerificationStatus, 
+import {
+  AssetVerificationStatus,
   VerificationCampaignStatus,
+  AssetStatus,
   Prisma
 } from '@prisma/client';
 
@@ -19,7 +20,7 @@ export interface AssignmentCriteria {
   stateIds?: number[];
   lgaIds?: number[];
   categoryIds?: number[];
-  assetStatusFilter?: string[];
+  assetStatusFilter?: AssetStatus[];
   maxAssets?: number;
   priorityRules?: PriorityRule[];
   excludeRecentlyVerified?: boolean;
@@ -100,31 +101,46 @@ export class AssetAssignmentService {
       if (campaign.status === 'COMPLETED' || campaign.status === 'CANCELLED' || campaign.status === 'ARCHIVED') {
         throw new Error('Cannot assign assets to completed, cancelled, or archived campaigns');
       }
-      
+
       // Get eligible assets based on criteria
+      const conditions: Prisma.AssetWhereInput[] = [];
+
+      if (criteria.stateIds && criteria.stateIds.length > 0) {
+        conditions.push({ stateId: { in: criteria.stateIds } });
+      }
+      if (criteria.lgaIds && criteria.lgaIds.length > 0) {
+        conditions.push({ lgaId: { in: criteria.lgaIds } });
+      }
+      if (criteria.categoryIds && criteria.categoryIds.length > 0) {
+        conditions.push({ categoryId: { in: criteria.categoryIds } });
+      }
+      if (criteria.assetStatusFilter && criteria.assetStatusFilter.length > 0) {
+        conditions.push({ status: { in: criteria.assetStatusFilter } });
+      }
+
+      // Exclude assets already in this campaign
+      conditions.push({
+        verifications: {
+          none: {
+            campaignId: criteria.campaignId
+          }
+        }
+      });
+
+      if (criteria.excludeRecentlyVerified) {
+        conditions.push({
+          verifications: {
+            none: {
+              createdAt: {
+                gte: new Date(Date.now() - (criteria.excludeRecentlyVerifiedDays || 30) * 24 * 60 * 60 * 1000)
+              }
+            }
+          }
+        });
+      }
+
       const where: Prisma.AssetWhereInput = {
-        AND: [
-          criteria.stateIds && criteria.stateIds.length > 0 ? { stateId: { in: criteria.stateIds } } : {},
-          criteria.lgaIds && criteria.lgaIds.length > 0 ? { lgaId: { in: criteria.lgaIds } } : {},
-          criteria.categoryIds && criteria.categoryIds.length > 0 ? { categoryId: { in: criteria.categoryIds } } : {},
-          criteria.assetStatusFilter && criteria.assetStatusFilter.length > 0 ? { status: { in: criteria.assetStatusFilter } } : {},
-          {
-            verifications: {
-              none: {
-                campaignId: criteria.campaignId
-              }
-            }
-          },
-          criteria.excludeRecentlyVerified ? {
-            verifications: {
-              none: {
-                createdAt: {
-                  gte: new Date(Date.now() - (criteria.excludeRecentlyVerifiedDays || 30) * 24 * 60 * 60 * 1000)
-                }
-              }
-            }
-          } : {},
-        ].filter(condition => Object.keys(condition).length > 0)
+        AND: conditions
       };
 
       const eligibleAssets = await prisma.asset.findMany({
@@ -140,7 +156,7 @@ export class AssetAssignmentService {
         },
         take: criteria.maxAssets || stockVerificationConfig.assignment.maxAssignmentBatchSize,
       });
-      
+
       if (eligibleAssets.length === 0) {
         return {
           success: true,
@@ -157,34 +173,34 @@ export class AssetAssignmentService {
       const prioritizedAssets = (!criteria.priorityRules || criteria.priorityRules.length === 0)
         ? eligibleAssets
         : eligibleAssets.sort((a, b) => {
-            let scoreA = 0;
-            let scoreB = 0;
+          let scoreA = 0;
+          let scoreB = 0;
 
-            for (const rule of criteria.priorityRules!) {
-              const getAssetFieldValue = (asset: any, field: string): any => {
-                const fieldPath = field.split('.');
-                let value = asset;
-                for (const key of fieldPath) {
-                  value = value?.[key];
-                  if (value === undefined || value === null) return 0;
-                }
-                return value;
-              };
-
-              const valueA = getAssetFieldValue(a, rule.field);
-              const valueB = getAssetFieldValue(b, rule.field);
-
-              if (typeof valueA === 'number' && typeof valueB === 'number') {
-                const comparison = rule.ascending ? valueA - valueB : valueB - valueA;
-                scoreA += comparison * rule.weight;
+          for (const rule of criteria.priorityRules!) {
+            const getAssetFieldValue = (asset: any, field: string): any => {
+              const fieldPath = field.split('.');
+              let value = asset;
+              for (const key of fieldPath) {
+                value = value?.[key];
+                if (value === undefined || value === null) return 0;
               }
-            }
+              return value;
+            };
 
-            return scoreB - scoreA; // Higher scores first
-          });
+            const valueA = getAssetFieldValue(a, rule.field);
+            const valueB = getAssetFieldValue(b, rule.field);
+
+            if (typeof valueA === 'number' && typeof valueB === 'number') {
+              const comparison = rule.ascending ? valueA - valueB : valueB - valueA;
+              scoreA += comparison * rule.weight;
+            }
+          }
+
+          return scoreB - scoreA; // Higher scores first
+        });
 
       // Limit assets if maxAssets is specified
-      const assetsToAssign = criteria.maxAssets 
+      const assetsToAssign = criteria.maxAssets
         ? prioritizedAssets.slice(0, criteria.maxAssets)
         : prioritizedAssets;
 
@@ -247,7 +263,7 @@ export class AssetAssignmentService {
           .filter(stat => stat.status === 'VERIFIED')
           .reduce((sum, stat) => sum + stat._count._all, 0);
 
-        const verificationProgress = totalVerifications > 0 
+        const verificationProgress = totalVerifications > 0
           ? Math.round((verifiedCount / totalVerifications) * 100)
           : 0;
 
@@ -391,7 +407,7 @@ export class AssetAssignmentService {
       }
 
       // Check if recently verified (if configured)
-      const recentVerification = asset.verifications.find(v => 
+      const recentVerification = asset.verifications.find(v =>
         v.createdAt > new Date(Date.now() - (stockVerificationConfig.assignment.excludeRecentlyVerifiedDays * 24 * 60 * 60 * 1000))
       );
 
@@ -407,7 +423,7 @@ export class AssetAssignmentService {
       let eligibilityScore = 100;
 
       // Reduce score based on recent verifications
-      const recentVerificationCount = asset.verifications.filter(v => 
+      const recentVerificationCount = asset.verifications.filter(v =>
         v.createdAt > new Date(Date.now() - (90 * 24 * 60 * 60 * 1000))
       ).length;
       eligibilityScore -= (recentVerificationCount * 10);
@@ -443,7 +459,7 @@ export class AssetAssignmentService {
         assetId: String(assetId),
         campaignId: String(campaignId),
       });
-      
+
       return {
         assetId,
         eligible: false,
@@ -469,15 +485,15 @@ export class AssetAssignmentService {
       // Validate campaign
       // Inline campaign validation to avoid method resolution issues
       {
-      const campaign = await prisma.verificationCampaign.findUnique({
-      where: { id: request.campaignId }
-      });
-      if (!campaign) {
-      throw new Error('Campaign not found');
-      }
-      if (campaign.status === 'COMPLETED' || campaign.status === 'CANCELLED' || campaign.status === 'ARCHIVED') {
-      throw new Error('Cannot assign assets to completed, cancelled, or archived campaigns');
-      }
+        const campaign = await prisma.verificationCampaign.findUnique({
+          where: { id: request.campaignId }
+        });
+        if (!campaign) {
+          throw new Error('Campaign not found');
+        }
+        if (campaign.status === 'COMPLETED' || campaign.status === 'CANCELLED' || campaign.status === 'ARCHIVED') {
+          throw new Error('Cannot assign assets to completed, cancelled, or archived campaigns');
+        }
       }
 
       // Validate all verifiers exist and are assigned to campaign (inlined)
@@ -585,7 +601,7 @@ export class AssetAssignmentService {
         const verifiedCount = stats
           .filter(stat => stat.status === 'VERIFIED')
           .reduce((sum, stat) => sum + stat._count._all, 0);
-        const verificationProgress = totalVerifications > 0 
+        const verificationProgress = totalVerifications > 0
           ? Math.round((verifiedCount / totalVerifications) * 100)
           : 0;
         await prisma.verificationCampaign.update({
@@ -809,7 +825,7 @@ export class AssetAssignmentService {
         const verifiedCount = stats
           .filter(stat => stat.status === 'VERIFIED')
           .reduce((sum, stat) => sum + stat._count._all, 0);
-        const verificationProgress = totalVerifications > 0 
+        const verificationProgress = totalVerifications > 0
           ? Math.round((verifiedCount / totalVerifications) * 100)
           : 0;
         await prisma.verificationCampaign.update({
@@ -872,25 +888,25 @@ export class AssetAssignmentService {
     const where: Prisma.AssetWhereInput = {
       AND: [
         // State filter
-        criteria.stateIds && criteria.stateIds.length > 0 
+        criteria.stateIds && criteria.stateIds.length > 0
           ? { stateId: { in: criteria.stateIds } }
           : {},
-        
+
         // LGA filter
-        criteria.lgaIds && criteria.lgaIds.length > 0 
+        criteria.lgaIds && criteria.lgaIds.length > 0
           ? { lgaId: { in: criteria.lgaIds } }
           : {},
-        
+
         // Category filter
-        criteria.categoryIds && criteria.categoryIds.length > 0 
+        criteria.categoryIds && criteria.categoryIds.length > 0
           ? { categoryId: { in: criteria.categoryIds } }
           : {},
-        
+
         // Asset status filter
         criteria.assetStatusFilter && criteria.assetStatusFilter.length > 0
           ? { status: { in: criteria.assetStatusFilter } }
           : {},
-        
+
         // Exclude assets already in this campaign
         {
           verifications: {
@@ -954,14 +970,14 @@ export class AssetAssignmentService {
   private getAssetFieldValue(asset: any, field: string): any {
     const fieldPath = field.split('.');
     let value = asset;
-    
+
     for (const key of fieldPath) {
       value = value?.[key];
       if (value === undefined || value === null) {
         return 0;
       }
     }
-    
+
     return value;
   }
 
@@ -1028,7 +1044,7 @@ export class AssetAssignmentService {
         .filter(stat => stat.status === 'VERIFIED')
         .reduce((sum, stat) => sum + stat._count._all, 0);
 
-      const verificationProgress = totalVerifications > 0 
+      const verificationProgress = totalVerifications > 0
         ? Math.round((verifiedCount / totalVerifications) * 100)
         : 0;
 
@@ -1077,7 +1093,7 @@ export class AssetAssignmentService {
       const countToAssign = verificationsPerVerifier + (i < remainder ? 1 : 0);
 
       const verificationsToAssign = verifications.slice(verificationIndex, verificationIndex + countToAssign);
-      
+
       if (verificationsToAssign.length > 0) {
         await prisma.assetVerification.updateMany({
           where: {
@@ -1107,7 +1123,7 @@ export class AssetAssignmentService {
     for (const verification of verifications) {
       // Assign to verifier with least current workload
       const assignment = assignments[0];
-      
+
       await prisma.assetVerification.update({
         where: { id: verification.id },
         data: { verifierId: assignment.userId }
@@ -1115,10 +1131,10 @@ export class AssetAssignmentService {
 
       // Update the count for proper sorting in next iteration
       assignment._workload++;
-      
+
       // Re-sort to maintain order
       assignments.sort((a: any, b: any) => a._workload - b._workload);
-      
+
       assignedCount++;
     }
 
@@ -1144,7 +1160,7 @@ export class AssetAssignmentService {
 
       for (const verification of stateVerifications as any[]) {
         const assignment = assignments[verifierIndex];
-        
+
         await prisma.assetVerification.update({
           where: { id: verification.id },
           data: { verifierId: assignment.userId }

@@ -3,6 +3,21 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import {
+    BarChart,
+    Bar,
+    LineChart,
+    Line,
+    PieChart,
+    Pie,
+    Cell,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    Legend,
+    ResponsiveContainer,
+} from 'recharts';
 
 interface ReportStats {
     totalCampaigns: number;
@@ -31,10 +46,37 @@ interface CampaignReport {
     completionRate: number;
 }
 
+interface TrendData {
+    date: string;
+    verified: number;
+    pending: number;
+    discrepancies: number;
+}
+
+interface TeamPerformanceData {
+    userId: number;
+    userName: string;
+    role: string;
+    totalAssigned: number;
+    completedVerifications: number;
+    pendingVerifications: number;
+    discrepancyCount: number;
+    averageVerificationTime: number;
+    qualityScore: number;
+    efficiency: number;
+    dailyTarget: number;
+    totalTarget: number;
+}
+
+const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
+
 export default function ReportsPage() {
     const router = useRouter();
     const [stats, setStats] = useState<ReportStats | null>(null);
     const [campaigns, setCampaigns] = useState<CampaignReport[]>([]);
+    const [trendData, setTrendData] = useState<TrendData[]>([]);
+    const [teamPerformance, setTeamPerformance] = useState<TeamPerformanceData[]>([]);
+    const [selectedCampaignForTeam, setSelectedCampaignForTeam] = useState<number | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [dateRange, setDateRange] = useState({
@@ -65,11 +107,42 @@ export default function ReportsPage() {
             const data = await response.json();
             setStats(data.stats);
             setCampaigns(data.campaigns || []);
+
+            // Generate trend data from campaigns
+            if (data.campaigns && data.campaigns.length > 0) {
+                const trends: TrendData[] = data.campaigns.map((campaign: CampaignReport) => ({
+                    date: new Date(campaign.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                    verified: campaign.verifiedCount,
+                    pending: campaign.pendingCount,
+                    discrepancies: campaign.discrepancyCount,
+                }));
+                setTrendData(trends);
+
+                // Set first campaign as default for team performance
+                if (!selectedCampaignForTeam && data.campaigns[0]) {
+                    setSelectedCampaignForTeam(data.campaigns[0].id);
+                    fetchTeamPerformance(data.campaigns[0].id);
+                }
+            }
         } catch (err: any) {
             setError(err.message || 'An error occurred while fetching reports');
             console.error('Error fetching reports:', err);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchTeamPerformance = async (campaignId: number) => {
+        try {
+            const response = await fetch(`/api/stock-verification/campaigns/${campaignId}/team-performance`);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success) {
+                    setTeamPerformance(data.data || []);
+                }
+            }
+        } catch (err) {
+            console.error('Error fetching team performance:', err);
         }
     };
 
@@ -84,7 +157,14 @@ export default function ReportsPage() {
             const response = await fetch(`/api/stock-verification/reports/export?${params}`);
 
             if (!response.ok) {
-                throw new Error('Failed to export report');
+                // Try to parse error message
+                try {
+                    const data = await response.json();
+                    throw new Error(data.error || 'Failed to export report');
+                } catch (e) {
+                    if (e instanceof Error && e.message !== 'Failed to export report') throw e;
+                    throw new Error('Failed to export report');
+                }
             }
 
             const blob = await response.blob();
@@ -306,9 +386,9 @@ export default function ReportsPage() {
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <span className={`px-2 py-1 text-xs font-semibold rounded-full ${campaign.status === 'ACTIVE' ? 'bg-green-100 text-green-800' :
-                                                        campaign.status === 'COMPLETED' ? 'bg-blue-100 text-blue-800' :
-                                                            campaign.status === 'PLANNED' ? 'bg-yellow-100 text-yellow-800' :
-                                                                'bg-gray-100 text-gray-800'
+                                                    campaign.status === 'COMPLETED' ? 'bg-blue-100 text-blue-800' :
+                                                        campaign.status === 'PLANNED' ? 'bg-yellow-100 text-yellow-800' :
+                                                            'bg-gray-100 text-gray-800'
                                                     }`}>
                                                     {campaign.status}
                                                 </span>
@@ -333,8 +413,8 @@ export default function ReportsPage() {
                                                     <div className="w-16 bg-gray-200 rounded-full h-2 mr-2">
                                                         <div
                                                             className={`h-2 rounded-full ${campaign.completionRate >= 80 ? 'bg-green-600' :
-                                                                    campaign.completionRate >= 50 ? 'bg-yellow-600' :
-                                                                        'bg-red-600'
+                                                                campaign.completionRate >= 50 ? 'bg-yellow-600' :
+                                                                    'bg-red-600'
                                                                 }`}
                                                             style={{ width: `${campaign.completionRate}%` }}
                                                         ></div>
@@ -351,6 +431,157 @@ export default function ReportsPage() {
                         </table>
                     </div>
                 </div>
+
+                {/* Charts Section */}
+                {campaigns.length > 0 && (
+                    <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Campaign Completion Chart */}
+                        <div className="bg-white rounded-lg shadow-sm p-6">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Campaign Completion Rates</h3>
+                            <ResponsiveContainer width="100%" height={300}>
+                                <BarChart data={campaigns.slice(0, 10)}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis
+                                        dataKey="name"
+                                        angle={-45}
+                                        textAnchor="end"
+                                        height={100}
+                                        interval={0}
+                                    />
+                                    <YAxis />
+                                    <Tooltip />
+                                    <Legend />
+                                    <Bar dataKey="completionRate" fill="#10b981" name="Completion %" />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+
+                        {/* Status Distribution Pie Chart */}
+                        <div className="bg-white rounded-lg shadow-sm p-6">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Campaign Status Distribution</h3>
+                            <ResponsiveContainer width="100%" height={300}>
+                                <PieChart>
+                                    <Pie
+                                        data={[
+                                            { name: 'Active', value: campaigns.filter(c => c.status === 'ACTIVE').length },
+                                            { name: 'Completed', value: campaigns.filter(c => c.status === 'COMPLETED').length },
+                                            { name: 'Planned', value: campaigns.filter(c => c.status === 'PLANNED').length },
+                                            { name: 'Cancelled', value: campaigns.filter(c => c.status === 'CANCELLED').length },
+                                        ]}
+                                        cx="50%"
+                                        cy="50%"
+                                        labelLine={false}
+                                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                                        outerRadius={80}
+                                        fill="#8884d8"
+                                        dataKey="value"
+                                    >
+                                        {[
+                                            { name: 'Active', value: campaigns.filter(c => c.status === 'ACTIVE').length },
+                                            { name: 'Completed', value: campaigns.filter(c => c.status === 'COMPLETED').length },
+                                            { name: 'Planned', value: campaigns.filter(c => c.status === 'PLANNED').length },
+                                            { name: 'Cancelled', value: campaigns.filter(c => c.status === 'CANCELLED').length },
+                                        ].map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </div>
+
+                        {/* Trend Chart */}
+                        {trendData.length > 0 && (
+                            <div className="bg-white rounded-lg shadow-sm p-6 lg:col-span-2">
+                                <h3 className="text-lg font-semibold text-gray-900 mb-4">Verification Trends</h3>
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <LineChart data={trendData}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis dataKey="date" />
+                                        <YAxis />
+                                        <Tooltip />
+                                        <Legend />
+                                        <Line type="monotone" dataKey="verified" stroke="#10b981" strokeWidth={2} name="Verified" />
+                                        <Line type="monotone" dataKey="pending" stroke="#f59e0b" strokeWidth={2} name="Pending" />
+                                        <Line type="monotone" dataKey="discrepancies" stroke="#ef4444" strokeWidth={2} name="Discrepancies" />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            </div>
+                        )}
+
+                        {/* Team Performance Charts */}
+                        {teamPerformance.length > 0 && (
+                            <>
+                                <div className="bg-white rounded-lg shadow-sm p-6 lg:col-span-2">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h3 className="text-lg font-semibold text-gray-900">Team Performance</h3>
+                                        <select
+                                            value={selectedCampaignForTeam || ''}
+                                            onChange={(e) => {
+                                                const campaignId = parseInt(e.target.value);
+                                                setSelectedCampaignForTeam(campaignId);
+                                                fetchTeamPerformance(campaignId);
+                                            }}
+                                            className="px-3 py-1 border border-gray-300 rounded-md text-sm"
+                                        >
+                                            {campaigns.map((campaign) => (
+                                                <option key={campaign.id} value={campaign.id}>
+                                                    {campaign.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <ResponsiveContainer width="100%" height={300}>
+                                        <BarChart data={teamPerformance.slice(0, 10)}>
+                                            <CartesianGrid strokeDasharray="3 3" />
+                                            <XAxis
+                                                dataKey="userName"
+                                                angle={-45}
+                                                textAnchor="end"
+                                                height={100}
+                                                interval={0}
+                                            />
+                                            <YAxis />
+                                            <Tooltip />
+                                            <Legend />
+                                            <Bar dataKey="completedVerifications" fill="#10b981" name="Completed" />
+                                            <Bar dataKey="pendingVerifications" fill="#f59e0b" name="Pending" />
+                                            <Bar dataKey="discrepancyCount" fill="#ef4444" name="Discrepancies" />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </div>
+
+                                <div className="bg-white rounded-lg shadow-sm p-6">
+                                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Efficiency by Team Member</h3>
+                                    <ResponsiveContainer width="100%" height={300}>
+                                        <BarChart data={teamPerformance.slice(0, 10)} layout="vertical">
+                                            <CartesianGrid strokeDasharray="3 3" />
+                                            <XAxis type="number" domain={[0, 100]} />
+                                            <YAxis dataKey="userName" type="category" width={100} />
+                                            <Tooltip />
+                                            <Legend />
+                                            <Bar dataKey="efficiency" fill="#3b82f6" name="Efficiency %" />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </div>
+
+                                <div className="bg-white rounded-lg shadow-sm p-6">
+                                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Quality Scores</h3>
+                                    <ResponsiveContainer width="100%" height={300}>
+                                        <BarChart data={teamPerformance.slice(0, 10)} layout="vertical">
+                                            <CartesianGrid strokeDasharray="3 3" />
+                                            <XAxis type="number" domain={[0, 100]} />
+                                            <YAxis dataKey="userName" type="category" width={100} />
+                                            <Tooltip />
+                                            <Legend />
+                                            <Bar dataKey="qualityScore" fill="#8b5cf6" name="Quality Score" />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                )}
 
                 {/* Additional Insights */}
                 {stats && (

@@ -41,7 +41,7 @@ export function MaterialHeader() {
         setScrolled(isScrolled);
       }
     };
-    
+
     document.addEventListener('scroll', handleScroll);
     return () => document.removeEventListener('scroll', handleScroll);
   }, [scrolled]);
@@ -73,10 +73,10 @@ export function MaterialHeader() {
 
   const renderNavigationItem = (item: MenuItem, isMobile = false) => {
     if (!isAllowed(item)) return null;
-    
-    const isActive = pathname === item.href || 
-                    (item.href !== '/' && pathname.startsWith(item.href));
-    
+
+    const isActive = pathname === item.href ||
+      (item.href !== '/' && pathname.startsWith(item.href));
+
     const linkContent = (
       <>
         {item.icon && (
@@ -95,11 +95,11 @@ export function MaterialHeader() {
     const className = cn(
       'relative flex items-center transition-all duration-medium2 ease-emphasis-decelerate',
       'rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-md-primary',
-      isMobile 
-        ? 'w-full px-4 py-3 text-left' 
+      isMobile
+        ? 'w-full px-4 py-3 text-left'
         : 'px-4 py-2.5',
-      isActive 
-        ? 'bg-md-secondary-container text-md-on-secondary-container' 
+      isActive
+        ? 'bg-md-secondary-container text-md-on-secondary-container'
         : 'text-md-on-surface hover:bg-md-on-surface/[0.08] active:bg-md-on-surface/[0.12]'
     );
 
@@ -131,14 +131,14 @@ export function MaterialHeader() {
     }
 
     return (
-      <Link 
-        key={item.href} 
-        href={item.href} 
+      <Link
+        key={item.href}
+        href={item.href}
         className={className}
       >
         {linkContent}
         {isActive && !isMobile && (
-          <motion.div 
+          <motion.div
             className="absolute -bottom-0.5 left-1/2 h-0.5 w-6 -translate-x-1/2 bg-md-primary rounded-full"
             layoutId="activeIndicator"
             transition={{
@@ -154,15 +154,15 @@ export function MaterialHeader() {
 
   // Define menu items with required permissions
   const mainMenuItems: MenuItem[] = [
-    { 
-      href: '/', 
-      title: 'Home', 
+    {
+      href: '/',
+      title: 'Home',
       description: 'Return to the home page',
       icon: <Home className="h-5 w-5" />
     },
-    { 
-      href: '/about', 
-      title: 'About', 
+    {
+      href: '/about',
+      title: 'About',
       description: 'Learn about our system'
     },
   ];
@@ -182,13 +182,6 @@ export function MaterialHeader() {
       description: 'View and manage all assets in the system',
       icon: <Package className="h-5 w-5" />,
       requiredPermission: { action: Action.READ, resource: Resource.ASSET }
-    },
-    {
-      href: '/assets/add',
-      title: 'Add Asset',
-      description: 'Register a new asset',
-      icon: <Plus className="h-5 w-5" />,
-      requiredPermission: { action: Action.CREATE, resource: Resource.ASSET }
     },
     {
       href: '/asset-movement',
@@ -224,7 +217,7 @@ export function MaterialHeader() {
   ];
 
   return (
-    <header 
+    <header
       className={cn(
         'sticky top-0 z-50 w-full transition-all duration-medium2 ease-emphasis-decelerate',
         'bg-md-surface/90 backdrop-blur-md border-b',
@@ -241,15 +234,15 @@ export function MaterialHeader() {
               </span>
             </Link>
           </div>
-          
+
           <div className="flex items-center gap-4">
             {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center space-x-1">
               {navigationItems.map((item) => renderNavigationItem(item))}
-              
+
               {/* Demo Link */}
-              <Link 
-                href="/material-demo" 
+              <Link
+                href="/material-demo"
                 className="px-4 py-2.5 text-label-large font-medium text-md-tertiary hover:bg-md-tertiary/[0.08] rounded-xl transition-all duration-medium2"
               >
                 Material 3 Demo
@@ -268,9 +261,9 @@ export function MaterialHeader() {
                       {userRole.toLowerCase().replace('_', ' ')}
                     </p>
                   </div>
-                  <MaterialButton 
-                    variant="outlined" 
-                    size="sm" 
+                  <MaterialButton
+                    variant="outlined"
+                    size="sm"
                     onClick={handleSignOut}
                   >
                     Sign Out
@@ -310,7 +303,7 @@ export function MaterialHeader() {
 
       {/* Mobile menu */}
       {mobileMenuOpen && (
-        <motion.div 
+        <motion.div
           className="md:hidden bg-md-surface-container border-t border-md-outline-variant"
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -319,7 +312,7 @@ export function MaterialHeader() {
         >
           <div className="space-y-1 px-4 pb-4 pt-2">
             {navigationItems.map((item) => renderNavigationItem(item, true))}
-            
+
             {/* Demo Link - Mobile */}
             <Link
               href="/material-demo"
@@ -328,7 +321,7 @@ export function MaterialHeader() {
             >
               Material 3 Demo
             </Link>
-            
+
             {/* User section */}
             <div className="border-t border-md-outline-variant my-4 pt-4">
               {session ? (

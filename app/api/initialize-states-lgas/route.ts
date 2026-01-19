@@ -49,21 +49,12 @@ const STATES_DATA = [
 let COMPLETE_LGAS_DATA: any[] = [];
 
 async function loadLgasData() {
-  if (COMPLETE_LGAS_DATA.length === 0) {
-    try {
-      const { default: lgasData } = await import('../../../complete-lgas-data.js');
-      COMPLETE_LGAS_DATA = lgasData;
-    } catch (error) {
-      console.error('Failed to load LGAs data:', error);
-      // Fallback to a few sample LGAs if file is missing
-      COMPLETE_LGAS_DATA = [
-        { id: 1, name: 'GUDU', stateId: 1 },
-        { id: 735, name: 'BADAGRY', stateId: 36 },
-        { id: 774, name: 'OGUN WATERSIDE', stateId: 37 },
-      ];
-    }
-  }
-  return COMPLETE_LGAS_DATA;
+  // Fallback to a few sample LGAs
+  return [
+    { id: 1, name: 'GUDU', stateId: 1 },
+    { id: 735, name: 'BADAGRY', stateId: 36 },
+    { id: 774, name: 'OGUN WATERSIDE', stateId: 37 },
+  ];
 }
 
 
@@ -116,7 +107,7 @@ export async function POST(req: Request) {
 
     // Load LGAs data
     const lgasData = await loadLgasData();
-    
+
     // Create LGAs using the database state IDs
     for (const lgaData of lgasData) {
       // Find the state name for this LGA's original state ID

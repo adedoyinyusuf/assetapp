@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -11,11 +11,10 @@ import {
   User,
   Mail,
   Lock,
-  Shield,
   Calendar,
-  MapPin,
   Phone,
-  Edit
+  Edit,
+  Camera
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -69,7 +68,9 @@ export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [activeTab, setActiveTab] = useState('profile');
-  
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // Redirect if not authenticated
   useEffect(() => {
     if (status === 'loading') return;
@@ -93,7 +94,7 @@ export default function ProfilePage() {
       });
     }
   }, [session]);
-  
+
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
@@ -120,10 +121,48 @@ export default function ProfilePage() {
 
   const { register, handleSubmit, formState: { errors }, reset } = form;
 
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploading(true);
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/user/upload-image', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success('Profile picture updated');
+        await update();
+        router.refresh();
+
+        // Also update local state to show immediately
+        // Note: The session update is async and might take a moment.
+        if (session && session.user) {
+          (session.user as any).image = data.imageUrl;
+        }
+      } else {
+        toast.error(data.error || 'Failed to upload image');
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error('Failed to upload image');
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   const onSubmit = async (data: ProfileFormValues) => {
     try {
       setIsLoading(true);
-      
+
       // Prepare the update data
       const updateData: any = {
         firstName: data.firstName,
@@ -161,7 +200,7 @@ export default function ProfilePage() {
             bio: data.bio,
           } as any, // Type assertion for extended properties
         });
-        
+
         // Reset the password fields
         reset({
           ...data,
@@ -169,7 +208,7 @@ export default function ProfilePage() {
           newPassword: '',
           confirmPassword: '',
         });
-        
+
         toast.success('Profile updated successfully');
       } else {
         toast.error(result.error || 'Failed to update profile');
@@ -234,13 +273,30 @@ export default function ProfilePage() {
           <Card>
             <CardContent className="p-6">
               <div className="flex flex-col items-center space-y-4">
-                <Avatar className="h-24 w-24">
-                  <AvatarImage src={`/api/avatar/${session.user.email}`} />
-                  <AvatarFallback className="text-lg font-semibold">
-                    {getInitials(userProfile.firstName, userProfile.lastName)}
-                  </AvatarFallback>
-                </Avatar>
-                
+                <div className="relative group cursor-pointer" onClick={() => !isUploading && fileInputRef.current?.click()}>
+                  <Avatar className="h-24 w-24 border-2 border-border group-hover:border-primary transition-colors">
+                    <AvatarImage src={(session.user as any).image || `/api/avatar/${session.user.email}`} className="object-cover" />
+                    <AvatarFallback className="text-lg font-semibold bg-primary/10 text-primary">
+                      {getInitials(userProfile.firstName, userProfile.lastName)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    {isUploading ? (
+                      <div className="animate-spin rounded-full h-6 w-6 border-2 border-white border-t-transparent" />
+                    ) : (
+                      <Camera className="text-white h-6 w-6" />
+                    )}
+                  </div>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleImageUpload}
+                    className="hidden"
+                    accept="image/*"
+                    disabled={isUploading}
+                  />
+                </div>
+
                 <div className="text-center">
                   <h3 className="text-lg font-semibold">
                     {userProfile.firstName} {userProfile.lastName}
@@ -294,27 +350,27 @@ export default function ProfilePage() {
                 {/* Basic Information */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-medium border-b pb-2">Basic Information</h3>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="firstName">First Name</Label>
-                      <Input 
-                        id="firstName" 
-                        placeholder="John" 
-                        {...register('firstName')} 
+                      <Input
+                        id="firstName"
+                        placeholder="John"
+                        {...register('firstName')}
                         disabled={isLoading}
                       />
                       {errors.firstName && (
                         <p className="text-sm text-red-500">{errors.firstName.message}</p>
                       )}
                     </div>
-                    
+
                     <div className="space-y-2">
                       <Label htmlFor="lastName">Last Name</Label>
-                      <Input 
-                        id="lastName" 
-                        placeholder="Doe" 
-                        {...register('lastName')} 
+                      <Input
+                        id="lastName"
+                        placeholder="Doe"
+                        {...register('lastName')}
                         disabled={isLoading}
                       />
                       {errors.lastName && (
@@ -325,10 +381,10 @@ export default function ProfilePage() {
 
                   <div className="space-y-2">
                     <Label htmlFor="email">Email Address</Label>
-                    <Input 
-                      id="email" 
-                      type="email" 
-                      {...register('email')} 
+                    <Input
+                      id="email"
+                      type="email"
+                      {...register('email')}
                       disabled
                     />
                     <p className="text-xs text-gray-500">
@@ -338,11 +394,11 @@ export default function ProfilePage() {
 
                   <div className="space-y-2">
                     <Label htmlFor="phone">Phone Number</Label>
-                    <Input 
-                      id="phone" 
-                      type="tel" 
+                    <Input
+                      id="phone"
+                      type="tel"
                       placeholder="+234 xxx xxx xxxx"
-                      {...register('phone')} 
+                      {...register('phone')}
                       disabled={isLoading}
                     />
                     {errors.phone && (
@@ -378,40 +434,40 @@ export default function ProfilePage() {
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="currentPassword">Current Password</Label>
-                      <Input 
-                        id="currentPassword" 
-                        type="password" 
-                        placeholder="••••••••" 
-                        {...register('currentPassword')} 
+                      <Input
+                        id="currentPassword"
+                        type="password"
+                        placeholder="••••••••"
+                        {...register('currentPassword')}
                         disabled={isLoading}
                       />
                       {errors.currentPassword && (
                         <p className="text-sm text-red-500">{errors.currentPassword.message}</p>
                       )}
                     </div>
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="newPassword">New Password</Label>
-                        <Input 
-                          id="newPassword" 
-                          type="password" 
-                          placeholder="••••••••" 
-                          {...register('newPassword')} 
+                        <Input
+                          id="newPassword"
+                          type="password"
+                          placeholder="••••••••"
+                          {...register('newPassword')}
                           disabled={isLoading}
                         />
                         {errors.newPassword && (
                           <p className="text-sm text-red-500">{errors.newPassword.message}</p>
                         )}
                       </div>
-                      
+
                       <div className="space-y-2">
                         <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                        <Input 
-                          id="confirmPassword" 
-                          type="password" 
-                          placeholder="••••••••" 
-                          {...register('confirmPassword')} 
+                        <Input
+                          id="confirmPassword"
+                          type="password"
+                          placeholder="••••••••"
+                          {...register('confirmPassword')}
                           disabled={isLoading}
                         />
                         {errors.confirmPassword && (
@@ -422,7 +478,7 @@ export default function ProfilePage() {
                   </div>
                 </div>
               </CardContent>
-              
+
               <CardFooter className="border-t px-6 py-4">
                 <Button type="submit" disabled={isLoading}>
                   {isLoading ? (

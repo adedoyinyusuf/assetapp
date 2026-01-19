@@ -2,38 +2,38 @@
 const nextConfig = {
   // Configure output
   output: 'standalone',
-  
+
   // Configure images
   images: {
     unoptimized: true,
     domains: ['localhost', '127.0.0.1'],
   },
-  
+
   // Enable React Strict Mode
   reactStrictMode: true,
-  
+
   // Configure TypeScript
   typescript: {
     ignoreBuildErrors: false, // Enable type checking in builds
   },
-  
+
   // Configure ESLint
   eslint: {
     ignoreDuringBuilds: false, // Enable ESLint in builds
   },
-  
+
   // Configure directory for Next.js build output
   distDir: 'next-build',
-  
+
   // Enable file system routing
   useFileSystemPublicRoutes: true,
-  
+
   // Disable trailing slashes
   trailingSlash: false,
-  
+
   // Disable source maps in production
   productionBrowserSourceMaps: false,
-  
+
   // Webpack configuration
   webpack(config, { isServer }) {
     // Fixes npm packages that depend on `node:` protocol
@@ -61,7 +61,7 @@ const nextConfig = {
 
     return config;
   },
-  
+
   // Configure headers
   async headers() {
     return [
@@ -88,7 +88,7 @@ const nextConfig = {
       },
     ];
   },
-  
+
   // Experimental features
   experimental: {
     serverComponentsExternalPackages: ['bcryptjs', '@prisma/client', 'prisma'],
@@ -96,9 +96,19 @@ const nextConfig = {
       bodySizeLimit: '2mb',
     },
   },
-  
+
   // Transpile bcryptjs
   transpilePackages: ['bcryptjs'],
 };
 
-export default nextConfig;
+// Configure PWA
+import withPWAInit from "@ducanh2912/next-pwa";
+
+const withPWA = withPWAInit({
+  dest: "public",
+  disable: process.env.NODE_ENV === "development",
+  register: true,
+  skipWaiting: true,
+});
+
+export default withPWA(nextConfig);

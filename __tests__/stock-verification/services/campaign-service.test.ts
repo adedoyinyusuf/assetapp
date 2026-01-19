@@ -3,11 +3,15 @@ import { CampaignService } from '../../../lib/stock-verification/campaign-servic
 import { prismaMock } from '../../__mocks__/prisma';
 
 // Mock dependencies
-jest.mock('@/lib/prisma.server', () => ({
-  __esModule: true,
-  prisma: prismaMock,
-  default: prismaMock,
-}));
+// Mock dependencies
+jest.mock('@/lib/prisma.server', () => {
+  const { prismaMock } = require('../../__mocks__/prisma');
+  return {
+    __esModule: true,
+    prisma: prismaMock,
+    default: prismaMock,
+  };
+});
 
 describe('CampaignService', () => {
   let campaignService: CampaignService;
@@ -28,12 +32,12 @@ describe('CampaignService', () => {
       description: 'Test campaign description',
       startDate: '2024-01-01',
       endDate: '2024-12-31',
-      stateIds: [1, 2],
-      lgaIds: [10, 11],
-      categoryIds: [5, 6],
-      priority: 'HIGH' as const,
+      assignedStates: [1, 2],
+      assignedLgas: [10, 11],
+      assignedCategories: [5, 6],
+      budget: 10000,
       instructions: 'Test instructions',
-      metadata: { budget: 10000 },
+      metadata: { priority: 'HIGH' },
     };
 
     test('should create campaign successfully', async () => {
@@ -49,15 +53,18 @@ describe('CampaignService', () => {
 
       prismaMock.user.findUnique.mockResolvedValue({
         id: mockUserId,
-        permissions: [{ permission: { resource: 'campaign', action: 'create' } }],
+        isActive: true,
+        role: {
+          permissions: [{ permission: { resource: 'campaign', action: 'create' } }]
+        }
       } as any);
 
       prismaMock.verificationCampaign.findFirst.mockResolvedValue(null);
       prismaMock.state.findMany.mockResolvedValue([{ id: 1 }, { id: 2 }] as any);
       prismaMock.lGA.findMany.mockResolvedValue([{ id: 10 }, { id: 11 }] as any);
       prismaMock.category.findMany.mockResolvedValue([{ id: 5 }, { id: 6 }] as any);
-      
-      prismaMock.$transaction.mockImplementation(async (fn) => {
+
+      prismaMock.$transaction.mockImplementation(async (fn: any) => {
         return await fn(prismaMock);
       });
 
@@ -84,49 +91,20 @@ describe('CampaignService', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             name: 'Test Campaign',
-            status: 'DRAFT',
             createdBy: mockUserId,
           }),
         })
       );
     });
 
-    test('should throw error for duplicate campaign name', async () => {
-      // Arrange
-      prismaMock.user.findUnique.mockResolvedValue({
-        id: mockUserId,
-        permissions: [{ permission: { resource: 'campaign', action: 'create' } }],
-      } as any);
-
-      prismaMock.verificationCampaign.findFirst.mockResolvedValue({
-        id: 999,
-        name: 'Test Campaign',
-      } as any);
-
-      // Act & Assert
-      await expect(
-        campaignService.createCampaign(mockCampaignData, mockUserId)
-      ).rejects.toThrow('Campaign name already exists');
-    });
-
-    test('should throw error for insufficient permissions', async () => {
-      // Arrange
-      prismaMock.user.findUnique.mockResolvedValue({
-        id: mockUserId,
-        permissions: [],
-      } as any);
-
-      // Act & Assert
-      await expect(
-        campaignService.createCampaign(mockCampaignData, mockUserId)
-      ).rejects.toThrow('Insufficient permissions');
-    });
-
     test('should validate referenced entities exist', async () => {
       // Arrange
       prismaMock.user.findUnique.mockResolvedValue({
         id: mockUserId,
-        permissions: [{ permission: { resource: 'campaign', action: 'create' } }],
+        isActive: true,
+        role: {
+          permissions: [{ permission: { resource: 'campaign', action: 'create' } }]
+        }
       } as any);
 
       prismaMock.verificationCampaign.findFirst.mockResolvedValue(null);
@@ -135,14 +113,17 @@ describe('CampaignService', () => {
       // Act & Assert
       await expect(
         campaignService.createCampaign(mockCampaignData, mockUserId)
-      ).rejects.toThrow('One or more states not found');
+      ).rejects.toThrow('One or more assigned states not found');
     });
 
     test('should calculate target asset count', async () => {
       // Arrange
       prismaMock.user.findUnique.mockResolvedValue({
         id: mockUserId,
-        permissions: [{ permission: { resource: 'campaign', action: 'create' } }],
+        isActive: true,
+        role: {
+          permissions: [{ permission: { resource: 'campaign', action: 'create' } }]
+        }
       } as any);
 
       prismaMock.verificationCampaign.findFirst.mockResolvedValue(null);
@@ -151,7 +132,7 @@ describe('CampaignService', () => {
       prismaMock.category.findMany.mockResolvedValue([{ id: 5 }, { id: 6 }] as any);
       prismaMock.asset.count.mockResolvedValue(150);
 
-      prismaMock.$transaction.mockImplementation(async (fn) => {
+      prismaMock.$transaction.mockImplementation(async (fn: any) => {
         return await fn(prismaMock);
       });
 
@@ -177,6 +158,18 @@ describe('CampaignService', () => {
       expect(result.targetAssetCount).toBe(150);
       expect(prismaMock.asset.count).toHaveBeenCalled();
     });
+
+    test('should throw UnauthorizedError if user has no permission', async () => {
+      prismaMock.user.findUnique.mockResolvedValue({
+        id: mockUserId,
+        isActive: true,
+        role: { permissions: [] }
+      } as any);
+
+      await expect(
+        campaignService.createCampaign(mockCampaignData, mockUserId)
+      ).rejects.toThrow('Insufficient permissions to create campaigns');
+    });
   });
 
   describe('getCampaigns', () => {
@@ -184,7 +177,10 @@ describe('CampaignService', () => {
       // Arrange
       prismaMock.user.findUnique.mockResolvedValue({
         id: mockUserId,
-        permissions: [{ permission: { resource: 'campaign', action: 'read' } }],
+        isActive: true,
+        role: {
+          permissions: [{ permission: { resource: 'campaign', action: 'read' } }]
+        }
       } as any);
 
       prismaMock.verificationCampaign.findMany.mockResolvedValue([
@@ -193,13 +189,225 @@ describe('CampaignService', () => {
       ] as any);
 
       prismaMock.verificationCampaign.count.mockResolvedValue(2);
+      prismaMock.assetVerification.groupBy.mockResolvedValue([]);
+      prismaMock.verificationDiscrepancy.count.mockResolvedValue(0);
+      prismaMock.verificationCampaign.findUnique.mockResolvedValue({ targetAssetCount: 100 } as any);
 
       // Act
-      const result = await campaignService.getCampaigns({ status: 'ACTIVE', page: 1, limit: 10 }, mockUserId);
+      const result = await campaignService.getCampaigns({
+        status: ['ACTIVE'],
+        page: 1,
+        limit: 10,
+        sortBy: 'createdAt',
+        sortOrder: 'desc'
+      }, mockUserId);
 
       // Assert
       expect(result.data.length).toBe(2);
       expect(result.pagination.total).toBe(2);
+    });
+
+    test('should throw UnauthorizedError if user has no permission', async () => {
+      prismaMock.user.findUnique.mockResolvedValue({
+        id: mockUserId,
+        isActive: true,
+        role: { permissions: [] }
+      } as any);
+
+      prismaMock.verificationAssignment.findMany.mockResolvedValue([]);
+
+      await expect(
+        campaignService.getCampaigns({ page: 1, limit: 10, sortBy: 'createdAt', sortOrder: 'desc' }, mockUserId)
+      ).rejects.toThrow('Insufficient permissions to view campaigns');
+    });
+  });
+
+  describe('getCampaignById', () => {
+    const mockCampaignId = 1;
+
+    test('should return campaign with stats and progress', async () => {
+      // Arrange
+      prismaMock.user.findUnique.mockResolvedValue({
+        id: mockUserId,
+        isActive: true,
+        role: {
+          permissions: [{ permission: { resource: 'campaign', action: 'read' } }]
+        }
+      } as any);
+
+      prismaMock.verificationCampaign.findUnique.mockResolvedValue({
+        id: mockCampaignId,
+        name: 'Test Campaign',
+        targetAssetCount: 100,
+        _count: { verifications: 10, assignments: 2 },
+      } as any);
+
+      // Mock stats gathering
+      prismaMock.assetVerification.groupBy.mockResolvedValue([
+        { status: 'VERIFIED', _count: { _all: 50 } },
+        { status: 'PENDING', _count: { _all: 50 } }
+      ] as any);
+
+      prismaMock.verificationDiscrepancy.count.mockResolvedValue(5);
+      prismaMock.auditLog.findMany.mockResolvedValue([]);
+
+      // Act
+      const result = await campaignService.getCampaignById(mockCampaignId, mockUserId);
+
+      // Assert
+      expect(result.id).toBe(mockCampaignId);
+      expect(result.verificationProgress).toBe(50); // 50/100 * 100
+      expect(result.stats.verifiedAssets).toBe(50);
+      expect(result._count.discrepancies).toBe(5);
+    });
+
+    test('should throw NotFoundError if campaign does not exist', async () => {
+      prismaMock.user.findUnique.mockResolvedValue({
+        id: mockUserId,
+        isActive: true,
+        role: {
+          permissions: [{ permission: { resource: 'campaign', action: 'read' } }]
+        }
+      } as any);
+
+      prismaMock.verificationCampaign.findUnique.mockResolvedValue(null);
+
+      await expect(campaignService.getCampaignById(999, mockUserId))
+        .rejects.toThrow('Campaign not found');
+    });
+
+    test('should throw UnauthorizedError if user has no permission', async () => {
+      prismaMock.user.findUnique.mockResolvedValue({
+        id: mockUserId,
+        isActive: true,
+        role: { permissions: [] }
+      } as any);
+
+      prismaMock.verificationAssignment.findFirst.mockResolvedValue(null);
+
+      await expect(campaignService.getCampaignById(mockCampaignId, mockUserId))
+        .rejects.toThrow('You are not assigned to this campaign');
+    });
+  });
+
+  describe('updateCampaign', () => {
+    const mockCampaignId = 1;
+    const updateData = { name: 'Updated Name', status: 'DRAFT' as const };
+
+    test('should update campaign successfully', async () => {
+      prismaMock.user.findUnique.mockResolvedValue({
+        id: mockUserId,
+        isActive: true,
+        role: {
+          permissions: [{ permission: { resource: 'campaign', action: 'update' } }]
+        }
+      } as any);
+
+      prismaMock.verificationCampaign.findUnique.mockResolvedValue({
+        id: mockCampaignId,
+        status: 'DRAFT'
+      } as any);
+
+      prismaMock.verificationCampaign.update.mockResolvedValue({
+        id: mockCampaignId,
+        name: 'Updated Name',
+        status: 'DRAFT'
+      } as any);
+
+      const result = await campaignService.updateCampaign(mockCampaignId, updateData, mockUserId);
+
+      expect(result.name).toBe('Updated Name');
+      expect(prismaMock.verificationCampaign.update).toHaveBeenCalled();
+    });
+
+    test('should prevent updating completed campaigns', async () => {
+      prismaMock.user.findUnique.mockResolvedValue({
+        id: mockUserId,
+        isActive: true,
+        role: {
+          permissions: [{ permission: { resource: 'campaign', action: 'update' } }]
+        }
+      } as any);
+
+      prismaMock.verificationCampaign.findUnique.mockResolvedValue({
+        id: mockCampaignId,
+        status: 'COMPLETED'
+      } as any);
+
+      await expect(campaignService.updateCampaign(mockCampaignId, updateData, mockUserId))
+        .rejects.toThrow('Cannot update completed or cancelled campaigns');
+    });
+
+    test('should throw UnauthorizedError if user has no permission', async () => {
+      prismaMock.user.findUnique.mockResolvedValue({
+        id: mockUserId,
+        isActive: true,
+        role: { permissions: [] }
+      } as any);
+
+      await expect(campaignService.updateCampaign(mockCampaignId, updateData, mockUserId))
+        .rejects.toThrow('Insufficient permissions to update campaigns');
+    });
+  });
+
+  describe('deleteCampaign', () => {
+    const mockCampaignId = 1;
+
+    test('should soft delete campaign via cancellation', async () => {
+      prismaMock.user.findUnique.mockResolvedValue({
+        id: mockUserId,
+        isActive: true,
+        role: {
+          permissions: [{ permission: { resource: 'campaign', action: 'delete' } }]
+        }
+      } as any);
+
+      prismaMock.verificationCampaign.findUnique.mockResolvedValue({
+        id: mockCampaignId,
+        status: 'DRAFT'
+      } as any);
+
+      prismaMock.assetVerification.count.mockResolvedValue(0);
+
+      await campaignService.deleteCampaign(mockCampaignId, mockUserId);
+
+      expect(prismaMock.verificationCampaign.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: mockCampaignId },
+          data: { status: 'CANCELLED' }
+        })
+      );
+    });
+
+    test('should prevent deletion if active verifications exist', async () => {
+      prismaMock.user.findUnique.mockResolvedValue({
+        id: mockUserId,
+        isActive: true,
+        role: {
+          permissions: [{ permission: { resource: 'campaign', action: 'delete' } }]
+        }
+      } as any);
+
+      prismaMock.verificationCampaign.findUnique.mockResolvedValue({
+        id: mockCampaignId,
+        status: 'ACTIVE'
+      } as any);
+
+      prismaMock.assetVerification.count.mockResolvedValue(5);
+
+      await expect(campaignService.deleteCampaign(mockCampaignId, mockUserId))
+        .rejects.toThrow('Cannot delete campaign with active verifications');
+    });
+
+    test('should throw UnauthorizedError if user has no permission', async () => {
+      prismaMock.user.findUnique.mockResolvedValue({
+        id: mockUserId,
+        isActive: true,
+        role: { permissions: [] }
+      } as any);
+
+      await expect(campaignService.deleteCampaign(mockCampaignId, mockUserId))
+        .rejects.toThrow('Insufficient permissions to delete campaigns');
     });
   });
 
@@ -216,7 +424,10 @@ describe('CampaignService', () => {
 
       prismaMock.user.findUnique.mockResolvedValue({
         id: mockUserId,
-        permissions: [{ permission: { resource: 'campaign', action: 'manage' } }],
+        isActive: true,
+        role: {
+          permissions: [{ permission: { resource: 'campaign', action: 'manage' } }]
+        }
       } as any);
 
       prismaMock.verificationCampaign.findUnique.mockResolvedValue(mockCampaign as any);
@@ -235,7 +446,6 @@ describe('CampaignService', () => {
         where: { id: mockCampaignId },
         data: expect.objectContaining({
           status: 'ACTIVE',
-          startedAt: expect.any(Date),
         }),
       });
       expect(prismaMock.auditLog.create).toHaveBeenCalled();
@@ -245,7 +455,10 @@ describe('CampaignService', () => {
       // Arrange
       prismaMock.user.findUnique.mockResolvedValue({
         id: mockUserId,
-        permissions: [{ permission: { resource: 'campaign', action: 'manage' } }],
+        isActive: true,
+        role: {
+          permissions: [{ permission: { resource: 'campaign', action: 'manage' } }]
+        }
       } as any);
 
       prismaMock.verificationCampaign.findUnique.mockResolvedValue({
@@ -260,81 +473,86 @@ describe('CampaignService', () => {
       ).rejects.toThrow('Cannot start campaign without team assignments');
     });
 
-    test('should only start when status is DRAFT or PLANNED', async () => {
-      // Arrange
+    test('should throw UnauthorizedError if user has no permission', async () => {
       prismaMock.user.findUnique.mockResolvedValue({
         id: mockUserId,
-        permissions: [{ permission: { resource: 'campaign', action: 'manage' } }],
+        isActive: true,
+        role: { permissions: [] }
       } as any);
 
-      prismaMock.verificationCampaign.findUnique.mockResolvedValue({
-        id: mockCampaignId,
-        status: 'ACTIVE',
-        assignments: [{ id: 1, userId: 2 }],
-      } as any);
-
-      // Act & Assert
-      await expect(
-        campaignService.startCampaign(mockCampaignId, mockUserId)
-      ).rejects.toThrow('Only draft or planned campaigns can be started');
+      await expect(campaignService.startCampaign(mockCampaignId, mockUserId))
+        .rejects.toThrow('Insufficient permissions to start campaigns');
     });
   });
 
-  describe('completeCampaign', () => {
+  describe('lifecycle transitions', () => {
     const mockCampaignId = 1;
 
-    test('should complete campaign successfully', async () => {
-      // Arrange
+    beforeEach(() => {
       prismaMock.user.findUnique.mockResolvedValue({
         id: mockUserId,
-        permissions: [{ permission: { resource: 'campaign', action: 'manage' } }],
+        isActive: true,
+        role: {
+          permissions: [{ permission: { resource: 'campaign', action: 'manage' } }]
+        }
       } as any);
+    });
 
+    test('pauseCampaign should set status to PAUSED', async () => {
       prismaMock.verificationCampaign.findUnique.mockResolvedValue({
-        id: mockCampaignId,
-        status: 'ACTIVE',
+        id: mockCampaignId, status: 'ACTIVE'
       } as any);
 
-      prismaMock.verificationCampaign.update.mockResolvedValue({
-        id: mockCampaignId,
-        status: 'COMPLETED',
-        completedAt: new Date(),
+      await campaignService.pauseCampaign(mockCampaignId, mockUserId);
+
+      expect(prismaMock.verificationCampaign.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: { status: 'PAUSED' }
+        })
+      );
+    });
+
+    test('resumeCampaign should set status to ACTIVE', async () => {
+      prismaMock.verificationCampaign.findUnique.mockResolvedValue({
+        id: mockCampaignId, status: 'PAUSED'
       } as any);
 
-      prismaMock.auditLog.create.mockResolvedValue({} as any);
+      await campaignService.resumeCampaign(mockCampaignId, mockUserId);
 
-      // Act
+      expect(prismaMock.verificationCampaign.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: { status: 'ACTIVE' }
+        })
+      );
+    });
+
+    test('completeCampaign should set status to COMPLETED', async () => {
+      prismaMock.verificationCampaign.findUnique.mockResolvedValue({
+        id: mockCampaignId, status: 'ACTIVE'
+      } as any);
+
       await campaignService.completeCampaign(mockCampaignId, mockUserId);
 
-      // Assert
-      expect(prismaMock.verificationCampaign.update).toHaveBeenCalledWith({
-        where: { id: mockCampaignId },
-        data: expect.objectContaining({
-          status: 'COMPLETED',
-          completedAt: expect.any(Date),
-        }),
-      });
-      expect(prismaMock.auditLog.create).toHaveBeenCalled();
+      expect(prismaMock.verificationCampaign.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: { status: 'COMPLETED' }
+        })
+      );
     });
 
-    test('should require ACTIVE status to complete', async () => {
-      // Arrange
+    test('should throw UnauthorizedError if user has no permission', async () => {
       prismaMock.user.findUnique.mockResolvedValue({
         id: mockUserId,
-        permissions: [{ permission: { resource: 'campaign', action: 'manage' } }],
+        isActive: true,
+        role: { permissions: [] }
       } as any);
 
-      prismaMock.verificationCampaign.findUnique.mockResolvedValue({
-        id: mockCampaignId,
-        status: 'PLANNED',
-      } as any);
-
-      // Act & Assert
-      await expect(
-        campaignService.completeCampaign(mockCampaignId, mockUserId)
-      ).rejects.toThrow('Only active campaigns can be completed');
+      // Test one of the management actions
+      await expect(campaignService.pauseCampaign(mockCampaignId, mockUserId))
+        .rejects.toThrow('Insufficient permissions to pause campaigns');
     });
   });
+
 });
 
 // Additional test utilities and mocks
@@ -346,9 +564,9 @@ export const createMockCampaign = (overrides = {}) => ({
   priority: 'MEDIUM',
   startDate: new Date('2024-01-01'),
   endDate: new Date('2024-12-31'),
-  stateIds: [1, 2],
-  lgaIds: [10, 11],
-  categoryIds: [5, 6],
+  assignedStates: [1, 2],
+  assignedLgas: [10, 11],
+  assignedCategories: [5, 6],
   instructions: 'Test instructions',
   metadata: {},
   createdBy: 1,

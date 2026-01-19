@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth/auth-options';
 import { stockVerificationConfig } from '@/config/stock-verification';
 import prisma from '@/lib/prisma';
 
@@ -11,12 +13,42 @@ export async function GET(request: NextRequest) {
     // Test database connection with a simple count query
     const campaignCount = await prisma.verificationCampaign.count();
     const userCount = await prisma.user.count();
-    
+
+    // Get current user session for context
+    const session = await getServerSession(authOptions);
+    let userContext = null;
+
+    if (session?.user?.email) {
+      try {
+        const user = await prisma.user.findUnique({
+          where: { email: session.user.email },
+          include: { state: true, lga: true, role: true } as any
+        });
+
+        if (user) {
+          const userAny = user as any;
+          userContext = {
+            role: userAny.role.name,
+            firstName: userAny.firstName,
+            lastName: userAny.lastName,
+            scope: userAny.lgaId ? 'LGA' : (userAny.stateId ? 'STATE' : 'NATIONAL'),
+            location: userAny.lga ? `${userAny.lga.name}, ${userAny.state?.name}` : (userAny.state ? userAny.state.name : 'National HQ'),
+            stateId: userAny.stateId,
+            lgaId: userAny.lgaId
+          };
+        }
+      } catch (err) {
+        console.warn('Failed to fetch user context details:', err);
+        // Continue without userContext if fetch fails (e.g. schema mismatch)
+      }
+    }
+
     const response = {
       success: true,
       message: 'Stock Verification Module is active',
       timestamp: new Date().toISOString(),
-      version: '1.0.0',
+      userContext,
+      version: '1.1.0',
       environment: process.env.NODE_ENV || 'development',
       database: {
         connected: true,
@@ -47,7 +79,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(response);
   } catch (error) {
     console.error('Stock Verification API Error:', error);
-    
+
     return NextResponse.json(
       {
         success: false,
