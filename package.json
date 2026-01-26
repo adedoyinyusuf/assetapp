@@ -23,6 +23,7 @@
     "prisma:studio": "prisma studio",
     "db:reset": "prisma migrate reset --force",
     "db:setup": "npm run prisma:generate && npm run prisma:push",
+    "migrate:mdm": "node scripts/run-mdm-migration.js",
     "clean": "rm -rf .next dist coverage",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
