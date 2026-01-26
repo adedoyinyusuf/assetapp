@@ -274,9 +274,11 @@ export default function StockVerificationDashboard() {
               <motion.div
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="flex flex-col items-center p-6 bg-card rounded-xl border shadow-sm hover:shadow-md transition-all cursor-pointer text-center h-full justify-center"
+                className="flex flex-col items-center p-6 bg-card rounded-xl border border-t-4 border-t-primary shadow-sm hover:shadow-md transition-all cursor-pointer text-center h-full justify-center"
               >
-                <Database className="h-8 w-8 text-primary mb-3" />
+                <div className="p-3 bg-primary/10 rounded-full mb-3">
+                  <Database className="h-8 w-8 text-primary" />
+                </div>
                 <h3 className="font-semibold text-lg">Campaigns & Assignments</h3>
                 <p className="text-sm text-muted-foreground mt-1">Manage & Track</p>
               </motion.div>
@@ -286,9 +288,11 @@ export default function StockVerificationDashboard() {
               <motion.div
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="flex flex-col items-center p-6 bg-card rounded-xl border shadow-sm hover:shadow-md transition-all cursor-pointer text-center h-full justify-center"
+                className="flex flex-col items-center p-6 bg-card rounded-xl border border-t-4 border-t-green-500 shadow-sm hover:shadow-md transition-all cursor-pointer text-center h-full justify-center"
               >
-                <Shield className="h-8 w-8 text-success mb-3" />
+                <div className="p-3 bg-green-100 rounded-full mb-3">
+                  <Shield className="h-8 w-8 text-green-600" />
+                </div>
                 <h3 className="font-semibold text-lg">Verifications</h3>
                 <p className="text-sm text-muted-foreground mt-1">Log & Review</p>
               </motion.div>
@@ -298,9 +302,11 @@ export default function StockVerificationDashboard() {
               <motion.div
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="flex flex-col items-center p-6 bg-card rounded-xl border shadow-sm hover:shadow-md transition-all cursor-pointer text-center h-full justify-center"
+                className="flex flex-col items-center p-6 bg-card rounded-xl border border-t-4 border-t-yellow-500 shadow-sm hover:shadow-md transition-all cursor-pointer text-center h-full justify-center"
               >
-                <AlertTriangle className="h-8 w-8 text-warning mb-3" />
+                <div className="p-3 bg-yellow-100 rounded-full mb-3">
+                  <AlertTriangle className="h-8 w-8 text-yellow-600" />
+                </div>
                 <h3 className="font-semibold text-lg">Discrepancies</h3>
                 <p className="text-sm text-muted-foreground mt-1">Resolve Issues</p>
               </motion.div>
@@ -310,9 +316,11 @@ export default function StockVerificationDashboard() {
               <motion.div
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="flex flex-col items-center p-6 bg-card rounded-xl border shadow-sm hover:shadow-md transition-all cursor-pointer text-center h-full justify-center"
+                className="flex flex-col items-center p-6 bg-card rounded-xl border border-t-4 border-t-purple-500 shadow-sm hover:shadow-md transition-all cursor-pointer text-center h-full justify-center"
               >
-                <FileText className="h-8 w-8 text-accent mb-3" />
+                <div className="p-3 bg-purple-100 rounded-full mb-3">
+                  <FileText className="h-8 w-8 text-purple-600" />
+                </div>
                 <h3 className="font-semibold text-lg">Reports</h3>
                 <p className="text-sm text-muted-foreground mt-1">Export Data</p>
               </motion.div>

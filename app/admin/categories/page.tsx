@@ -7,8 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faPlus, faEdit, faTrash, faSave, faTimes } from '@fortawesome/free-solid-svg-icons'
+import { Plus, Edit, Trash2, Save, X } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface Category {
@@ -64,7 +63,7 @@ export default function CategoriesManagementPage() {
       toast.error('Please enter a category name');
       return;
     }
-    
+
     setLoading(true)
     try {
       const response = await fetch('/api/categories', {
@@ -77,7 +76,7 @@ export default function CategoriesManagementPage() {
           description: ''
         }),
       });
-      
+
       if (response.ok) {
         toast.success('Category added successfully');
         setNewCategoryName('');
@@ -100,7 +99,7 @@ export default function CategoriesManagementPage() {
       toast.error('Please enter a category name');
       return;
     }
-    
+
     setLoading(true)
     try {
       const response = await fetch(`/api/categories/${id}`, {
@@ -112,7 +111,7 @@ export default function CategoriesManagementPage() {
           name: editCategoryName,
         }),
       });
-      
+
       if (response.ok) {
         toast.success('Category updated successfully');
         setEditingId(null);
@@ -137,7 +136,7 @@ export default function CategoriesManagementPage() {
         const response = await fetch(`/api/categories/${id}`, {
           method: 'DELETE',
         });
-        
+
         if (response.ok) {
           toast.success('Category deleted successfully');
           await fetchCategories();
@@ -168,14 +167,14 @@ export default function CategoriesManagementPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Categories Management</h1>
-        <Button 
+        <Button
           onClick={() => {
             console.log('Add Category button clicked, current showAddForm:', showAddForm)
             console.log('Session:', session)
             setShowAddForm(!showAddForm)
           }}
         >
-          <FontAwesomeIcon icon={faPlus} className="mr-2" />
+          <Plus className="mr-2 h-4 w-4" />
           Add Category
         </Button>
       </div>
@@ -198,11 +197,11 @@ export default function CategoriesManagementPage() {
                 />
               </div>
               <Button onClick={handleAddCategory} disabled={loading}>
-                <FontAwesomeIcon icon={faSave} className="mr-2" />
+                <Save className="mr-2 h-4 w-4" />
                 {loading ? 'Adding...' : 'Add Category'}
               </Button>
               <Button variant="outline" onClick={() => setShowAddForm(false)}>
-                <FontAwesomeIcon icon={faTimes} className="mr-2" />
+                <X className="mr-2 h-4 w-4" />
                 Cancel
               </Button>
             </div>
@@ -244,40 +243,40 @@ export default function CategoriesManagementPage() {
                       <div className="flex gap-2">
                         {editingId === category.id ? (
                           <>
-                            <Button 
-                              size="sm" 
+                            <Button
+                              size="sm"
                               onClick={() => handleEditCategory(category.id)}
                               disabled={loading}
                             >
-                              <FontAwesomeIcon icon={faSave} className="mr-1" />
+                              <Save className="mr-1 h-4 w-4" />
                               Save
                             </Button>
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
+                            <Button
+                              size="sm"
+                              variant="outline"
                               onClick={cancelEdit}
                             >
-                              <FontAwesomeIcon icon={faTimes} className="mr-1" />
+                              <X className="mr-1 h-4 w-4" />
                               Cancel
                             </Button>
                           </>
                         ) : (
                           <>
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
+                            <Button
+                              size="sm"
+                              variant="outline"
                               onClick={() => startEdit(category)}
                             >
-                              <FontAwesomeIcon icon={faEdit} className="mr-1" />
+                              <Edit className="mr-1 h-4 w-4" />
                               Edit
                             </Button>
-                            <Button 
-                              size="sm" 
-                              variant="destructive" 
+                            <Button
+                              size="sm"
+                              variant="destructive"
                               onClick={() => handleDeleteCategory(category.id, category.name)}
                               disabled={loading}
                             >
-                              <FontAwesomeIcon icon={faTrash} className="mr-1" />
+                              <Trash2 className="mr-1 h-4 w-4" />
                               Delete
                             </Button>
                           </>
@@ -289,7 +288,7 @@ export default function CategoriesManagementPage() {
               </TableBody>
             </Table>
           </div>
-          
+
           {categories.length === 0 && (
             <div className="text-center py-8 text-gray-500">
               No categories found. Add your first category to get started.

@@ -43,7 +43,7 @@ export default function DesignSystemPage() {
                     </div>
                     <div className="space-y-1">
                         <code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm font-semibold">
-                            const variable = "value";
+                            const variable = &quot;value&quot;;
                         </code>
                         <p className="text-sm text-muted-foreground">inline code</p>
                     </div>

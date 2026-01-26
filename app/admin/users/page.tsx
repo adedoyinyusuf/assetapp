@@ -8,8 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faPlus, faEdit, faTrash, faUser, faUserShield, faUsers } from '@fortawesome/free-solid-svg-icons'
+import { Plus, Edit, Trash2, User, Shield, Users } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface User {
@@ -297,7 +296,7 @@ export default function UsersManagementPage() {
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">User Management</h1>
         <Button onClick={() => setShowAddForm(!showAddForm)}>
-          <FontAwesomeIcon icon={faPlus} className="mr-2" />
+          <Plus className="mr-2 h-4 w-4" />
           Add User
         </Button>
       </div>
@@ -311,7 +310,7 @@ export default function UsersManagementPage() {
                 <p className="text-sm font-medium text-gray-600">Total Users</p>
                 <p className="text-2xl font-bold">{users.length}</p>
               </div>
-              <FontAwesomeIcon icon={faUsers} className="h-8 w-8 text-blue-600" />
+              <Users className="h-8 w-8 text-blue-600" />
             </div>
           </CardContent>
         </Card>
@@ -323,7 +322,7 @@ export default function UsersManagementPage() {
                 <p className="text-sm font-medium text-gray-600">Active Users</p>
                 <p className="text-2xl font-bold">{users.filter(u => u.isActive).length}</p>
               </div>
-              <FontAwesomeIcon icon={faUser} className="h-8 w-8 text-green-600" />
+              <User className="h-8 w-8 text-green-600" />
             </div>
           </CardContent>
         </Card>
@@ -335,7 +334,7 @@ export default function UsersManagementPage() {
                 <p className="text-sm font-medium text-gray-600">Admins</p>
                 <p className="text-2xl font-bold">{roleStats.ADMIN + roleStats.SUPER_ADMIN}</p>
               </div>
-              <FontAwesomeIcon icon={faUserShield} className="h-8 w-8 text-red-600" />
+              <Shield className="h-8 w-8 text-red-600" />
             </div>
           </CardContent>
         </Card>
@@ -347,7 +346,7 @@ export default function UsersManagementPage() {
                 <p className="text-sm font-medium text-gray-600">Managers</p>
                 <p className="text-2xl font-bold">{roleStats.MANAGER}</p>
               </div>
-              <FontAwesomeIcon icon={faUserShield} className="h-8 w-8 text-purple-600" />
+              <Shield className="h-8 w-8 text-purple-600" />
             </div>
           </CardContent>
         </Card>
@@ -577,7 +576,7 @@ export default function UsersManagementPage() {
                           variant="outline"
                           onClick={() => handleEditClick(user)}
                         >
-                          <FontAwesomeIcon icon={faEdit} className="mr-1" />
+                          <Edit className="mr-1 h-4 w-4" />
                           Edit
                         </Button>
                         <Button
@@ -592,7 +591,7 @@ export default function UsersManagementPage() {
                           variant="destructive"
                           onClick={() => handleDeleteUser(user.id)}
                         >
-                          <FontAwesomeIcon icon={faTrash} className="mr-1" />
+                          <Trash2 className="mr-1 h-4 w-4" />
                           Delete
                         </Button>
                       </div>

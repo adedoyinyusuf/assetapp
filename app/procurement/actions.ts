@@ -4,6 +4,8 @@ import { procurementService } from '@/lib/procurement/procurement-service';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth/auth-options';
 
 const CreateRequestSchema = z.object({
     title: z.string().min(3),
@@ -34,8 +36,12 @@ export async function createProcurementRequest(formData: FormData) {
         description: formData.get('itemDescription') as string,
     }];
 
-    // TODO: Get actual user ID
-    const userId = 1;
+    // Get actual user ID from session
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+        throw new Error('Unauthorized');
+    }
+    const userId = Number(session.user.id);
 
     try {
         await procurementService.createRequest({
@@ -54,12 +60,18 @@ export async function createProcurementRequest(formData: FormData) {
 }
 
 export async function receivePurchaseOrderItems(poId: number, formData: FormData) {
-    // Logic to parse received items
-    // For demo, receive all
+    const itemsJson = formData.get('items') as string;
+
     try {
-        // This would need real logic to map items
+        const items = JSON.parse(itemsJson);
+
+        // Validate items structure if needed, or rely on service/types
+        await procurementService.receiveItems(poId, items);
+
         revalidatePath(`/procurement/purchase-orders/${poId}`);
+        // Maybe redirect if fully received? For now stay on page
     } catch (error) {
+        console.error('Failed to receive items:', error);
         throw new Error('Failed to receive items');
     }
 }
@@ -67,8 +79,12 @@ export async function receivePurchaseOrderItems(poId: number, formData: FormData
 export async function approveProcurementRequest(formData: FormData) {
     const requestId = Number(formData.get('requestId'));
 
-    // TODO: Get actual user ID from session
-    const userId = 1;
+    // Get actual user ID from session
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+        throw new Error('Unauthorized');
+    }
+    const userId = Number(session.user.id);
 
     try {
         await procurementService.approveRequest(requestId, userId);
@@ -85,8 +101,12 @@ export async function rejectProcurementRequest(formData: FormData) {
     const requestId = Number(formData.get('requestId'));
     const reason = formData.get('reason') as string || 'Request rejected';
 
-    // TODO: Get actual user ID from session
-    const userId = 1;
+    // Get actual user ID from session
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+        throw new Error('Unauthorized');
+    }
+    const userId = Number(session.user.id);
 
     try {
         await procurementService.rejectRequest(requestId, userId, reason);
@@ -106,8 +126,12 @@ export async function createPurchaseOrderFromRequest(formData: FormData) {
     const expectedDate = formData.get('expectedDate') as string;
     const notes = formData.get('notes') as string;
 
-    // TODO: Get actual user ID from session
-    const userId = 1;
+    // Get actual user ID from session
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+        throw new Error('Unauthorized');
+    }
+    const userId = Number(session.user.id);
 
     try {
         // If we have a requestId, get the request items

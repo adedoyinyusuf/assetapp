@@ -18,7 +18,7 @@ export default async function EnhancedDashboardPage() {
   }
 
   const role = session.user.role;
-  
+
   // Check permissions
   const showAnalytics = canPerformTask(role, Task.VIEW_BASIC_ANALYTICS);
   const showSearch = canPerformTask(role, Task.BASIC_SEARCH);
@@ -42,7 +42,7 @@ export default async function EnhancedDashboardPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground">
-            Welcome back, {session.user.firstName || 'User'}! Here's what's happening with your assets.
+            Welcome back, {session.user.firstName || 'User'}! Here&apos;s what&apos;s happening with your assets.
           </p>
         </div>
         <div className="flex gap-2">

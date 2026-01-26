@@ -14,6 +14,8 @@ import { Check, CheckCircle2, AlertCircle, Camera, Upload, X, Loader2, QrCode } 
 import QRScanner from '@/components/stock-verification/QRScanner';
 import { LocationCapture } from '@/components/verification';
 import { PhotoGallery } from '@/components/verification';
+import { db } from '@/lib/stock-verification/db';
+import { toast } from 'sonner';
 
 interface Campaign {
     id: number;
@@ -118,16 +120,49 @@ export default function VerificationForm({ campaigns, assets }: VerificationForm
         const formData = new FormData(e.currentTarget);
 
         // Append photos from state
-        formData.delete('photos'); // Remove any default input values
         photos.forEach(photo => {
             formData.append('photos', photo);
         });
 
+        const isOffline = !navigator.onLine;
+
         startTransition(async () => {
             try {
-                await createVerification(formData);
-                setSuccess(true);
-                setTimeout(() => router.push('/stock-verification/verifications'), 1500);
+                if (isOffline) {
+                    // Save to Dexie
+                    const data: any = {};
+                    formData.forEach((value, key) => {
+                        data[key] = value;
+                    });
+
+                    // Handle file to base64 or similar if needed for offline? 
+                    // For now, simpler text fields. 
+                    // WARNING: File inputs can't simply be json-stringified.
+                    // Dexie supports storing Blobs directly.
+
+                    // We need to reconstruct the object carefully for storage
+                    const submissionData: any = {};
+                    for (const [key, value] of formData.entries()) {
+                        submissionData[key] = value;
+                    }
+                    // Add photos separately if needed, but formData entries handles files too?
+                    // Dexie handles Blob/File in structured cloning.
+
+                    await db.pendingVerifications.add({
+                        data: submissionData,
+                        createdAt: Date.now(),
+                        synced: false
+                    });
+
+                    toast.success("Saved offline. Will sync when online.");
+                    setSuccess(true);
+                    setTimeout(() => router.push('/stock-verification/verifications'), 1500);
+
+                } else {
+                    await createVerification(formData);
+                    setSuccess(true);
+                    setTimeout(() => router.push('/stock-verification/verifications'), 1500);
+                }
             } catch (err) {
                 setError(err instanceof Error ? err.message : 'Failed to create verification');
             }

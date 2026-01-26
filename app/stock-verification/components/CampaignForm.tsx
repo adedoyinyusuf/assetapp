@@ -46,6 +46,7 @@ export default function CampaignForm({ states, categories }: CampaignFormProps) 
     const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
     const [assetCount, setAssetCount] = useState<number>(0);
     const [isLoadingCount, setIsLoadingCount] = useState(false);
+    const [autoAssign, setAutoAssign] = useState(false);
 
     // Calculate estimated asset count when scope changes
     useEffect(() => {
@@ -147,6 +148,7 @@ export default function CampaignForm({ states, categories }: CampaignFormProps) 
         formData.append('instructions', instructions);
         selectedStates.forEach(id => formData.append('assignedStates', id.toString()));
         selectedCategories.forEach(id => formData.append('assignedCategories', id.toString()));
+        formData.append('autoAssign', autoAssign.toString());
 
         startTransition(async () => {
             try {
@@ -429,7 +431,24 @@ export default function CampaignForm({ states, categories }: CampaignFormProps) 
                             className="min-h-[150px] resize-none"
                             maxLength={2000}
                         />
-                        <p className="text-xs text-muted-foreground">{instructions.length}/2000 characters</p>
+                    </div>
+                    <div className="flex items-center space-x-2 pt-4 border-t">
+                        <Checkbox
+                            id="autoAssign"
+                            checked={autoAssign}
+                            onCheckedChange={(checked) => setAutoAssign(checked as boolean)}
+                        />
+                        <div className="grid gap-1.5 leading-none">
+                            <label
+                                htmlFor="autoAssign"
+                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                            >
+                                Automatically assign local verifiers
+                            </label>
+                            <p className="text-sm text-muted-foreground">
+                                If checked, system will assign verification tasks to users registered in the selected states/LGAs.
+                            </p>
+                        </div>
                     </div>
                 </CardContent>
             </Card>

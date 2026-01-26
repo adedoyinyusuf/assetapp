@@ -103,7 +103,7 @@ export default function AssetsIndexPage() {
         <div className="space-y-1">
           <h1 className="text-3xl font-bold tracking-tight">Asset Management</h1>
           <p className="text-muted-foreground text-lg">
-            Track, manage, and optimize your organization's detailed asset inventory.
+            Track, manage, and optimize your organization&apos;s detailed asset inventory.
           </p>
         </div>
 

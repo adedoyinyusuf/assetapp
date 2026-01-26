@@ -428,7 +428,7 @@ export default function ProfilePage() {
                     Change Password
                   </h3>
                   <p className="text-sm text-gray-600">
-                    Leave these fields empty if you don't want to change your password.
+                    Leave these fields empty if you don&apos;t want to change your password.
                   </p>
 
                   <div className="space-y-4">

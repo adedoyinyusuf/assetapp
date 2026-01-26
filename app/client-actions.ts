@@ -11,6 +11,13 @@ export interface Asset {
   categoryId: number;
   stateId: number;
   lgaId: number;
+  // Identity fields
+  serialNumber?: string | null;
+  batchNumber?: string;
+  referenceNumber?: string;
+  imei1?: string;
+  imei2?: string;
+  assetCode?: string;
   category?: {
     id: number;
     name: string;

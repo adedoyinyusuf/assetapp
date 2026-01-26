@@ -5,10 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
+import {
+  CheckCircle,
+  XCircle,
+  Clock,
   AlertTriangle,
   User,
   Calendar,
@@ -197,12 +197,12 @@ export default function ApprovalWorkflow({ userId }: ApprovalWorkflowProps) {
 
   const handleApprove = async (requestId: string, approved: boolean) => {
     setLoading(true);
-    
+
     try {
       // In a real implementation, send approval to API
       await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
-      
-      setApprovalRequests(prev => 
+
+      setApprovalRequests(prev =>
         prev.map(req => {
           if (req.id === requestId) {
             const updatedApprovers = req.approvers.map(approver => {
@@ -216,12 +216,12 @@ export default function ApprovalWorkflow({ userId }: ApprovalWorkflowProps) {
               }
               return approver;
             });
-            
+
             const currentApprovals = updatedApprovers.filter(a => a.status === 'approved').length;
-            const status: 'pending' | 'approved' | 'rejected' | 'cancelled' = 
-              currentApprovals >= req.requiredApprovals ? 'approved' : 
-              updatedApprovers.some(a => a.status === 'rejected') ? 'rejected' : 'pending';
-            
+            const status: 'pending' | 'approved' | 'rejected' | 'cancelled' =
+              currentApprovals >= req.requiredApprovals ? 'approved' :
+                updatedApprovers.some(a => a.status === 'rejected') ? 'rejected' : 'pending';
+
             return {
               ...req,
               approvers: updatedApprovers,
@@ -233,7 +233,7 @@ export default function ApprovalWorkflow({ userId }: ApprovalWorkflowProps) {
           return req;
         })
       );
-      
+
       setShowApprovalModal(false);
       setSelectedRequest(null);
       setApprovalComment('');
@@ -262,7 +262,7 @@ export default function ApprovalWorkflow({ userId }: ApprovalWorkflowProps) {
           <h2 className="text-2xl font-bold text-gray-900">Approval Workflow</h2>
           <p className="text-gray-600">Manage and approve pending requests</p>
         </div>
-        
+
         <div className="flex items-center gap-2">
           <Badge variant="outline">
             {filteredRequests.filter(r => r.status === 'pending').length} Pending
@@ -294,7 +294,7 @@ export default function ApprovalWorkflow({ userId }: ApprovalWorkflowProps) {
                 </div>
               </div>
             </CardHeader>
-            
+
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Request Details */}
@@ -304,13 +304,13 @@ export default function ApprovalWorkflow({ userId }: ApprovalWorkflowProps) {
                     <span className="font-medium">Requester:</span>
                     <span>{request.requester.name} ({request.requester.role})</span>
                   </div>
-                  
+
                   <div className="flex items-center gap-2 text-sm">
                     <Calendar className="h-4 w-4 text-gray-500" />
                     <span className="font-medium">Requested:</span>
                     <span>{request.createdAt.toLocaleDateString()}</span>
                   </div>
-                  
+
                   {request.details && (
                     <div className="bg-gray-50 p-3 rounded-lg">
                       <h4 className="font-medium text-sm mb-2">Request Details:</h4>
@@ -319,8 +319,8 @@ export default function ApprovalWorkflow({ userId }: ApprovalWorkflowProps) {
                           <div key={key} className="flex justify-between">
                             <span className="capitalize">{key.replace(/([A-Z])/g, ' $1')}:</span>
                             <span className="font-medium">
-                              {typeof value === 'number' && key.includes('value') 
-                                ? `₦${value.toLocaleString()}` 
+                              {typeof value === 'number' && key.includes('value')
+                                ? `₦${value.toLocaleString()}`
                                 : String(value)
                               }
                             </span>
@@ -330,7 +330,7 @@ export default function ApprovalWorkflow({ userId }: ApprovalWorkflowProps) {
                     </div>
                   )}
                 </div>
-                
+
                 {/* Approval Status */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
@@ -339,7 +339,7 @@ export default function ApprovalWorkflow({ userId }: ApprovalWorkflowProps) {
                       {request.currentApprovals}/{request.requiredApprovals}
                     </span>
                   </div>
-                  
+
                   <div className="space-y-2">
                     {request.approvers.map((approver) => (
                       <div key={approver.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
@@ -356,7 +356,7 @@ export default function ApprovalWorkflow({ userId }: ApprovalWorkflowProps) {
                       </div>
                     ))}
                   </div>
-                  
+
                   {/* Action Buttons */}
                   {canApprove(request) && (
                     <div className="flex gap-2">
@@ -374,13 +374,13 @@ export default function ApprovalWorkflow({ userId }: ApprovalWorkflowProps) {
             </CardContent>
           </Card>
         ))}
-        
+
         {filteredRequests.length === 0 && (
           <Card>
             <CardContent className="p-8 text-center">
               <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">No Approval Requests</h3>
-              <p className="text-gray-600">You don't have any pending approval requests at the moment.</p>
+              <p className="text-gray-600">You don&apos;t have any pending approval requests at the moment.</p>
             </CardContent>
           </Card>
         )}
@@ -401,7 +401,7 @@ export default function ApprovalWorkflow({ userId }: ApprovalWorkflowProps) {
                 <h4 className="font-medium mb-2">{selectedRequest.title}</h4>
                 <p className="text-sm text-gray-600">{selectedRequest.description}</p>
               </div>
-              
+
               <div>
                 <label className="text-sm font-medium mb-2 block">Comment (Optional)</label>
                 <Textarea
@@ -411,7 +411,7 @@ export default function ApprovalWorkflow({ userId }: ApprovalWorkflowProps) {
                   rows={3}
                 />
               </div>
-              
+
               <div className="flex gap-2">
                 <Button
                   onClick={() => handleApprove(selectedRequest.id, true)}

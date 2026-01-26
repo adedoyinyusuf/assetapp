@@ -104,8 +104,18 @@ export default withAuth(
     const { pathname } = req.nextUrl;
     const { token } = req.nextauth;
 
-    // Allow access to root path and auth routes without authentication
-    if (pathname === '/' || pathname.startsWith('/auth/')) {
+    // Set x-invoke-path header for layout reference
+    const requestHeaders = new Headers(req.headers);
+    requestHeaders.set('x-invoke-path', pathname);
+
+    // Allow access to root path, auth routes, and public pages without authentication
+    if (
+      pathname === '/' ||
+      pathname.startsWith('/auth/') ||
+      pathname.startsWith('/about') ||
+      pathname.startsWith('/contact') ||
+      pathname.startsWith('/help')
+    ) {
       return NextResponse.next();
     }
 
@@ -121,6 +131,13 @@ export default withAuth(
       return new NextResponse('Access Denied', { status: 403 });
     }
 
+    // Super Admin has access to everything
+    if (userRole === UserRole.SUPER_ADMIN) {
+      return NextResponse.next({
+        headers: requestHeaders,
+      });
+    }
+
     // Get allowed routes for the user's role
     const allowedRoutes = roleBasedRoutes[userRole] || [];
 
@@ -130,10 +147,6 @@ export default withAuth(
     if (!isAllowed) {
       return NextResponse.rewrite(new URL('/unauthorized', req.url));
     }
-
-    // Set x-invoke-path header for layout reference
-    const requestHeaders = new Headers(req.headers);
-    requestHeaders.set('x-invoke-path', pathname);
 
     return NextResponse.next({
       headers: requestHeaders,

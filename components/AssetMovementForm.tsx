@@ -14,8 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { addAssetMovement, getStates, getLGAs, State, LGA } from '@/app/client-actions'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faExchangeAlt } from '@fortawesome/free-solid-svg-icons'
+import { ArrowRightLeft } from 'lucide-react'
 
 interface AssetMovementFormProps {
   assetId: number
@@ -25,11 +24,11 @@ interface AssetMovementFormProps {
   categoryName?: string
 }
 
-export default function AssetMovementForm({ 
-  assetId, 
+export default function AssetMovementForm({
+  assetId,
   currentStateId,
   currentLgaId,
-  categoryName 
+  categoryName
 }: AssetMovementFormProps) {
   const [states, setStates] = useState<State[]>([])
   const [lgas, setLgas] = useState<LGA[]>([])
@@ -51,7 +50,7 @@ export default function AssetMovementForm({
       try {
         const statesData = await getStates()
         setStates(statesData)
-        
+
         // Set current location if available
         if (currentStateId) {
           setFromStateId(currentStateId)
@@ -66,7 +65,7 @@ export default function AssetMovementForm({
         setError('Failed to load location data. Please try again.')
       }
     }
-    
+
     loadStates()
   }, [currentStateId, currentLgaId])
 
@@ -75,7 +74,7 @@ export default function AssetMovementForm({
     const id = parseInt(stateId)
     setFromStateId(id)
     setFromLgaId('')
-    
+
     if (id) {
       try {
         const lgasData = await getLGAs(id)
@@ -90,15 +89,15 @@ export default function AssetMovementForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-    
+
     // Validate form
     if (!fromStateId || !fromLgaId || !toStateId || !toLgaId || !moveDate || !reason) {
       setError('Please fill in all required fields')
       return
     }
-    
+
     setIsLoading(true)
-    
+
     try {
       await addAssetMovement({
         asset_id: assetId,
@@ -111,14 +110,14 @@ export default function AssetMovementForm({
         notes: notes || undefined,
         moved_by: 'System User' // In a real app, this would be the logged-in user
       })
-      
+
       // Reset form
       setToStateId('')
       setToLgaId('')
       setMoveDate('')
       setReason('')
       setNotes('')
-      
+
       // Refresh the page to show the new movement
       router.refresh()
     } catch (err) {
@@ -132,22 +131,22 @@ export default function AssetMovementForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4 bg-white p-6 rounded-lg shadow mt-4">
       <h3 className="text-xl font-semibold mb-4">Record Asset Movement</h3>
-      
+
       {categoryName && (
         <div className="mb-4 p-3 bg-gray-50 rounded-md">
           <p className="text-sm font-medium text-gray-700">Asset Category: <span className="font-normal">{categoryName}</span></p>
         </div>
       )}
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* From Location */}
         <div className="space-y-4 p-4 border rounded-md">
           <h4 className="font-medium">From Location</h4>
-          
+
           <div>
             <Label htmlFor="fromState">State *</Label>
-            <Select 
-              value={fromStateId ? fromStateId.toString() : ''} 
+            <Select
+              value={fromStateId ? fromStateId.toString() : ''}
               onValueChange={handleFromStateChange}
               disabled={!!currentStateId}
             >
@@ -163,11 +162,11 @@ export default function AssetMovementForm({
               </SelectContent>
             </Select>
           </div>
-          
+
           <div>
             <Label htmlFor="fromLga">LGA *</Label>
-            <Select 
-              value={fromLgaId ? fromLgaId.toString() : ''} 
+            <Select
+              value={fromLgaId ? fromLgaId.toString() : ''}
               onValueChange={(value) => setFromLgaId(parseInt(value))}
               disabled={!fromStateId || !!currentLgaId}
             >
@@ -184,20 +183,20 @@ export default function AssetMovementForm({
             </Select>
           </div>
         </div>
-        
+
         {/* To Location */}
         <div className="space-y-4 p-4 border rounded-md">
           <h4 className="font-medium">To Location</h4>
-          
+
           <div>
             <Label htmlFor="toState">State *</Label>
-            <Select 
-              value={toStateId ? toStateId.toString() : ''} 
+            <Select
+              value={toStateId ? toStateId.toString() : ''}
               onValueChange={async (value) => {
                 const id = parseInt(value)
                 setToStateId(id)
                 setToLgaId('')
-                
+
                 if (id) {
                   try {
                     const lgasData = await getLGAs(id)
@@ -221,11 +220,11 @@ export default function AssetMovementForm({
               </SelectContent>
             </Select>
           </div>
-          
+
           <div>
             <Label htmlFor="toLga">LGA *</Label>
-            <Select 
-              value={toLgaId ? toLgaId.toString() : ''} 
+            <Select
+              value={toLgaId ? toLgaId.toString() : ''}
               onValueChange={(value) => setToLgaId(parseInt(value))}
               disabled={!toStateId}
             >
@@ -243,7 +242,7 @@ export default function AssetMovementForm({
           </div>
         </div>
       </div>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <Label htmlFor="moveDate">Movement Date *</Label>
@@ -256,11 +255,11 @@ export default function AssetMovementForm({
             required
           />
         </div>
-        
+
         <div>
           <Label htmlFor="reason">Reason for Movement *</Label>
-          <Select 
-            value={reason} 
+          <Select
+            value={reason}
             onValueChange={setReason}
           >
             <SelectTrigger className="mt-1">
@@ -276,7 +275,7 @@ export default function AssetMovementForm({
           </Select>
         </div>
       </div>
-      
+
       <div>
         <Label htmlFor="notes">Additional Notes</Label>
         <Textarea
@@ -288,20 +287,20 @@ export default function AssetMovementForm({
           rows={3}
         />
       </div>
-      
+
       {error && (
         <div className="p-3 text-sm text-red-700 bg-red-100 rounded-md">
           {error}
         </div>
       )}
-      
+
       <div className="flex justify-end">
-        <Button 
-          type="submit" 
+        <Button
+          type="submit"
           className="w-full md:w-auto"
           disabled={isLoading}
         >
-          <FontAwesomeIcon icon={faExchangeAlt} className="mr-2" />
+          <ArrowRightLeft className="mr-2 h-4 w-4" />
           {isLoading ? 'Recording...' : 'Record Movement'}
         </Button>
       </div>

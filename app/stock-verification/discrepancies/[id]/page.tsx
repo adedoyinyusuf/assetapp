@@ -7,6 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { DiscrepancyResolutionModal } from "@/components/stock-verification/DiscrepancyResolutionModal";
+import VerificationAuditLog from "@/components/stock-verification/VerificationAuditLog";
 
 export default async function DiscrepancyDetailPage({ params }: { params: { id: string } }) {
     const discrepancyId = parseInt(params.id);
@@ -101,6 +103,8 @@ export default async function DiscrepancyDetailPage({ params }: { params: { id: 
         CLOSED: 'bg-gray-500 text-white',
         ESCALATED: 'bg-orange-100 text-orange-800',
     };
+
+    const auditLogs = await getAuditLogs(discrepancy.id);
 
     const canResolve = discrepancy.status !== 'RESOLVED' && discrepancy.status !== 'CLOSED';
 
@@ -394,41 +398,53 @@ export default async function DiscrepancyDetailPage({ params }: { params: { id: 
                             <Separator />
 
                             {/* Resolve Form */}
-                            <form action={resolveDiscrepancy} className="space-y-4">
-                                <input type="hidden" name="discrepancyId" value={discrepancy.id} />
+                            {/* Resolve Form - Replaced by Modal */}
+                            <div className="space-y-4">
                                 <div>
-                                    <label className="text-sm font-medium mb-2 block">Resolution Notes *</label>
-                                    <Textarea
-                                        name="resolutionNotes"
-                                        placeholder="Describe how the discrepancy was resolved..."
-                                        className="min-h-[100px]"
-                                        required
-                                    />
+                                    <label className="text-sm font-medium mb-2 block">Resolution Actions</label>
+                                    <p className="text-sm text-muted-foreground mb-3">
+                                        Use the comprehensive resolution tool to resolve this discrepancy and optionaly update the asset record.
+                                    </p>
                                 </div>
                                 <div className="flex gap-2">
-                                    <Button type="submit" name="action" value="resolve">
-                                        Mark as Resolved
-                                    </Button>
-                                    <Button type="submit" name="action" value="reject" variant="destructive">
-                                        Reject/Close
-                                    </Button>
+                                    <DiscrepancyResolutionModal
+                                        discrepancyId={discrepancy.id}
+                                        currentStatus={discrepancy.status}
+                                        assetName={discrepancy.verification.asset.name}
+                                        trigger={<Button>Resolve Discrepancy</Button>}
+                                    />
                                 </div>
-                            </form>
+                            </div>
                         </CardContent>
                     </Card>
                 )}
 
-                {/* Tags */}
-                {discrepancy.tags && discrepancy.tags.length > 0 && (
-                    <div className="flex gap-2 flex-wrap">
-                        {discrepancy.tags.map((tag, index) => (
-                            <Badge key={index} variant="outline">
-                                {tag}
-                            </Badge>
-                        ))}
-                    </div>
-                )}
+                {/* Audit Trail */}
+                <div className="mt-6">
+                    <VerificationAuditLog logs={auditLogs} />
+                </div>
             </div>
         </div >
     );
+}
+
+// Helper to fetch audit logs
+async function getAuditLogs(discrepancyId: number) {
+    return await db.auditLog.findMany({
+        where: {
+            entityType: 'VerificationDiscrepancy',
+            entityId: discrepancyId
+        },
+        include: {
+            user: {
+                select: {
+                    firstName: true,
+                    lastName: true,
+                    email: true
+                }
+            }
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 20
+    });
 }

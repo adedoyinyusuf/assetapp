@@ -18,8 +18,12 @@ export async function createCampaign(formData: FormData) {
     const assignedStates = formData.getAll('assignedStates').map(Number);
     const assignedCategories = formData.getAll('assignedCategories').map(Number);
 
-    // TODO: Get actual user ID from session
-    const userId = 1;
+    // Get actual user ID from session
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+        throw new Error('Unauthorized');
+    }
+    const userId = Number(session.user.id);
 
     try {
         // Calculate target asset count based on scope
@@ -49,6 +53,38 @@ export async function createCampaign(formData: FormData) {
                 status: 'PLANNED',
             }
         });
+
+        // Handle Auto-Assignment
+        const autoAssign = formData.get('autoAssign') === 'true';
+        if (autoAssign && assignedStates.length > 0) {
+            const localUsers = await db.user.findMany({
+                where: {
+                    stateId: { in: assignedStates },
+                    isActive: true,
+                    // Optionally filtering by role if needed, e.g. role: { name: 'VERIFIER' }
+                },
+                select: { id: true, stateId: true, lgaId: true }
+            });
+
+            if (localUsers.length > 0) {
+                // Create assignments for these users
+                const assignmentsData = localUsers.map(user => ({
+                    campaignId: campaign.id,
+                    userId: user.id,
+                    role: 'VERIFIER' as any, // Cast to enum
+                    stateIds: user.stateId ? [user.stateId] : [],
+                    lgaIds: user.lgaId ? [user.lgaId] : [],
+                    categoryIds: assignedCategories,
+                    startDate: new Date(startDate),
+                    endDate: new Date(endDate),
+                    status: 'ACTIVE' as any
+                }));
+
+                await db.verificationAssignment.createMany({
+                    data: assignmentsData
+                });
+            }
+        }
 
         revalidatePath('/stock-verification/campaigns');
         redirect(`/stock-verification/campaigns/${campaign.id}`);
@@ -132,6 +168,14 @@ export async function assignDiscrepancy(formData: FormData) {
     const discrepancyId = Number(formData.get('discrepancyId'));
     const assigneeId = Number(formData.get('assigneeId'));
 
+    // Check authorization
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+        throw new Error('Unauthorized');
+    }
+    const userId = Number(session.user.id);
+    // In future, can log 'userId' carried out the assignment
+
     try {
         await db.verificationDiscrepancy.update({
             where: { id: discrepancyId },
@@ -153,24 +197,40 @@ export async function resolveDiscrepancy(formData: FormData) {
     const discrepancyId = Number(formData.get('discrepancyId'));
     const resolutionNotes = formData.get('resolutionNotes') as string;
     const action = formData.get('action') as string;
+    const resolutionAction = formData.get('resolutionAction') as string;
 
-    // TODO: Get actual user ID from session
-    const userId = 1;
+    // Get actual user ID from session
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+        throw new Error('Unauthorized');
+    }
+    const userId = Number(session.user.id);
+
+    // Prepare action data if needed
+    let actionData: any = {};
+    if (resolutionAction === 'UPDATE_ASSET_LOCATION') {
+        // In a real app we'd get these from formData
+        // For now, defaulting or extracting if present
+        // actionData = { stateId: ..., lgaId: ... }
+    } else if (resolutionAction === 'UPDATE_ASSET_STATUS') {
+        actionData = { status: formData.get('newStatus') };
+    }
 
     try {
-        await db.verificationDiscrepancy.update({
-            where: { id: discrepancyId },
-            data: {
-                status: action === 'resolve' ? 'RESOLVED' : 'CLOSED',
-                resolutionNotes,
-                resolvedBy: userId,
-                resolutionDate: new Date(),
-            }
-        });
+        const { DiscrepancyService } = await import('@/lib/stock-verification/discrepancy-service');
+        const service = new DiscrepancyService();
+
+        await service.resolveDiscrepancy(
+            discrepancyId,
+            resolutionNotes,
+            userId,
+            resolutionAction || undefined, // Pass the specific action (e.g. MARK_AS_DAMAGED)
+            actionData
+        );
 
         revalidatePath(`/stock-verification/discrepancies/${discrepancyId}`);
         revalidatePath('/stock-verification/discrepancies');
-        redirect('/stock-verification/discrepancies');
+        // redirect('/stock-verification/discrepancies'); // Optional: redirect back to list
     } catch (error) {
         console.error('Failed to resolve discrepancy:', error);
         throw new Error('Failed to resolve discrepancy');

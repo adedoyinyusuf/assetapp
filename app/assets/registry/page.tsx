@@ -7,8 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faSearch, faFilter, faEdit, faEye, faTrash, faPlus } from '@fortawesome/free-solid-svg-icons'
+import { Search, Filter, Edit, Eye, Trash2, Plus } from 'lucide-react'
 import { getAssets, getCategories, getStates, deleteAsset, Asset, Category, State } from '@/app/actions'
 import Link from 'next/link'
 
@@ -54,7 +53,7 @@ export default function AssetRegistryPage() {
 
     // Search by name
     if (searchTerm) {
-      filtered = filtered.filter(asset => 
+      filtered = filtered.filter(asset =>
         asset.name.toLowerCase().includes(searchTerm.toLowerCase())
       )
     }
@@ -125,7 +124,7 @@ export default function AssetRegistryPage() {
         <h1 className="text-3xl font-bold">Asset Registry</h1>
         <Link href="/assets/register">
           <Button>
-            <FontAwesomeIcon icon={faPlus} className="mr-2" />
+            <Plus className="mr-2 h-4 w-4" />
             Register New Asset
           </Button>
         </Link>
@@ -135,7 +134,7 @@ export default function AssetRegistryPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
-            <FontAwesomeIcon icon={faFilter} className="mr-2" />
+            <Filter className="mr-2 h-4 w-4" />
             Search & Filter Assets
           </CardTitle>
         </CardHeader>
@@ -145,7 +144,7 @@ export default function AssetRegistryPage() {
             <div>
               <Label htmlFor="search">Search by Name</Label>
               <div className="relative">
-                <FontAwesomeIcon icon={faSearch} className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
                   id="search"
                   placeholder="Enter asset name..."
@@ -291,22 +290,22 @@ export default function AssetRegistryPage() {
                       <div className="flex space-x-2">
                         <Link href={`/assets/${asset.id}`}>
                           <Button variant="outline" size="sm">
-                            <FontAwesomeIcon icon={faEye} className="mr-1" />
+                            <Eye className="mr-1 h-4 w-4" />
                             View
                           </Button>
                         </Link>
                         <Link href={`/assets/edit?id=${asset.id}`}>
                           <Button variant="outline" size="sm">
-                            <FontAwesomeIcon icon={faEdit} className="mr-1" />
+                            <Edit className="mr-1 h-4 w-4" />
                             Edit
                           </Button>
                         </Link>
-                        <Button 
-                          variant="destructive" 
-                          size="sm" 
+                        <Button
+                          variant="destructive"
+                          size="sm"
                           onClick={() => handleDelete(asset.id)}
                         >
-                          <FontAwesomeIcon icon={faTrash} className="mr-1" />
+                          <Trash2 className="mr-1 h-4 w-4" />
                           Delete
                         </Button>
                       </div>
@@ -316,7 +315,7 @@ export default function AssetRegistryPage() {
               </TableBody>
             </Table>
           </div>
-          
+
           {filteredAssets.length === 0 && (
             <div className="text-center py-8 text-gray-500">
               No assets found matching your criteria.

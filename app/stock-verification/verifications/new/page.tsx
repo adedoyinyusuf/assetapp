@@ -7,6 +7,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth/auth-options";
+import { DataSeeder } from "@/components/stock-verification/DataSeeder";
+import { OfflineStatus } from "@/components/stock-verification/OfflineStatus";
 
 export default async function NewVerificationPage() {
     const session = await getServerSession(authOptions);
@@ -107,6 +109,10 @@ export default async function NewVerificationPage() {
                     </AlertDescription>
                 </Alert>
             )}
+
+            {/* Offline Support */}
+            <DataSeeder assets={assets} campaigns={campaigns} />
+            <OfflineStatus />
 
             {/* Verification Form */}
             <Card>

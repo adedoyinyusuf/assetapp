@@ -55,7 +55,7 @@ export function AssignmentList({ assignments, onRemove, isRemoving }: Assignment
                 <Shield className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
                 <h3 className="text-lg font-semibold mb-1">No Team Members Assigned</h3>
                 <p className="text-sm text-muted-foreground">
-                    Click "Add Team Member" to assign verifiers to this campaign
+                    Click &quot;Add Team Member&quot; to assign verifiers to this campaign
                 </p>
             </div>
         );

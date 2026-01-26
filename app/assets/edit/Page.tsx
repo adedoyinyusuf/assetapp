@@ -4,6 +4,10 @@ import { Card } from '@/components/ui/card'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 
+// Disable caching to ensure fresh data
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export default async function EditAssetPage({ searchParams }: { searchParams: { id: string } }) {
   const assets = await getAssets()
   const asset = assets.find(a => a.id === parseInt(searchParams.id))

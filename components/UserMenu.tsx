@@ -1,14 +1,7 @@
 'use client';
 
 import { useAuth } from '@/lib/auth/AuthContext';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { 
-  faUser, 
-  faSignInAlt, 
-  faSignOutAlt,
-  faCog,
-  faTachometerAlt
-} from '@fortawesome/free-solid-svg-icons';
+import { User, LogIn, LogOut, Settings, LayoutDashboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -36,7 +29,7 @@ export function UserMenu() {
       <div className="flex items-center space-x-4">
         <Button asChild variant="ghost" className="text-white hover:bg-green-800 hover:text-white">
           <Link href="/auth/signin">
-            <FontAwesomeIcon icon={faSignInAlt} className="mr-2 h-4 w-4" />
+            <LogIn className="mr-2 h-4 w-4" />
             Sign In
           </Link>
         </Button>
@@ -49,7 +42,7 @@ export function UserMenu() {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center text-green-800">
-            <FontAwesomeIcon icon={faUser} className="h-4 w-4" />
+            <User className="h-4 w-4" />
           </div>
         </Button>
       </DropdownMenuTrigger>
@@ -67,22 +60,22 @@ export function UserMenu() {
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
           <Link href="/dashboard" className="cursor-pointer">
-            <FontAwesomeIcon icon={faTachometerAlt} className="mr-2 h-4 w-4" />
+            <LayoutDashboard className="mr-2 h-4 w-4" />
             Dashboard
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link href="/settings" className="cursor-pointer">
-            <FontAwesomeIcon icon={faCog} className="mr-2 h-4 w-4" />
+            <Settings className="mr-2 h-4 w-4" />
             Settings
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem 
+        <DropdownMenuItem
           onClick={() => logout()}
           className="cursor-pointer text-red-600 focus:text-red-600"
         >
-          <FontAwesomeIcon icon={faSignOutAlt} className="mr-2 h-4 w-4" />
+          <LogOut className="mr-2 h-4 w-4" />
           Sign out
         </DropdownMenuItem>
       </DropdownMenuContent>

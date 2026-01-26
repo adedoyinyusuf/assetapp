@@ -88,6 +88,11 @@ model User {
   disposalRequests          DisposalRequest[]
   processedDisposals        DisposalRecord[]
 
+  // Custody relationships
+  custodianAssets           Asset[]          @relation("AssetCustodian")
+  custodyLogs               CustodyLog[]     @relation("CustodyUser")
+  assignedCustodies         CustodyLog[]     @relation("CustodyAssigner")
+
   @@map("users")
 }
 
@@ -216,14 +221,24 @@ model Asset {
   depreciation  Depreciation[]
   
   serialNumber  String?         @unique @map("serial_number")
+  assetCode     String?         @unique @map("asset_code") // Sytem generated ID
+  batchNumber   String?         @map("batch_number")
+  referenceNumber String?       @map("reference_number")
+  imei1         String?         @map("imei_1")
+  imei2         String?         @map("imei_2")
   status        AssetStatus     @default(IN_STORE)
   procurementRequestId  Int?    @map("procurement_request_id")
   purchaseOrderId       Int?    @map("purchase_order_id")
 
   // Stock Verification relationships
   verifications AssetVerification[] @relation("AssetVerifications")
-  lastVerificationStatus String?   @map("last_verification_status")
+  lastVerificationStatus String?   @map("last_verification_status") // e.g., 'VERIFIED', 'MISSING', 'DAMAGED'
   lastVerifiedAt         DateTime? @map("last_verified_at")
+  
+  // Custody
+  assignedToUserId      Int?      @map("assigned_to_user_id")
+  assignedToUser        User?     @relation("AssetCustodian", fields: [assignedToUserId], references: [id])
+  custodyLogs           CustodyLog[]
   
   // Maintenance relationships
   maintenanceRequests MaintenanceRequest[]
@@ -237,6 +252,11 @@ model Asset {
   // Procurement relationships
   procurementRequest  ProcurementRequest? @relation(fields: [procurementRequestId], references: [id])
   purchaseOrder       PurchaseOrder?      @relation(fields: [purchaseOrderId], references: [id])
+
+  // Location Data
+  latitude      Float?
+  longitude     Float?
+  lastLocationUpdate DateTime? @map("last_location_update")
 
   @@map("assets")
 }
@@ -969,4 +989,20 @@ enum DisposalMethod {
   RETURN_TO_VENDOR
   DESTROYED
   SOLD
+}
+
+
+model CustodyLog {
+  id          Int      @id @default(autoincrement())
+  assetId     Int      @map("asset_id")
+  userId      Int      @map("user_id")
+  assignedBy  Int      @map("assigned_by")
+  assignedAt  DateTime @default(now()) @map("assigned_at")
+  notes       String?
+
+  asset     Asset    @relation(fields: [assetId], references: [id])
+  user      User     @relation("CustodyUser", fields: [userId], references: [id])
+  assigner  User     @relation("CustodyAssigner", fields: [assignedBy], references: [id])
+
+  @@map("custody_logs")
 }

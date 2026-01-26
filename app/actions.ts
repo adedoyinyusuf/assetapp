@@ -13,6 +13,7 @@ export interface Asset {
   categoryId: number;
   stateId: number;
   lgaId: number;
+  serialNumber?: string | null;
   status?: string;
   currentValue?: number;
   category?: {

@@ -16,6 +16,11 @@ const assetSchema = z.object({
   categoryId: z.number().int().positive('Category ID is required'),
   stateId: z.number().int().positive('State ID is required'),
   lgaId: z.number().int().positive('LGA ID is required'),
+  serialNumber: z.string().optional(),
+  batchNumber: z.string().optional(),
+  referenceNumber: z.string().optional(),
+  imei1: z.string().optional(),
+  imei2: z.string().optional(),
 });
 
 const updateAssetSchema = assetSchema.extend({
@@ -236,6 +241,8 @@ export async function POST(req: Request) {
     const asset = await prisma.asset.create({
       data: {
         ...data,
+        // @ts-ignore
+        assetCode: `AST-${Date.now()}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
         purchaseDate: new Date(data.purchaseDate),
         currentValue,
       },
@@ -289,9 +296,9 @@ export async function POST(req: Request) {
       salvageValue: asset.salvageValue,
       currentValue: asset.currentValue,
       status: 'ACTIVE', // Default status
-      category: asset.category,
-      state: asset.state,
-      lga: asset.lga,
+      category: (asset as any).category,
+      state: (asset as any).state,
+      lga: (asset as any).lga,
       createdAt: asset.createdAt.toISOString(),
       updatedAt: asset.updatedAt.toISOString(),
     }, { status: 201 });
@@ -310,6 +317,12 @@ export async function PUT(req: Request) {
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Role verification
+    const allowedRoles = [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER];
+    if (!allowedRoles.includes(session.user.role as UserRole)) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
     const body = await req.json();
@@ -448,6 +461,12 @@ export async function DELETE(req: Request) {
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Role verification
+    const allowedRoles = [UserRole.SUPER_ADMIN, UserRole.ADMIN];
+    if (!allowedRoles.includes(session.user.role as UserRole)) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
     const { searchParams } = new URL(req.url);

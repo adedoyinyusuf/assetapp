@@ -7,8 +7,11 @@ import { useAuth } from '@/lib/auth/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSignInAlt, faSpinner } from '@fortawesome/free-solid-svg-icons';
+import { LogIn, Loader2 } from 'lucide-react';
+// ... imports
+
+// ... JSX
+
 import { SignInAnimation } from './SignInAnimation';
 
 export default function SignInPage() {
@@ -163,9 +166,9 @@ export default function SignInPage() {
                 >
                   <span className="absolute left-0 inset-y-0 flex items-center pl-3">
                     {loading ? (
-                      <FontAwesomeIcon icon={faSpinner} className="h-5 w-5 text-green-500 group-hover:text-green-400 animate-spin" />
+                      <Loader2 className="h-5 w-5 text-green-500 group-hover:text-green-400 animate-spin" />
                     ) : (
-                      <FontAwesomeIcon icon={faSignInAlt} className="h-5 w-5 text-green-500 group-hover:text-green-400" />
+                      <LogIn className="h-5 w-5 text-green-500 group-hover:text-green-400" />
                     )}
                   </span>
                   {loading ? 'Signing in...' : 'Sign in'}

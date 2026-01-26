@@ -8,8 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faPlus, faArrowRight } from '@fortawesome/free-solid-svg-icons'
+import { Plus, ArrowRight } from 'lucide-react'
 import { getAssets, getStates, getLGAs, getAssetMovements, addAssetMovement, Asset, State, LGA, AssetMovement } from '@/app/actions'
 
 export default function AssetMovementsPage() {
@@ -99,11 +98,11 @@ export default function AssetMovementsPage() {
       }
 
       await addAssetMovement(movementData)
-      
+
       // Refresh movements list
       const updatedMovements = await getAssetMovements()
       setMovements(updatedMovements)
-      
+
       // Reset form
       setFormData({
         asset_id: '',
@@ -116,7 +115,7 @@ export default function AssetMovementsPage() {
         notes: '',
         moved_by: ''
       })
-      
+
       setShowForm(false)
       alert('Asset movement recorded successfully!')
     } catch (error) {
@@ -132,7 +131,7 @@ export default function AssetMovementsPage() {
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Asset Movements</h1>
         <Button onClick={() => setShowForm(!showForm)}>
-          <FontAwesomeIcon icon={faPlus} className="mr-2" />
+          <Plus className="mr-2 h-4 w-4" />
           Record New Movement
         </Button>
       </div>
@@ -298,7 +297,7 @@ export default function AssetMovementsPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
-            <FontAwesomeIcon icon={faArrowRight} className="mr-2" />
+            <ArrowRight className="mr-2 h-4 w-4" />
             Movement History
           </CardTitle>
         </CardHeader>
@@ -329,7 +328,7 @@ export default function AssetMovementsPage() {
               </TableBody>
             </Table>
           </div>
-          
+
           {movements.length === 0 && (
             <div className="text-center py-8 text-gray-500">
               No asset movements recorded yet.

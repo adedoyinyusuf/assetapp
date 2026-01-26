@@ -7,12 +7,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Search, 
-  Filter, 
-  Download, 
-  Save, 
-  History, 
+import {
+  Search,
+  Filter,
+  Download,
+  Save,
+  History,
   TrendingUp,
   Package,
   MapPin,
@@ -54,7 +54,7 @@ export default function AdvancedSearch() {
   const [trendingSearches, setTrendingSearches] = useState<string[]>([]);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [savedSearches, setSavedSearches] = useState<{ name: string; query: string; filters: SearchFilters }[]>([]);
-  
+
   const searchTimeoutRef = useRef<NodeJS.Timeout>();
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -117,7 +117,7 @@ export default function AdvancedSearch() {
         query,
         filters: { ...filters }
       };
-      
+
       const updated = [...savedSearches, newSavedSearch];
       setSavedSearches(updated);
       localStorage.setItem('savedSearches', JSON.stringify(updated));
@@ -149,7 +149,7 @@ export default function AdvancedSearch() {
     try {
       setSearching(true);
       setLoading(true);
-      
+
       const searchOptions = {
         query: searchQuery,
         filters: {
@@ -171,7 +171,7 @@ export default function AdvancedSearch() {
 
       const searchResults = await AdvancedSearchService.search(searchOptions);
       setResults(searchResults);
-      
+
       // Save to recent searches
       if (searchQuery.trim()) {
         const recent = [searchQuery, ...recentSearches.filter(s => s !== searchQuery)].slice(0, 10);
@@ -222,12 +222,12 @@ export default function AdvancedSearch() {
 
   const exportResults = async (format: 'csv' | 'json') => {
     if (results.length === 0) return;
-    
+
     try {
       const exportData = await AdvancedSearchService.exportSearchResults(results, format);
-      
-      const blob = new Blob([exportData], { 
-        type: format === 'csv' ? 'text/csv' : 'application/json' 
+
+      const blob = new Blob([exportData], {
+        type: format === 'csv' ? 'text/csv' : 'application/json'
       });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -245,7 +245,7 @@ export default function AdvancedSearch() {
 
   const highlightText = (text: string, highlight: string) => {
     if (!highlight.trim()) return text;
-    
+
     const regex = new RegExp(`(${highlight})`, 'gi');
     return text.replace(regex, '<mark class="bg-yellow-200 px-1 rounded">$1</mark>');
   };
@@ -258,11 +258,11 @@ export default function AdvancedSearch() {
           <h2 className="text-2xl font-bold text-gray-900">Advanced Search</h2>
           <p className="text-gray-600">Find assets with intelligent search and filtering</p>
         </div>
-        
+
         <div className="flex items-center gap-2">
           <SearchPermissionGate task={Task.SAVE_SEARCHES}>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={saveSearch}
               className="flex items-center gap-2"
             >
@@ -270,9 +270,9 @@ export default function AdvancedSearch() {
               Save Search
             </Button>
           </SearchPermissionGate>
-          
-          <Button 
-            variant="outline" 
+
+          <Button
+            variant="outline"
             onClick={() => setShowFilters(!showFilters)}
             className="flex items-center gap-2"
           >
@@ -346,7 +346,7 @@ export default function AdvancedSearch() {
                       <SelectValue placeholder="All categories" />
                     </SelectTrigger>
                     <SelectContent>
-                  <SelectItem value="all">Any category</SelectItem>
+                      <SelectItem value="all">Any category</SelectItem>
                       <SelectItem value="equipment">Equipment</SelectItem>
                       <SelectItem value="vehicles">Vehicles</SelectItem>
                       <SelectItem value="buildings">Buildings</SelectItem>
@@ -363,7 +363,7 @@ export default function AdvancedSearch() {
                       <SelectValue placeholder="All states" />
                     </SelectTrigger>
                     <SelectContent>
-                  <SelectItem value="all">Any state</SelectItem>
+                      <SelectItem value="all">Any state</SelectItem>
                       <SelectItem value="lagos">Lagos</SelectItem>
                       <SelectItem value="abuja">Abuja</SelectItem>
                       <SelectItem value="kano">Kano</SelectItem>
@@ -466,16 +466,16 @@ export default function AdvancedSearch() {
               </h3>
               {query && (
                 <p className="text-sm text-gray-600">
-                  Results for "{query}"
+                  Results for &quot;{query}&quot;
                 </p>
               )}
             </div>
-            
+
             {results.length > 0 && (
               <div className="flex gap-2">
                 <SearchPermissionGate task={Task.EXPORT_REPORTS}>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                     onClick={() => exportResults('csv')}
                     className="flex items-center gap-2"
@@ -506,20 +506,20 @@ export default function AdvancedSearch() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
                           <h4 className="font-semibold text-lg">
-                            <span dangerouslySetInnerHTML={{ 
-                              __html: highlightText(result.title, query) 
+                            <span dangerouslySetInnerHTML={{
+                              __html: highlightText(result.title, query)
                             }} />
                           </h4>
                           <Badge variant="outline">{result.metadata.category}</Badge>
                           <Badge variant="secondary">{result.metadata.state}</Badge>
                         </div>
-                        
+
                         <p className="text-gray-600 mb-2">
-                          <span dangerouslySetInnerHTML={{ 
-                            __html: highlightText(result.description || '', query) 
+                          <span dangerouslySetInnerHTML={{
+                            __html: highlightText(result.description || '', query)
                           }} />
                         </p>
-                        
+
                         <div className="flex items-center gap-4 text-sm text-gray-500">
                           <div className="flex items-center gap-1">
                             <Package className="h-4 w-4" />
@@ -539,7 +539,7 @@ export default function AdvancedSearch() {
                           </div>
                         </div>
                       </div>
-                      
+
                       <div className="text-right">
                         <div className="text-lg font-semibold text-green-600">
                           ₦{result.metadata.purchaseValue ? result.metadata.purchaseValue.toLocaleString() : '0'}

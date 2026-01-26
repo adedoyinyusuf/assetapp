@@ -17,6 +17,18 @@ export class DisposalService {
         reason: DisposalReason;
         description?: string;
     }): Promise<DisposalRequest> {
+        // Check for existing active request
+        const existing = await this.db.disposalRequest.findFirst({
+            where: {
+                assetId: data.assetId,
+                status: { in: ['PENDING', 'APPROVED'] }
+            }
+        });
+
+        if (existing) {
+            throw new Error('Asset already has an active disposal request');
+        }
+
         return this.db.disposalRequest.create({
             data: {
                 assetId: data.assetId,
@@ -88,6 +100,26 @@ export class DisposalService {
         return this.db.disposalRequest.update({
             where: { id: requestId },
             data: { status: 'APPROVED' },
+        });
+    }
+
+    /**
+     * Reject a disposal request
+     */
+    async rejectRequest(requestId: number) {
+        return this.db.disposalRequest.update({
+            where: { id: requestId },
+            data: { status: 'REJECTED' },
+        });
+    }
+
+    /**
+     * Cancel a disposal request
+     */
+    async cancelRequest(requestId: number) {
+        return this.db.disposalRequest.update({
+            where: { id: requestId },
+            data: { status: 'CANCELLED' },
         });
     }
 

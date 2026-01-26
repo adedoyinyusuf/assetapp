@@ -169,12 +169,48 @@ export class ProcurementService {
     }
 
     /**
+     * Get Purchase Orders
+     */
+    async getPurchaseOrders(params: {
+        status?: PurchaseOrderStatus;
+        vendorId?: number;
+        limit?: number;
+        offset?: number;
+    }) {
+        const { status, vendorId, limit = 20, offset = 0 } = params;
+
+        return this.db.purchaseOrder.findMany({
+            where: {
+                status,
+                vendorId,
+            },
+            include: {
+                vendor: true,
+                items: true,
+                creator: {
+                    select: {
+                        firstName: true,
+                        lastName: true,
+                    }
+                }
+            },
+            orderBy: {
+                createdAt: 'desc',
+            },
+            take: limit,
+            skip: offset,
+        });
+    }
+
+    /**
      * Receive items from a PO and create Assets
      */
     async receiveItems(purchaseOrderId: number, itemsToReceive: {
         itemId: number; // PurchaseOrderItem ID
         quantityReceived: number;
-        locationId: number; // Where to store the new assets
+        stateId: number;
+        lgaId: number;
+        serialNumbers?: string[]; // Optional user-provided serials
     }[]) {
         // 1. Update PO Items received quantity
         // 2. Create Asset records for each received item
@@ -202,18 +238,22 @@ export class ProcurementService {
             // Create Assets (One record per quantity for individual tracking, or bulk? 
             // Usually individual tracking for assets is better)
             // For simplicity, let's create individual asset records
+            // Create Assets
             for (let i = 0; i < receiveItem.quantityReceived; i++) {
+                // Use provided serial or generate one
+                const serial = receiveItem.serialNumbers?.[i] || `PO-${po.poNumber}-${poItem.id}-${Date.now()}-${i}`;
+
                 await this.db.asset.create({
                     data: {
                         name: `${poItem.itemName} - ${i + 1}`,
                         description: poItem.description || `Received from PO ${po.poNumber}`,
-                        categoryId: 1, // Default category for now, should be selectable
+                        categoryId: 1, // Default category
                         status: 'IN_STORE',
                         purchaseDate: new Date(),
                         purchaseValue: poItem.unitPrice.toNumber(),
-                        serialNumber: `PO-${po.poNumber}-${poItem.id}-${Date.now()}-${i}`, // Temp serial
-                        stateId: 1, // Default state
-                        lgaId: 1,   // Default LGA
+                        serialNumber: serial,
+                        stateId: receiveItem.stateId,
+                        lgaId: receiveItem.lgaId,
                         usefulLife: 5,
                         salvageValue: 0,
                         currentValue: poItem.unitPrice.toNumber(),

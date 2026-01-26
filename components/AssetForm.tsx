@@ -48,6 +48,13 @@ export default function AssetForm({ asset, categories, states, initialLgas, onDa
   const [stateId, setStateId] = useState(asset?.state_id?.toString() || '')
   const [lgaId, setLgaId] = useState(asset?.lga_id?.toString() || '')
 
+  const [serialNumber, setSerialNumber] = useState(asset?.serialNumber || '')
+  const [batchNumber, setBatchNumber] = useState(asset?.batchNumber || '')
+  const [referenceNumber, setReferenceNumber] = useState(asset?.referenceNumber || '')
+  const [imei1, setImei1] = useState(asset?.imei1 || '')
+  const [imei2, setImei2] = useState(asset?.imei2 || '')
+
+
   const [lgas, setLgas] = useState<LGA[]>(initialLgas)
   const [loadingLgas, setLoadingLgas] = useState(false)
 
@@ -115,6 +122,12 @@ export default function AssetForm({ asset, categories, states, initialLgas, onDa
       categoryId: parseInt(categoryId),
       stateId: parseInt(stateId),
       lgaId: parseInt(lgaId),
+      // Identity Fields
+      serialNumber: serialNumber || undefined,
+      batchNumber: batchNumber || undefined,
+      referenceNumber: referenceNumber || undefined,
+      imei1: imei1 || undefined,
+      imei2: imei2 || undefined,
     };
 
     const assetData = asset?.id
@@ -210,6 +223,72 @@ export default function AssetForm({ asset, categories, states, initialLgas, onDa
                 ))}
               </SelectContent>
             </Select>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Section 1.5: Identification */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-xl">
+            <CheckCircle2 className="h-5 w-5 text-primary" />
+            Identification
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <Label htmlFor="serialNumber">Serial Number</Label>
+            <Input
+              id="serialNumber"
+              placeholder="e.g. SN-12345678"
+              value={serialNumber}
+              onChange={(e) => setSerialNumber(e.target.value)}
+              className="h-11"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="batchNumber">Batch Number</Label>
+            <Input
+              id="batchNumber"
+              placeholder="e.g. BATCH-2024-A"
+              value={batchNumber}
+              onChange={(e) => setBatchNumber(e.target.value)}
+              className="h-11"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="referenceNumber">Reference Number</Label>
+            <Input
+              id="referenceNumber"
+              placeholder="e.g. REF-001"
+              value={referenceNumber}
+              onChange={(e) => setReferenceNumber(e.target.value)}
+              className="h-11"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="imei1">IMEI No 1</Label>
+            <Input
+              id="imei1"
+              placeholder="e.g. 35489..."
+              value={imei1}
+              onChange={(e) => setImei1(e.target.value)}
+              className="h-11"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="imei2">IMEI No 2</Label>
+            <Input
+              id="imei2"
+              placeholder="e.g. 35490..."
+              value={imei2}
+              onChange={(e) => setImei2(e.target.value)}
+              className="h-11"
+            />
           </div>
         </CardContent>
       </Card>

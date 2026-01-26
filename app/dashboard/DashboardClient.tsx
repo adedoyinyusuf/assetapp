@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { 
+import {
   Package,
   TrendingUp,
   LineChart,
@@ -61,49 +61,42 @@ interface DashboardClientProps {
   initialData?: any;
 }
 
-export default function DashboardClient({}: DashboardClientProps) {
+export default function DashboardClient({ }: DashboardClientProps) {
   const [realTimeUpdates, setRealTimeUpdates] = useState<RealTimeUpdate[]>([]);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [, setSearchQuery] = useState('');
   const [dateRange, setDateRange] = useState('month');
-  
+
   // Mock data - in a real app, this would come from your context/API
-  const metrics = {
-    totalAssets: 1250,
-    totalValue: 12500000,
-    activeAssets: 980,
-    maintenanceNeeded: 45,
-    recentAssets: [
-      { id: '1', name: 'Laptop Dell XPS', status: 'active', category: 'Electronics', location: 'Lagos', value: 1500, lastUpdated: new Date() },
-      { id: '2', name: 'Projector Epson', status: 'maintenance', category: 'Electronics', location: 'Abuja', value: 1200, lastUpdated: new Date() },
-      { id: '3', name: 'Office Chair', status: 'active', category: 'Furniture', location: 'Lagos', value: 250, lastUpdated: new Date() },
-    ] as Asset[],
-    recentActivities: [
-      { id: '1', type: 'info', title: 'Asset Updated', description: 'Laptop Dell XPS was updated', timestamp: new Date(), status: 'info' },
-      { id: '2', type: 'warning', title: 'Maintenance Required', description: 'Projector Epson needs maintenance', timestamp: new Date(), status: 'warning' },
-      { id: '3', type: 'success', title: 'New Asset Added', description: 'Office Chair was added', timestamp: new Date(), status: 'success' },
-    ] as Activity[],
-    assetDistribution: {
-      byCategory: [
-        { name: 'Electronics', value: 45 },
-        { name: 'Furniture', value: 30 },
-        { name: 'Vehicles', value: 15 },
-        { name: 'Other', value: 10 },
-      ],
-      byLocation: [
-        { name: 'Lagos', value: 60 },
-        { name: 'Abuja', value: 25 },
-        { name: 'Port Harcourt', value: 10 },
-        { name: 'Other', value: 5 },
-      ]
-    }
-  };
+  const [metrics, setMetrics] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDashboardStats = async () => {
+      try {
+        const response = await fetch('/api/dashboard/stats');
+        if (response.ok) {
+          const data = await response.json();
+          setMetrics(data);
+        } else {
+          toast.error('Failed to fetch dashboard stats');
+        }
+      } catch (error) {
+        console.error('Error fetching dashboard stats:', error);
+        toast.error('Error connecting to server');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardStats();
+  }, []);
 
   // Formatting functions
   const formatCurrency = (value: number) => `₦${value.toLocaleString()}`;
   const formatNumber = (value: number) => value.toLocaleString();
-  
+
   // Handlers
   const handleToggleNotifications = () => {
     setNotificationsEnabled(prev => !prev);
@@ -129,15 +122,33 @@ export default function DashboardClient({}: DashboardClientProps) {
     toast.info(`Applying filter: ${JSON.stringify(filter)}`);
   };
 
-  const categoryData = metrics.assetDistribution.byCategory.map(cat => ({
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[500px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (!metrics) {
+    return (
+      <div className="flex items-center justify-center min-h-[500px] flex-col gap-4">
+        <p className="text-red-500">Failed to load dashboard data</p>
+        <Button onClick={() => window.location.reload()}>Retry</Button>
+      </div>
+    );
+  }
+
+  const categoryData = metrics?.assetDistribution?.byCategory?.map((cat: any) => ({
     ...cat,
-    color: `#${Math.floor(Math.random()*16777215).toString(16)}` // Dummy colors
-  }));
-  
+    color: `#${Math.floor(Math.random() * 16777215).toString(16)}` // Dummy colors for now
+  })) || [];
+
+
   // Handle real-time updates
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    
+
     // Mock WebSocket subscription for demo purposes
     const handleMockUpdate = () => {
       const mockData = {
@@ -147,7 +158,7 @@ export default function DashboardClient({}: DashboardClientProps) {
         user: 'System',
         assetName: 'Sample Asset'
       };
-      
+
       const newUpdate: RealTimeUpdate = {
         id: Date.now().toString(),
         type: 'info',
@@ -155,28 +166,28 @@ export default function DashboardClient({}: DashboardClientProps) {
         status: 'info',
         timestamp: new Date()
       };
-      
+
       setRealTimeUpdates(prev => [newUpdate, ...prev.slice(0, 4)]);
-      
+
       if (notificationsEnabled) {
         toast.success(`Asset updated: ${mockData.name}`, {
           description: `Status: ${mockData.status}`
         });
       }
     };
-    
+
     // Simulate periodic updates for demo
     const interval = setInterval(handleMockUpdate, 30000);
-    
+
     // Initial update
     handleMockUpdate();
-    
+
     return () => {
       clearInterval(interval);
     };
   }, [notificationsEnabled]);
-  
-  
+
+
   // Get status icon
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -190,7 +201,7 @@ export default function DashboardClient({}: DashboardClientProps) {
         return <Info className="w-4 h-4 text-blue-500" />;
     }
   };
-  
+
   // Main render
 
 
@@ -224,35 +235,35 @@ export default function DashboardClient({}: DashboardClientProps) {
         showNotifications={notificationsEnabled}
         onNotificationsToggle={handleToggleNotifications}
       />
-      
+
       {/* Quick Actions */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <QuickAction 
-          icon={<Plus className="h-6 w-6 text-blue-600" />} 
-          label="Add Asset" 
+        <QuickAction
+          icon={<Plus className="h-6 w-6 text-blue-600" />}
+          label="Add Asset"
           variant="primary"
           onClick={handleAddAsset}
         />
-        <QuickAction 
-          icon={<Move className="h-6 w-6 text-purple-600" />} 
-          label="Transfer Asset" 
+        <QuickAction
+          icon={<Move className="h-6 w-6 text-purple-600" />}
+          label="Transfer Asset"
           variant="default"
           onClick={() => handleTransferAsset()}
         />
-        <QuickAction 
-          icon={<Download className="h-6 w-6 text-green-600" />} 
-          label="Export Report" 
+        <QuickAction
+          icon={<Download className="h-6 w-6 text-green-600" />}
+          label="Export Report"
           variant="success"
           onClick={() => handleExportReport('pdf')}
         />
-        <QuickAction 
-          icon={<Filter className="h-6 w-6 text-amber-600" />} 
-          label="Filter View" 
+        <QuickAction
+          icon={<Filter className="h-6 w-6 text-amber-600" />}
+          label="Filter View"
           variant="warning"
           onClick={() => handleFilterChange({})}
         />
       </div>
-      
+
       {/* Stats Overview */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <DashboardCard
@@ -263,7 +274,7 @@ export default function DashboardClient({}: DashboardClientProps) {
           variant="primary"
           trend={{ value: 12.5, label: 'vs last month', positive: true }}
         />
-        
+
         <DashboardCard
           title="Total Value"
           value={formatCurrency(metrics.totalValue)}
@@ -272,7 +283,7 @@ export default function DashboardClient({}: DashboardClientProps) {
           variant="success"
           trend={{ value: 5.2, label: 'vs last month', positive: true }}
         />
-        
+
         <DashboardCard
           title="Active Assets"
           value={metrics.activeAssets}
@@ -281,7 +292,7 @@ export default function DashboardClient({}: DashboardClientProps) {
           variant="info"
           trend={{ value: 8.3, label: 'vs last month', positive: true }}
         />
-        
+
         <DashboardCard
           title="Maintenance Needed"
           value={metrics.maintenanceNeeded}
@@ -291,7 +302,7 @@ export default function DashboardClient({}: DashboardClientProps) {
           trend={{ value: 3.7, label: 'vs last month', positive: false }}
         />
       </div>
-      
+
       {/* Main Content */}
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Left Column */}
@@ -301,7 +312,7 @@ export default function DashboardClient({}: DashboardClientProps) {
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-semibold">Asset Trend</h3>
               <div className="flex items-center space-x-2">
-                <select 
+                <select
                   value={dateRange}
                   onChange={(e) => setDateRange(e.target.value)}
                   className="text-sm rounded-md border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 px-3 py-1.5"
@@ -311,9 +322,9 @@ export default function DashboardClient({}: DashboardClientProps) {
                   <option value="quarter">Last 90 days</option>
                   <option value="year">This year</option>
                 </select>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   className="flex items-center gap-2"
                   onClick={() => handleExportReport('excel')}
                 >
@@ -330,15 +341,15 @@ export default function DashboardClient({}: DashboardClientProps) {
               </div>
             </div>
           </div>
-          
+
           {/* Recent Assets */}
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-semibold">Recent Assets</h3>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   className="flex items-center gap-2"
                   onClick={handleAddAsset}
                 >
@@ -346,7 +357,7 @@ export default function DashboardClient({}: DashboardClientProps) {
                   <span>Add Asset</span>
                 </Button>
               </div>
-              
+
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                   <thead className="bg-gray-50 dark:bg-gray-700/50">
@@ -369,7 +380,7 @@ export default function DashboardClient({}: DashboardClientProps) {
                     </tr>
                   </thead>
                   <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                    {metrics.recentAssets.map((asset) => (
+                    {metrics.recentAssets.map((asset: any) => (
                       <tr key={asset.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
@@ -398,9 +409,9 @@ export default function DashboardClient({}: DashboardClientProps) {
                           {formatCurrency(asset.value)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
                             onClick={() => handleViewAsset(asset.id)}
                           >
@@ -412,10 +423,10 @@ export default function DashboardClient({}: DashboardClientProps) {
                   </tbody>
                 </table>
               </div>
-              
+
               <div className="border-t border-gray-200 dark:border-gray-700 px-6 py-4">
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   className="w-full"
                   onClick={() => {
                     // In a real app, this would navigate to the assets page
@@ -428,15 +439,15 @@ export default function DashboardClient({}: DashboardClientProps) {
             </div>
           </div>
         </div>
-        
+
         {/* Right Column */}
         <div className="space-y-6">
           {/* Activity Feed */}
-          <ActivityFeed 
-            activities={metrics.recentActivities} 
+          <ActivityFeed
+            activities={metrics.recentActivities}
             className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6"
           />
-          
+
           {/* Asset Distribution */}
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
             <h3 className="text-lg font-semibold mb-6">Asset Distribution</h3>
@@ -448,11 +459,11 @@ export default function DashboardClient({}: DashboardClientProps) {
               </div>
             </div>
             <div className="mt-4 space-y-3">
-              {categoryData.slice(0, 5).map((item, index) => (
+              {categoryData.slice(0, 5).map((item: any, index: number) => (
                 <div key={index} className="flex items-center justify-between">
                   <div className="flex items-center">
-                    <div 
-                      className="w-3 h-3 rounded-full mr-2" 
+                    <div
+                      className="w-3 h-3 rounded-full mr-2"
                       style={{ backgroundColor: item.color }}
                     ></div>
                     <span className="text-sm font-medium">{item.name}</span>
@@ -464,7 +475,7 @@ export default function DashboardClient({}: DashboardClientProps) {
               ))}
             </div>
           </div>
-          
+
           {/* Quick Stats */}
           <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl shadow-sm border border-blue-100 dark:border-blue-900/30 p-6">
             <h3 className="text-lg font-semibold mb-4 text-blue-800 dark:text-blue-200">Asset Health</h3>

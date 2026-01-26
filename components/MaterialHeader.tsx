@@ -31,7 +31,9 @@ export function MaterialHeader() {
   const router = useRouter();
   const pathname = usePathname();
   const { data: session } = useSession();
-  const userRole = session?.user?.role as UserRole || UserRole.VIEWER;
+  // const userRole = session?.user?.role as UserRole | undefined; // Aligning with main Header logic if needed?
+  // Reverting to safe check:
+  const userRole = session?.user?.role as UserRole | undefined;
 
   // Add shadow when scrolling
   useEffect(() => {
@@ -57,7 +59,7 @@ export function MaterialHeader() {
   };
 
   const isAllowed = (item: MenuItem): boolean => {
-    if (item.allowedRoles && !item.allowedRoles.includes(userRole)) {
+    if (item.allowedRoles && (!userRole || !item.allowedRoles.includes(userRole))) {
       return false;
     }
     if (item.requiredPermission) {
@@ -258,7 +260,7 @@ export function MaterialHeader() {
                       {session.user?.name || session.user?.email}
                     </p>
                     <p className="text-body-small text-md-on-surface-variant capitalize">
-                      {userRole.toLowerCase().replace('_', ' ')}
+                      {userRole?.toLowerCase().replace('_', ' ') || 'Guest'}
                     </p>
                   </div>
                   <MaterialButton
@@ -331,7 +333,7 @@ export function MaterialHeader() {
                       {session.user?.name || session.user?.email}
                     </p>
                     <p className="text-body-small text-md-on-surface-variant capitalize">
-                      {userRole.toLowerCase().replace('_', ' ')}
+                      {userRole?.toLowerCase().replace('_', ' ') || 'Guest'}
                     </p>
                   </div>
                   <MaterialButton

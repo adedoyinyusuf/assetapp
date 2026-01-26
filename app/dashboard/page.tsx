@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
 import {
   BarChart3,
@@ -24,7 +25,18 @@ import { toast } from 'sonner';
 import Link from 'next/link';
 import { UserRole } from '@/lib/auth/roles';
 import { useVerificationSocket } from '@/lib/websocket/verification-socket';
-import { ConnectionStatus } from '@/components/ui/connection-status'
+import { ConnectionStatus } from '@/components/ui/connection-status';
+import { AVRIWidget } from '@/components/dashboard/AVRIWidget';
+import { ComplianceWidget } from '@/components/dashboard/ComplianceWidget';
+import { FieldOpsWidget } from '@/components/dashboard/FieldOpsWidget';
+import { TrendCharts } from '@/components/dashboard/TrendCharts';
+import { AnalyticsData } from '@/lib/analytics'; // Ensure this type is exported from lib/analytics
+
+// Dynamically import AssetMap to prevent SSR issues with Leaflet
+const AssetMap = dynamic(() => import('@/components/dashboard/AssetMap'), {
+  ssr: false,
+  loading: () => <div className="h-[400px] w-full bg-muted animate-pulse rounded-lg" />
+});
 
 interface DashboardData {
   totalAssets: number;
@@ -62,12 +74,14 @@ interface DashboardData {
     count: number;
     percentage: number;
   }>;
+  allAssets: any[];
 }
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [error, setError] = useState<string | null>(null);
@@ -116,9 +130,10 @@ export default function DashboardPage() {
       setError(null);
 
       // Fetch all assets to calculate summary data
-      const [assetsRes, categoriesRes] = await Promise.all([
+      const [assetsRes, categoriesRes, analyticsRes] = await Promise.all([
         fetch('/api/assets?limit=1000', { cache: 'no-store' }),
-        fetch('/api/categories', { cache: 'no-store' })
+        fetch('/api/categories', { cache: 'no-store' }),
+        fetch('/api/analytics', { cache: 'no-store' })
       ]);
 
       if (!assetsRes.ok) {
@@ -129,9 +144,16 @@ export default function DashboardPage() {
         const text = await categoriesRes.text();
         throw new Error(`Categories fetch failed (${categoriesRes.status}): ${text}`);
       }
+      if (!analyticsRes.ok) {
+        console.warn('Analytics fetch failed');
+      }
 
       const assetsData = await assetsRes.json();
       const categoriesData = await categoriesRes.json();
+      const analyticsResult = analyticsRes.ok ? await analyticsRes.json() : null;
+      if (analyticsResult) {
+        setAnalyticsData(analyticsResult);
+      }
 
       // Calculate summary data from the assets
       // Handle both old array format and new { data: [] } format
@@ -180,7 +202,8 @@ export default function DashboardPage() {
         states: 37, // Default Nigerian states
         categoryBreakdown,
         monthlyTrends: [], // We don't have trend data yet
-        statusDistribution: [] // We don't have status data yet
+        statusDistribution: [], // We don't have status data yet
+        allAssets: assets
       };
 
       setDashboardData(data);
@@ -270,7 +293,7 @@ export default function DashboardPage() {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            <TabsTrigger value="intelligence">Intelligence</TabsTrigger>
             <TabsTrigger value="activity">Activity</TabsTrigger>
           </TabsList>
 
@@ -283,61 +306,74 @@ export default function DashboardPage() {
               transition={{ delay: 0.1 }}
               className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
             >
-              <Card>
+              <Card className="border-l-4 border-l-blue-500 shadow-sm hover:shadow-md transition-shadow">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-gray-600">Total Assets</p>
+                      <p className="text-sm font-medium text-muted-foreground">Total Assets</p>
                       <p className="text-2xl font-bold text-gray-900">
                         {dashboardData?.totalAssets.toLocaleString() || 0}
                       </p>
                     </div>
-                    <Package className="h-8 w-8 text-primary" />
+                    <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
+                      <Package className="h-6 w-6 text-blue-600" />
+                    </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="border-l-4 border-l-green-500 shadow-sm hover:shadow-md transition-shadow">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-gray-600">Total Value</p>
-                      <p className="text-2xl font-bold text-green-600">
+                      <p className="text-sm font-medium text-muted-foreground">Total Value</p>
+                      <p className="text-2xl font-bold text-green-700">
                         ₦{dashboardData?.totalValue.toLocaleString() || 0}
                       </p>
                     </div>
-                    <TrendingUp className="h-8 w-8 text-green-500" />
+                    <div className="h-10 w-10 bg-green-100 rounded-full flex items-center justify-center">
+                      <TrendingUp className="h-6 w-6 text-green-600" />
+                    </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="border-l-4 border-l-orange-500 shadow-sm hover:shadow-md transition-shadow">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-gray-600">Categories</p>
-                      <p className="text-2xl font-bold text-blue-600">
+                      <p className="text-sm font-medium text-muted-foreground">Categories</p>
+                      <p className="text-2xl font-bold text-orange-700">
                         {dashboardData?.categories || 0}
                       </p>
                     </div>
-                    <PieChart className="h-8 w-8 text-blue-500" />
+                    <div className="h-10 w-10 bg-orange-100 rounded-full flex items-center justify-center">
+                      <PieChart className="h-6 w-6 text-orange-600" />
+                    </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="border-l-4 border-l-purple-500 shadow-sm hover:shadow-md transition-shadow">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-gray-600">Recent Movements</p>
-                      <p className="text-2xl font-bold text-purple-600">
+                      <p className="text-sm font-medium text-muted-foreground">Recent Movements</p>
+                      <p className="text-2xl font-bold text-purple-700">
                         {dashboardData?.assetMovements || 0}
                       </p>
                     </div>
-                    <Activity className="h-8 w-8 text-purple-500" />
+                    <div className="h-10 w-10 bg-purple-100 rounded-full flex items-center justify-center">
+                      <Activity className="h-6 w-6 text-purple-600" />
+                    </div>
                   </div>
                 </CardContent>
               </Card>
+
+
+
+              {dashboardData?.allAssets && <AVRIWidget assets={dashboardData.allAssets} />}
+              {dashboardData?.allAssets && <ComplianceWidget assets={dashboardData.allAssets} />}
             </motion.div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -451,31 +487,65 @@ export default function DashboardPage() {
             </div>
           </TabsContent>
 
-          {/* Analytics Tab */}
-          <TabsContent value="analytics" className="space-y-6">
+          {/* Intelligence Tab */}
+          <TabsContent value="intelligence" className="space-y-6">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
+              className="space-y-6"
             >
-              <Card>
-                <CardHeader>
-                  <CardTitle>Asset Analytics</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-12">
-                    <BarChart3 className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Advanced Analytics</h3>
-                    <p className="text-gray-500 mb-4">
-                      Detailed charts and insights about your assets will be displayed here
-                    </p>
-                    <Link href="/reports">
-                      <Button>
-                        View Full Reports
-                      </Button>
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
+              {analyticsData?.fieldMetrics && (
+                <FieldOpsWidget metrics={analyticsData.fieldMetrics} />
+              )}
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2">
+                  <Card className="h-full">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Activity className="h-5 w-5" />
+                        Asset Distribution Map
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                      {dashboardData?.allAssets && <AssetMap assets={dashboardData.allAssets} />}
+                    </CardContent>
+                  </Card>
+                </div>
+                <div>
+                  {analyticsData?.trendAnalysis && (
+                    <div className="space-y-6">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-sm">Quick Insights</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-4">
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm text-gray-500">Total Asset Value</span>
+                              <span className="font-bold">₦{(dashboardData?.totalValue || 0).toLocaleString()}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm text-gray-500">Verified Assets</span>
+                              <span className="font-bold text-green-600">
+                                {analyticsData.fieldMetrics?.totalVerifications || 0}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm text-gray-500">Maintenance Requests</span>
+                              <span className="font-bold text-amber-600">
+                                {analyticsData.operationalMetrics?.maintenanceFrequency || 0}
+                              </span>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {analyticsData?.trendAnalysis && <TrendCharts data={analyticsData.trendAnalysis} />}
             </motion.div>
           </TabsContent>
 
@@ -510,8 +580,9 @@ export default function DashboardPage() {
             </motion.div>
           </TabsContent>
         </Tabs>
-      )}
-    </div>
+      )
+      }
+    </div >
   );
 }
 

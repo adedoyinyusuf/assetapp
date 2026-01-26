@@ -1,7 +1,6 @@
 import { getAssets, calculateDepreciation } from '@/app/actions'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faDollarSign, faChartLine, faPercent } from '@fortawesome/free-solid-svg-icons'
+import { DollarSign, LineChart, Percent } from 'lucide-react'
 
 export default async function AssetSummary() {
   const assets = await getAssets()
@@ -23,7 +22,7 @@ export default async function AssetSummary() {
           <CardTitle className="text-sm font-medium">
             Total Purchase Value
           </CardTitle>
-          <FontAwesomeIcon icon={faDollarSign} className="h-4 w-4 text-muted-foreground" />
+          <DollarSign className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">${totalPurchaseValue.toFixed(2)}</div>
@@ -34,7 +33,7 @@ export default async function AssetSummary() {
           <CardTitle className="text-sm font-medium">
             Total Current Value
           </CardTitle>
-          <FontAwesomeIcon icon={faChartLine} className="h-4 w-4 text-muted-foreground" />
+          <LineChart className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">${totalCurrentValue.toFixed(2)}</div>
@@ -45,7 +44,7 @@ export default async function AssetSummary() {
           <CardTitle className="text-sm font-medium">
             Total Depreciation
           </CardTitle>
-          <FontAwesomeIcon icon={faPercent} className="h-4 w-4 text-muted-foreground" />
+          <Percent className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">${totalDepreciation.toFixed(2)}</div>

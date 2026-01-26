@@ -48,8 +48,17 @@ export function Header() {
   const router = useRouter();
   const pathname = usePathname();
   const { data: session, status } = useSession();
-  const userRole = session?.user?.role as UserRole || UserRole.VIEWER;
+  const userRole = session?.user?.role as UserRole | undefined;
+  const isAuthenticated = !!session?.user;
   const isLoading = status === 'loading';
+
+  console.log('Header Debug:', {
+    status,
+    hasSession: !!session,
+    hasUser: !!session?.user,
+    userRole,
+    isAuthenticated
+  });
 
   // Add shadow when scrolling
   useEffect(() => {
@@ -70,19 +79,31 @@ export function Header() {
   }, [pathname]);
 
   const hasPermission = useCallback((action: Action, resource: Resource): boolean => {
-    if (!userRole) return false;
+    if (!isAuthenticated || !userRole) return false;
     return can(userRole, action, resource);
-  }, [userRole]);
+  }, [isAuthenticated, userRole]);
 
   const isAllowed = useCallback((item: MenuItem): boolean => {
-    if (item.allowedRoles && !item.allowedRoles.includes(userRole)) {
+    // Public items (no roles/permissions required) are always allowed
+    if (!item.allowedRoles && !item.requiredPermission) return true;
+
+    // If not authenticated, only public items are allowed
+    if (!isAuthenticated) {
+      // Debug log for restricted item access attempt
+      if (item.title === 'Dashboard' || item.title === 'Manage Assets') {
+        console.log('isAllowed Denied (Not Authenticated):', { item: item.title, isAuthenticated, userRole });
+      }
+      return false;
+    }
+
+    if (item.allowedRoles && (!userRole || !item.allowedRoles.includes(userRole))) {
       return false;
     }
     if (item.requiredPermission) {
       return hasPermission(item.requiredPermission.action, item.requiredPermission.resource);
     }
     return true;
-  }, [userRole, hasPermission]);
+  }, [isAuthenticated, userRole, hasPermission]);
 
   const handleSignOut = useCallback(async () => {
     setUserMenuOpen(false);
@@ -361,7 +382,7 @@ export function Header() {
             <div className="hidden md:block text-right">
               <p className="text-sm font-medium leading-tight">{session.user?.name || session.user?.email}</p>
               <p className="text-xs text-gray-500 capitalize leading-tight">
-                {userRole.toLowerCase().replace('_', ' ')}
+                {userRole?.toLowerCase().replace('_', ' ') || 'Guest'}
               </p>
             </div>
           </div>
@@ -371,7 +392,7 @@ export function Header() {
           >
             <ChevronDown className="h-4 w-4" />
           </motion.div>
-        </motion.button>
+        </motion.button >
 
         <AnimatePresence>
           {userMenuOpen && (
@@ -385,7 +406,7 @@ export function Header() {
               <div className="p-2">
                 <div className="px-3 py-2 border-b border-gray-100 mb-2">
                   <p className="font-medium text-gray-900">{session.user?.name || session.user?.email}</p>
-                  <p className="text-sm text-gray-500 capitalize">{userRole.toLowerCase().replace('_', ' ')}</p>
+                  <p className="text-sm text-gray-500 capitalize">{userRole?.toLowerCase().replace('_', ' ') || 'Guest'}</p>
                 </div>
 
                 <motion.button
@@ -442,7 +463,7 @@ export function Header() {
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
+      </div >
     );
   }, [session, userRole, userMenuOpen, toggleUserMenu, handleSignOut, router]);
 
@@ -560,6 +581,30 @@ export function Header() {
     },
   ], []);
 
+  const mdmOperations = useMemo((): MenuItem[] => [
+    {
+      href: '/mdm',
+      title: 'MDM Dashboard',
+      description: 'Mobile Device Management dashboard',
+      icon: <Package className="h-4 w-4" />,
+      requiredPermission: { action: Action.READ, resource: Resource.ASSET }
+    },
+    {
+      href: '/mdm/devices',
+      title: 'Mobile Devices',
+      description: 'Manage mobile devices',
+      icon: <Package className="h-4 w-4" />,
+      requiredPermission: { action: Action.READ, resource: Resource.ASSET }
+    },
+    {
+      href: '/mdm/staff',
+      title: 'Staff Management',
+      description: 'Manage staff and assignments',
+      icon: <Package className="h-4 w-4" />,
+      allowedRoles: [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.MANAGER]
+    },
+  ], []);
+
   const renderNavigation = useCallback(() => {
     const navItems: MenuItem[] = [
       ...mainMenuItems,
@@ -575,6 +620,7 @@ export function Header() {
       <nav className="hidden md:flex md:items-center md:space-x-2">
         {navItems.map((item) => isAllowed(item) && renderNavigationItem(item))}
         {hasPermission(Action.READ, Resource.ASSET) && renderDropdownMenu('Assets', assetOperations)}
+        {hasPermission(Action.READ, Resource.ASSET) && renderDropdownMenu('MDM', mdmOperations)}
         {hasPermission(Action.READ, Resource.REPORT) && renderDropdownMenu('Reports', reports)}
         {management.filter(isAllowed).length > 0 && renderDropdownMenu('Management', management)}
         {hasPermission(Action.READ, Resource.USER) && renderDropdownMenu('Admin', administration)}
@@ -633,10 +679,10 @@ export function Header() {
 
           <div className="flex items-center gap-6">
             {/* Desktop Navigation */}
-            {session && !isLoading && renderNavigation()}
+            {renderNavigation()}
 
             {/* User Authentication Section */}
-            <div className="hidden md:flex items-center gap-4">
+            <div className="hidden md:flex items-center gap-4" suppressHydrationWarning={true}>
               {isLoading ? (
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse"></div>
@@ -732,7 +778,7 @@ export function Header() {
                 ))}
 
                 {/* Dashboard Item */}
-                {hasPermission(Action.READ, Resource.DASHBOARD) && (
+                {session && hasPermission(Action.READ, Resource.DASHBOARD) && (
                   <motion.div
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -758,7 +804,7 @@ export function Header() {
                 )}
 
                 {/* Asset Operations Section */}
-                {assetOperations.filter(isAllowed).length > 0 && (
+                {session && assetOperations.filter(isAllowed).length > 0 && (
                   <motion.div
                     className="border-t border-gray-200/50 pt-4 mt-4"
                     initial={{ opacity: 0, y: 20 }}
@@ -770,7 +816,7 @@ export function Header() {
                 )}
 
                 {/* Reports Section */}
-                {reports.filter(isAllowed).length > 0 && (
+                {session && reports.filter(isAllowed).length > 0 && (
                   <motion.div
                     className="border-t border-gray-200/50 pt-4 mt-4"
                     initial={{ opacity: 0, y: 20 }}
@@ -782,7 +828,7 @@ export function Header() {
                 )}
 
                 {/* Management Section */}
-                {management.filter(isAllowed).length > 0 && (
+                {session && management.filter(isAllowed).length > 0 && (
                   <motion.div
                     className="border-t border-gray-200/50 pt-4 mt-4"
                     initial={{ opacity: 0, y: 20 }}
@@ -794,7 +840,7 @@ export function Header() {
                 )}
 
                 {/* Administration Section */}
-                {administration.filter(isAllowed).length > 0 && (
+                {session && administration.filter(isAllowed).length > 0 && (
                   <motion.div
                     className="border-t border-gray-200/50 pt-4 mt-4"
                     initial={{ opacity: 0, y: 20 }}
@@ -822,7 +868,7 @@ export function Header() {
                           <div>
                             <p className="text-sm font-medium text-gray-900">{session.user?.name || session.user?.email}</p>
                             <p className="text-xs text-gray-500 capitalize">
-                              {userRole.toLowerCase().replace('_', ' ')}
+                              {userRole?.toLowerCase().replace('_', ' ') || 'Guest'}
                             </p>
                           </div>
                         </div>

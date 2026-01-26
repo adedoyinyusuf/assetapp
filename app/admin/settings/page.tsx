@@ -7,8 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faCog, faSave, faDatabase, faBell, faShield, faGlobe } from '@fortawesome/free-solid-svg-icons'
+import { Settings, Save, Database, Bell, Shield, Globe } from 'lucide-react'
 
 export default function SystemSettingsPage() {
   const [settings, setSettings] = useState({
@@ -18,21 +17,21 @@ export default function SystemSettingsPage() {
     timezone: 'Africa/Lagos',
     dateFormat: 'DD/MM/YYYY',
     currency: 'NGN',
-    
+
     // Database Settings
     backupFrequency: 'daily',
     retentionPeriod: '365',
-    
+
     // Notification Settings
     emailNotifications: true,
     smsNotifications: false,
     systemAlerts: true,
-    
+
     // Security Settings
     sessionTimeout: '30',
     passwordMinLength: '8',
     requireTwoFactor: false,
-    
+
     // Asset Settings
     defaultDepreciationMethod: 'straight-line',
     defaultUsefulLife: '5',
@@ -63,7 +62,7 @@ export default function SystemSettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
-            <FontAwesomeIcon icon={faCog} className="mr-2" />
+            <Settings className="mr-2 h-5 w-5" />
             General Settings
           </CardTitle>
         </CardHeader>
@@ -133,7 +132,7 @@ export default function SystemSettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
-            <FontAwesomeIcon icon={faDatabase} className="mr-2" />
+            <Database className="mr-2 h-5 w-5" />
             Database Settings
           </CardTitle>
         </CardHeader>
@@ -170,7 +169,7 @@ export default function SystemSettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
-            <FontAwesomeIcon icon={faBell} className="mr-2" />
+            <Bell className="mr-2 h-5 w-5" />
             Notification Settings
           </CardTitle>
         </CardHeader>
@@ -220,7 +219,7 @@ export default function SystemSettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
-            <FontAwesomeIcon icon={faShield} className="mr-2" />
+            <Shield className="mr-2 h-5 w-5" />
             Security Settings
           </CardTitle>
         </CardHeader>
@@ -266,7 +265,7 @@ export default function SystemSettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
-            <FontAwesomeIcon icon={faGlobe} className="mr-2" />
+            <Globe className="mr-2 h-5 w-5" />
             Asset Management Settings
           </CardTitle>
         </CardHeader>
@@ -321,7 +320,7 @@ export default function SystemSettingsPage() {
       {/* Save Button */}
       <div className="flex justify-end">
         <Button onClick={handleSaveSettings} disabled={loading} size="lg">
-          <FontAwesomeIcon icon={faSave} className="mr-2" />
+          <Save className="mr-2 h-4 w-4" />
           {loading ? 'Saving...' : 'Save All Settings'}
         </Button>
       </div>

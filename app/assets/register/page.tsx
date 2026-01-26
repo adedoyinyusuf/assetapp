@@ -8,8 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faSave, faArrowLeft } from '@fortawesome/free-solid-svg-icons'
+import { Save, ArrowLeft } from 'lucide-react'
 import { addAsset, getCategories, getStates, getLGAs, Category, State, LGA } from '@/app/actions'
 import Link from 'next/link'
 
@@ -28,7 +27,7 @@ export default function AssetRegisterPage() {
     description: '',
     assetTag: '',
     serialNumber: '',
-    
+
     // Step 2: Financial Information
     purchaseValue: '',
     purchaseDate: '',
@@ -36,13 +35,13 @@ export default function AssetRegisterPage() {
     salvageValue: '',
     supplier: '',
     invoiceNumber: '',
-    
+
     // Step 3: Classification & Location
     category_id: '',
     state_id: '',
     lga_id: '',
     specificLocation: '',
-    
+
     // Step 4: Additional Details
     condition: 'Good',
     warranty: '',
@@ -379,7 +378,7 @@ export default function AssetRegisterPage() {
         <h1 className="text-3xl font-bold">Register New Asset</h1>
         <Link href="/assets/registry">
           <Button variant="outline">
-            <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
+            <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Registry
           </Button>
         </Link>
@@ -391,19 +390,17 @@ export default function AssetRegisterPage() {
           <div className="flex justify-between items-center">
             {[1, 2, 3, 4].map((step) => (
               <div key={step} className="flex items-center">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                  step === currentStep 
-                    ? 'bg-green-600 text-white' 
-                    : step < currentStep 
-                      ? 'bg-green-100 text-green-600' 
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${step === currentStep
+                    ? 'bg-green-600 text-white'
+                    : step < currentStep
+                      ? 'bg-green-100 text-green-600'
                       : 'bg-gray-200 text-gray-500'
-                }`}>
+                  }`}>
                   {step}
                 </div>
                 {step < 4 && (
-                  <div className={`w-16 h-1 mx-2 ${
-                    step < currentStep ? 'bg-green-600' : 'bg-gray-200'
-                  }`} />
+                  <div className={`w-16 h-1 mx-2 ${step < currentStep ? 'bg-green-600' : 'bg-gray-200'
+                    }`} />
                 )}
               </div>
             ))}
@@ -429,14 +426,14 @@ export default function AssetRegisterPage() {
 
       {/* Navigation Buttons */}
       <div className="flex justify-between">
-        <Button 
-          variant="outline" 
-          onClick={prevStep} 
+        <Button
+          variant="outline"
+          onClick={prevStep}
           disabled={currentStep === 1}
         >
           Previous
         </Button>
-        
+
         <div className="flex gap-2">
           {currentStep < 4 ? (
             <Button onClick={nextStep}>
@@ -444,7 +441,7 @@ export default function AssetRegisterPage() {
             </Button>
           ) : (
             <Button onClick={handleSubmit} disabled={loading}>
-              <FontAwesomeIcon icon={faSave} className="mr-2" />
+              <Save className="mr-2 h-4 w-4" />
               {loading ? 'Registering...' : 'Register Asset'}
             </Button>
           )}

@@ -27,7 +27,7 @@ export class DiscrepancyService extends BaseService {
       // Validate verification exists and user has access to it
       const verification = await this.db.assetVerification.findUnique({
         where: { id: data.verificationId },
-        include: { 
+        include: {
           campaign: true,
           asset: { include: { category: true, state: true, lga: true } }
         },
@@ -453,20 +453,67 @@ export class DiscrepancyService extends BaseService {
   }
 
   /**
-   * Resolve discrepancy
+   * Resolve discrepancy with optional asset updates
    */
   async resolveDiscrepancy(
     discrepancyId: number,
     resolutionNotes: string,
     userId: number,
+    action?: string,
+    actionData?: any,
     ipAddress?: string,
     userAgent?: string
   ): Promise<DiscrepancyWithDetails> {
+    const discrepancy = await this.db.verificationDiscrepancy.findUnique({
+      where: { id: discrepancyId },
+      include: { verification: true }
+    });
+
+    if (!discrepancy) throw new NotFoundError('Discrepancy not found');
+
+    // Perform side-effects based on action
+    if (action) {
+      const assetId = discrepancy.verification.assetId;
+
+      if (action === 'UPDATE_ASSET_LOCATION') {
+        const newStateId = actionData?.stateId ?? discrepancy.verification.actualStateId;
+        const newLgaId = actionData?.lgaId ?? discrepancy.verification.actualLgaId;
+
+        if (newStateId || newLgaId) {
+          await this.db.asset.update({
+            where: { id: assetId },
+            data: {
+              stateId: newStateId,
+              lgaId: newLgaId
+            }
+          });
+        }
+      } else if (action === 'UPDATE_ASSET_STATUS' && actionData?.status) {
+        await this.db.asset.update({
+          where: { id: assetId },
+          data: { status: actionData.status }
+        });
+      } else if (action === 'MARK_AS_DAMAGED') {
+        await this.db.asset.update({
+          where: { id: assetId },
+          data: { status: 'MAINTENANCE' }
+        });
+      } else if (action === 'DISPOSE_ASSET') {
+        await this.db.asset.update({
+          where: { id: assetId },
+          data: { status: 'DISPOSED' }
+        });
+      }
+    }
+
+    // Append action to notes for record keeping
+    const finalNotes = action ? `${resolutionNotes} [Action Taken: ${action}]` : resolutionNotes;
+
     return this.updateDiscrepancy(
       discrepancyId,
       {
         status: 'RESOLVED',
-        resolutionNotes,
+        resolutionNotes: finalNotes,
       },
       userId,
       ipAddress,
@@ -565,7 +612,7 @@ export class DiscrepancyService extends BaseService {
         medium: severityStats.find(s => s.severity === 'MEDIUM')?._count.severity || 0,
         low: severityStats.find(s => s.severity === 'LOW')?._count.severity || 0,
         resolutionRate: total > 0 ? Math.round(((resolved + closed) / total) * 100) : 0,
-        averageResolutionTime: resolutionTimes.length > 0 
+        averageResolutionTime: resolutionTimes.length > 0
           ? Math.round(resolutionTimes.reduce((sum, time) => sum + time, 0) / resolutionTimes.length)
           : 0,
         typeBreakdown: typeStats.map(stat => ({
@@ -711,7 +758,7 @@ export class DiscrepancyService extends BaseService {
   private async generateDiscrepancyReference(campaignId: number): Promise<string> {
     const today = new Date();
     const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
-    
+
     const count = await this.db.verificationDiscrepancy.count({
       where: {
         verification: { campaignId },
@@ -736,13 +783,13 @@ export class DiscrepancyService extends BaseService {
     }
 
     if (type === 'LOCATION_MISMATCH' || type === 'CONDITION_DISCREPANCY' ||
-        highKeywords.some(keyword => descLower.includes(keyword))) {
+      highKeywords.some(keyword => descLower.includes(keyword))) {
       return 'HIGH';
     }
 
     if (type === 'DATA_MISMATCH' || type === 'VALUE_DISCREPANCY' || type === 'CATEGORY_MISMATCH' ||
-        type === 'QUANTITY_VARIANCE' || type === 'DUPLICATE_ASSET' || type === 'UNAUTHORIZED_ASSET' ||
-        type === 'OBSOLETE_ASSET') {
+      type === 'QUANTITY_VARIANCE' || type === 'DUPLICATE_ASSET' || type === 'UNAUTHORIZED_ASSET' ||
+      type === 'OBSOLETE_ASSET') {
       return 'MEDIUM';
     }
 

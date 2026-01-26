@@ -3,9 +3,12 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { List } from 'lucide-react'
 import { Button } from "@/components/ui/button"
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faList } from '@fortawesome/free-solid-svg-icons'
+
+// ... (omitted lines)
+
+
 import './globals.css';
 
 const banners = [
@@ -53,7 +56,7 @@ export default function Home() {
                     <Link href="/assets">
                       <Button size="lg" variant="secondary">
                         <span className="font-semibold inline-flex items-center">
-                          <FontAwesomeIcon icon={faList} className="mr-2" />
+                          <List className="mr-2 h-4 w-4" />
                           View Assets
                         </span>
                       </Button>

@@ -155,6 +155,10 @@ export const updateDiscrepancySchema = z.object({
   priority: z.number().int().min(1).max(5).optional(),
   tags: z.array(z.string().max(50)).max(10).optional(),
   financialImpact: z.number().optional(),
+  resolutionAction: z.enum(['UPDATE_ASSET_LOCATION', 'UPDATE_ASSET_STATUS', 'MARK_AS_DAMAGED', 'DISPOSE_ASSET', 'IGNORE']).optional(),
+  newLocation: z.string().optional(),
+  newStateId: z.number().int().positive().optional(),
+  newLgaId: z.number().int().positive().optional(),
 });
 
 export const discrepancyQuerySchema = z.object({

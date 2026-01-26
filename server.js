@@ -93,14 +93,15 @@ app.prepare().then(() => {
   // Serve static files from the Next.js build directory
   const staticPath = path.join(__dirname, '.next');
 
-  // Serve static files
-  server.use('/_next/static', express.static(path.join(staticPath, 'static'), {
-    maxAge: '1y',
-    immutable: true
-  }));
+  // Serve static files - ONLY in production to avoid conflicts with HMR
+  if (!dev) {
+    server.use('/_next/static', express.static(path.join(staticPath, 'static'), {
+      maxAge: '1y',
+      immutable: true
+    }));
 
-  // Serve other static files
-  server.use(express.static(staticPath));
+    server.use(express.static(staticPath));
+  }
 
   // Get assets (list or summary)
   server.get('/api/assets', async (req, res) => {
@@ -165,7 +166,7 @@ app.prepare().then(() => {
         LEFT JOIN categories c ON a.category_id = c.id
         LEFT JOIN states s ON a.state_id = s.id
         LEFT JOIN lgas l ON a.lga_id = l.id
-        ORDER BY a.name
+        ORDER BY a.created_at DESC
         LIMIT $1 OFFSET $2
       `, [limit, offset]);
 
@@ -179,6 +180,13 @@ app.prepare().then(() => {
         category_id: row.category_id,
         state_id: row.state_id,
         lga_id: row.lga_id,
+        // Identity Fields
+        serialNumber: row.serial_number,
+        assetCode: row.asset_code,
+        batchNumber: row.batch_number,
+        referenceNumber: row.reference_number,
+        imei1: row.imei_1,
+        imei2: row.imei_2,
         // Include full related objects
         category: row.category_id ? {
           id: row.category_id,
@@ -254,6 +262,13 @@ app.prepare().then(() => {
         category_id: asset.category_id,
         state_id: asset.state_id,
         lga_id: asset.lga_id,
+        // Identity Fields
+        serialNumber: asset.serial_number,
+        assetCode: asset.asset_code,
+        batchNumber: asset.batch_number,
+        referenceNumber: asset.reference_number,
+        imei1: asset.imei_1,
+        imei2: asset.imei_2,
         // Include full related objects
         category: asset.category_id ? {
           id: asset.category_id,
@@ -282,7 +297,10 @@ app.prepare().then(() => {
 
   // Create new asset
   server.post('/api/assets', async (req, res) => {
-    const { name, purchaseDate, purchaseValue, salvageValue, usefulLife, category_id, state_id, lga_id } = req.body;
+    const {
+      name, purchaseDate, purchaseValue, salvageValue, usefulLife, category_id, state_id, lga_id,
+      serialNumber, batchNumber, referenceNumber, imei1, imei2
+    } = req.body;
 
     // Validate required fields
     if (!name || !purchaseDate || purchaseValue === undefined || !category_id) {
@@ -295,11 +313,19 @@ app.prepare().then(() => {
       // Start transaction
       await pool.query('BEGIN');
 
+      // Generate Asset Code
+      const countResult = await pool.query('SELECT COUNT(*) FROM assets');
+      const count = parseInt(countResult.rows[0].count);
+      const randomSuffix = Math.floor(1000 + Math.random() * 9000); // 4 digit random
+      const assetCode = `AST-${Date.now().toString().slice(-6)}-${count + 1}-${randomSuffix}`;
+
       // Insert the new asset
       const { rows } = await pool.query(
         `INSERT INTO assets 
-         (name, purchase_date, purchase_value, current_value, salvage_value, useful_life, category_id, state_id, lga_id, updated_at) 
-         VALUES ($1, $2, $3, $3, $4, $5, $6, $7, $8, NOW()) 
+         (name, purchase_date, purchase_value, current_value, salvage_value, useful_life, category_id, state_id, lga_id, 
+          serial_number, asset_code, batch_number, reference_number, imei_1, imei_2, 
+          updated_at) 
+         VALUES ($1, $2, $3, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW()) 
          RETURNING *`,
         [
           name,
@@ -309,7 +335,13 @@ app.prepare().then(() => {
           parseInt(usefulLife) || 5,
           parseInt(category_id),
           state_id ? parseInt(state_id) : null,
-          lga_id ? parseInt(lga_id) : null
+          lga_id ? parseInt(lga_id) : null,
+          serialNumber || null,
+          assetCode,
+          batchNumber || null,
+          referenceNumber || null,
+          imei1 || null,
+          imei2 || null
         ]
       );
 
@@ -345,6 +377,13 @@ app.prepare().then(() => {
         category_id: fullAsset.category_id,
         state_id: fullAsset.state_id,
         lga_id: fullAsset.lga_id,
+        // Identity Fields
+        serialNumber: fullAsset.serial_number,
+        assetCode: fullAsset.asset_code,
+        batchNumber: fullAsset.batch_number,
+        referenceNumber: fullAsset.reference_number,
+        imei1: fullAsset.imei_1,
+        imei2: fullAsset.imei_2,
         // Include full related objects
         category: fullAsset.category_id ? {
           id: fullAsset.category_id,
@@ -377,7 +416,11 @@ app.prepare().then(() => {
   // Update asset
   server.put('/api/assets/:id', async (req, res) => {
     const { id } = req.params;
-    const { name, purchaseValue, purchaseDate, usefulLife, salvageValue, category_id, state_id, lga_id } = req.body;
+    const {
+      name, purchaseValue, purchaseDate, usefulLife, salvageValue, category_id, state_id, lga_id,
+      serialNumber, batchNumber, referenceNumber, imei1, imei2
+    } = req.body;
+
     try {
       // Start transaction
       await pool.query('BEGIN');
@@ -385,8 +428,9 @@ app.prepare().then(() => {
       // Update the asset
       const { rows } = await pool.query(
         `UPDATE assets 
-         SET name = $1, purchase_value = $2, purchase_date = $3, useful_life = $4, salvage_value = $5, category_id = $6, state_id = $7, lga_id = $8 
-         WHERE id = $9 
+         SET name = $1, purchase_value = $2, purchase_date = $3, useful_life = $4, salvage_value = $5, category_id = $6, state_id = $7, lga_id = $8,
+             serial_number = $9, batch_number = $10, reference_number = $11, imei_1 = $12, imei_2 = $13, updated_at = NOW()
+         WHERE id = $14
          RETURNING *`,
         [
           name,
@@ -397,6 +441,11 @@ app.prepare().then(() => {
           parseInt(category_id),
           state_id ? parseInt(state_id) : null,
           lga_id ? parseInt(lga_id) : null,
+          serialNumber || null,
+          batchNumber || null,
+          referenceNumber || null,
+          imei1 || null,
+          imei2 || null,
           id
         ]
       );

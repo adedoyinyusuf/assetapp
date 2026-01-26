@@ -9,98 +9,72 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faPlus, faWrench, faCalendar, faCheckCircle, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Plus, Wrench, Calendar, CheckCircle2, AlertTriangle, FileText } from 'lucide-react'
 import { getAssets, Asset } from '@/app/actions'
+import { toast } from 'sonner'
+import { PermissionGate } from '@/components/PermissionGate'
+import { UserRole } from '@/lib/auth/roles'
 
-interface MaintenanceRecord {
+// Types matching API response
+interface MaintenanceRequest {
   id: number
-  asset_id: number
-  asset_name: string
-  maintenance_type: string
-  scheduled_date: string
-  completed_date?: string
-  status: 'Scheduled' | 'In Progress' | 'Completed' | 'Overdue'
-  cost: number
-  technician: string
+  assetId: number
+  asset: { name: string }
+  title: string
   description: string
-  notes?: string
-  next_maintenance?: string
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
+  status: 'PENDING' | 'APPROVED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'SCHEDULED' | 'REJECTED'
+  scheduledDate?: string // metadata
+  createdAt: string
+  workOrder?: WorkOrder
+}
+
+interface WorkOrder {
+  id: number
+  status: string
+  assignedTo?: number
+  startDate?: string
 }
 
 export default function MaintenancePage() {
   const [assets, setAssets] = useState<Asset[]>([])
-  const [maintenanceRecords, setMaintenanceRecords] = useState<MaintenanceRecord[]>([])
+  const [maintenanceRecords, setMaintenanceRecords] = useState<MaintenanceRequest[]>([])
   const [loading, setLoading] = useState(false)
   const [showForm, setShowForm] = useState(false)
-  const [filterStatus, setFilterStatus] = useState('')
+  const [filterStatus, setFilterStatus] = useState('all')
 
   // Form data
   const [formData, setFormData] = useState({
-    asset_id: '',
-    maintenance_type: '',
-    scheduled_date: '',
-    cost: '',
-    technician: '',
+    assetId: '',
+    title: '',
     description: '',
-    notes: '',
-    next_maintenance: ''
+    priority: 'MEDIUM',
+    scheduledDate: '',
   })
 
-  // Mock data for demonstration
-  const mockMaintenanceRecords: MaintenanceRecord[] = [
-    {
-      id: 1,
-      asset_id: 1,
-      asset_name: 'Office Building A',
-      maintenance_type: 'Preventive',
-      scheduled_date: '2024-01-15',
-      completed_date: '2024-01-15',
-      status: 'Completed',
-      cost: 5000,
-      technician: 'John Doe',
-      description: 'Annual HVAC system maintenance',
-      notes: 'All systems functioning properly',
-      next_maintenance: '2025-01-15'
-    },
-    {
-      id: 2,
-      asset_id: 2,
-      asset_name: 'Generator Unit 1',
-      maintenance_type: 'Corrective',
-      scheduled_date: '2024-02-01',
-      status: 'In Progress',
-      cost: 2500,
-      technician: 'Jane Smith',
-      description: 'Engine oil leak repair',
-      notes: 'Parts ordered, waiting for delivery'
-    },
-    {
-      id: 3,
-      asset_id: 3,
-      asset_name: 'Vehicle Fleet 001',
-      maintenance_type: 'Preventive',
-      scheduled_date: '2024-01-20',
-      status: 'Overdue',
-      cost: 800,
-      technician: 'Mike Johnson',
-      description: 'Regular service and oil change',
-      next_maintenance: '2024-04-20'
+  // Fetch data
+  const loadData = async () => {
+    try {
+      const [assetsData, requestsRes] = await Promise.all([
+        getAssets(),
+        fetch('/api/maintenance/requests')
+      ])
+
+      setAssets(assetsData)
+
+      if (requestsRes.ok) {
+        const requests = await requestsRes.json()
+        setMaintenanceRecords(requests)
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error)
+      toast.error('Failed to load maintenance data')
     }
-  ]
+  }
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const assetsData = await getAssets()
-        setAssets(assetsData)
-        // In a real app, this would fetch from the backend
-        setMaintenanceRecords(mockMaintenanceRecords)
-      } catch (error) {
-        console.error('Error fetching data:', error)
-      }
-    }
-    fetchData()
+    loadData()
   }, [])
 
   const handleInputChange = (field: string, value: string) => {
@@ -112,167 +86,171 @@ export default function MaintenancePage() {
     setLoading(true)
 
     try {
-      const asset = assets.find(a => a.id === parseInt(formData.asset_id))
-      
-      const newRecord: MaintenanceRecord = {
-        id: maintenanceRecords.length + 1,
-        asset_id: parseInt(formData.asset_id),
-        asset_name: asset?.name || '',
-        maintenance_type: formData.maintenance_type,
-        scheduled_date: formData.scheduled_date,
-        status: 'Scheduled',
-        cost: parseFloat(formData.cost),
-        technician: formData.technician,
-        description: formData.description,
-        notes: formData.notes,
-        next_maintenance: formData.next_maintenance
-      }
+      const res = await fetch('/api/maintenance/requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      })
 
-      setMaintenanceRecords(prev => [newRecord, ...prev])
-      
+      if (!res.ok) throw new Error('Failed to create request')
+
+      toast.success('Maintenance request created')
+      setShowForm(false)
+      loadData()
+
       // Reset form
       setFormData({
-        asset_id: '',
-        maintenance_type: '',
-        scheduled_date: '',
-        cost: '',
-        technician: '',
+        assetId: '',
+        title: '',
         description: '',
-        notes: '',
-        next_maintenance: ''
+        priority: 'MEDIUM',
+        scheduledDate: '',
       })
-      
-      setShowForm(false)
-      alert('Maintenance record created successfully!')
     } catch (error) {
-      console.error('Error creating maintenance record:', error)
-      alert('Error creating maintenance record. Please try again.')
+      toast.error('Error creating request')
     } finally {
       setLoading(false)
     }
   }
 
-  const updateStatus = (id: number, status: MaintenanceRecord['status']) => {
-    setMaintenanceRecords(prev => 
-      prev.map(record => 
-        record.id === id 
-          ? { 
-              ...record, 
-              status, 
-              completed_date: status === 'Completed' ? new Date().toISOString().split('T')[0] : undefined 
-            }
-          : record
-      )
-    )
+  const updateStatus = async (id: number, status: string) => {
+    try {
+      const res = await fetch(`/api/maintenance/requests/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      })
+
+      if (!res.ok) throw new Error('Failed to update status')
+
+      toast.success(`Status updated to ${status}`)
+      loadData()
+    } catch (error) {
+      toast.error('Failed to update status')
+    }
   }
 
-  const getStatusBadge = (status: MaintenanceRecord['status']) => {
-    const variants = {
-      'Scheduled': 'secondary',
-      'In Progress': 'default',
-      'Completed': 'default',
-      'Overdue': 'destructive'
-    } as const
+  const convertToWorkOrder = async (request: MaintenanceRequest) => {
+    try {
+      const res = await fetch('/api/maintenance/work-orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          requestId: request.id,
+          assetId: request.assetId,
+          title: request.title,
+          description: request.description,
+          priority: request.priority,
+          startDate: request.scheduledDate
+        })
+      })
 
-    const icons = {
-      'Scheduled': faCalendar,
-      'In Progress': faWrench,
-      'Completed': faCheckCircle,
-      'Overdue': faExclamationTriangle
+      if (!res.ok) throw new Error('Failed to create work order')
+
+      toast.success('Work Order created')
+      loadData() // Refresh to see updated status
+    } catch (error) {
+      toast.error('Failed to convert to work order')
+    }
+  }
+
+  const getStatusBadge = (status: string) => {
+    const styles: Record<string, string> = {
+      'PENDING': 'bg-yellow-100 text-yellow-800',
+      'APPROVED': 'bg-blue-100 text-blue-800',
+      'IN_PROGRESS': 'bg-purple-100 text-purple-800',
+      'COMPLETED': 'bg-green-100 text-green-800',
+      'SCHEDULED': 'bg-gray-100 text-gray-800',
+      'CRITICAL': 'bg-red-100 text-red-800'
     }
 
     return (
-      <Badge variant={variants[status]} className="flex items-center gap-1">
-        <FontAwesomeIcon icon={icons[status]} className="w-3 h-3" />
-        {status}
+      <Badge variant="outline" className={`${styles[status] || 'bg-gray-100'} border-0`}>
+        {status.replace('_', ' ')}
       </Badge>
     )
   }
 
-  const filteredRecords = filterStatus && filterStatus !== 'all'
-    ? maintenanceRecords.filter(record => record.status === filterStatus)
+  const filteredRecords = filterStatus !== 'all'
+    ? maintenanceRecords.filter(r => r.status === filterStatus)
     : maintenanceRecords
-
-  const upcomingMaintenance = maintenanceRecords.filter(record => 
-    record.status === 'Scheduled' && 
-    new Date(record.scheduled_date) <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-  )
-
-  const overdueMaintenance = maintenanceRecords.filter(record => record.status === 'Overdue')
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Asset Maintenance</h1>
         <Button onClick={() => setShowForm(!showForm)}>
-          <FontAwesomeIcon icon={faPlus} className="mr-2" />
-          Schedule Maintenance
+          <Plus className="mr-2 h-4 w-4" />
+          New Request
         </Button>
       </div>
 
-      {/* Summary Cards */}
+      {/* Stats Cards - Calculated from displayed records */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Records</p>
+                <p className="text-sm font-medium text-gray-600">Total Requests</p>
                 <p className="text-2xl font-bold">{maintenanceRecords.length}</p>
               </div>
-              <FontAwesomeIcon icon={faWrench} className="h-8 w-8 text-blue-600" />
+              <FileText className="h-8 w-8 text-blue-600" />
             </div>
           </CardContent>
         </Card>
-
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Upcoming (7 days)</p>
-                <p className="text-2xl font-bold text-yellow-600">{upcomingMaintenance.length}</p>
+                <p className="text-sm font-medium text-gray-600">Pending</p>
+                <p className="text-2xl font-bold text-yellow-600">
+                  {maintenanceRecords.filter(r => r.status === 'PENDING').length}
+                </p>
               </div>
-              <FontAwesomeIcon icon={faCalendar} className="h-8 w-8 text-yellow-600" />
+              <Calendar className="h-8 w-8 text-yellow-600" />
             </div>
           </CardContent>
         </Card>
-
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Overdue</p>
-                <p className="text-2xl font-bold text-red-600">{overdueMaintenance.length}</p>
+                <p className="text-sm font-medium text-gray-600">In Progress</p>
+                <p className="text-2xl font-bold text-purple-600">
+                  {maintenanceRecords.filter(r => r.status === 'IN_PROGRESS').length}
+                </p>
               </div>
-              <FontAwesomeIcon icon={faExclamationTriangle} className="h-8 w-8 text-red-600" />
+              <Wrench className="h-8 w-8 text-purple-600" />
             </div>
           </CardContent>
         </Card>
-
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Cost (YTD)</p>
-                <p className="text-2xl font-bold">${maintenanceRecords.reduce((sum, r) => sum + r.cost, 0).toLocaleString()}</p>
+                <p className="text-sm font-medium text-gray-600">Critical</p>
+                <p className="text-2xl font-bold text-red-600">
+                  {maintenanceRecords.filter(r => r.priority === 'CRITICAL').length}
+                </p>
               </div>
-              <FontAwesomeIcon icon={faCheckCircle} className="h-8 w-8 text-green-600" />
+              <AlertTriangle className="h-8 w-8 text-red-600" />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Maintenance Form */}
+      {/* New Request Form */}
       {showForm && (
         <Card>
           <CardHeader>
-            <CardTitle>Schedule Maintenance</CardTitle>
+            <CardTitle>New Maintenance Request</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="asset">Asset *</Label>
-                  <Select value={formData.asset_id} onValueChange={(value) => handleInputChange('asset_id', value)}>
+                  <Select value={formData.assetId} onValueChange={(value) => handleInputChange('assetId', value)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select asset" />
                     </SelectTrigger>
@@ -287,59 +265,37 @@ export default function MaintenancePage() {
                 </div>
 
                 <div>
-                  <Label htmlFor="maintenanceType">Maintenance Type *</Label>
-                  <Select value={formData.maintenance_type} onValueChange={(value) => handleInputChange('maintenance_type', value)}>
+                  <Label htmlFor="priority">Priority</Label>
+                  <Select value={formData.priority} onValueChange={(value) => handleInputChange('priority', value)}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select type" />
+                      <SelectValue placeholder="Select priority" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Preventive">Preventive</SelectItem>
-                      <SelectItem value="Corrective">Corrective</SelectItem>
-                      <SelectItem value="Emergency">Emergency</SelectItem>
-                      <SelectItem value="Inspection">Inspection</SelectItem>
+                      <SelectItem value="LOW">Low</SelectItem>
+                      <SelectItem value="MEDIUM">Medium</SelectItem>
+                      <SelectItem value="HIGH">High</SelectItem>
+                      <SelectItem value="CRITICAL">Critical</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div>
-                  <Label htmlFor="scheduledDate">Scheduled Date *</Label>
+                  <Label htmlFor="title">Title *</Label>
                   <Input
-                    id="scheduledDate"
-                    type="date"
-                    value={formData.scheduled_date}
-                    onChange={(e) => handleInputChange('scheduled_date', e.target.value)}
+                    id="title"
+                    value={formData.title}
+                    onChange={(e) => handleInputChange('title', e.target.value)}
                     required
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="cost">Estimated Cost ($)</Label>
+                  <Label htmlFor="scheduledDate">Target Date</Label>
                   <Input
-                    id="cost"
-                    type="number"
-                    value={formData.cost}
-                    onChange={(e) => handleInputChange('cost', e.target.value)}
-                    placeholder="0.00"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="technician">Assigned Technician</Label>
-                  <Input
-                    id="technician"
-                    value={formData.technician}
-                    onChange={(e) => handleInputChange('technician', e.target.value)}
-                    placeholder="Technician name"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="nextMaintenance">Next Maintenance Date</Label>
-                  <Input
-                    id="nextMaintenance"
+                    id="scheduledDate"
                     type="date"
-                    value={formData.next_maintenance}
-                    onChange={(e) => handleInputChange('next_maintenance', e.target.value)}
+                    value={formData.scheduledDate}
+                    onChange={(e) => handleInputChange('scheduledDate', e.target.value)}
                   />
                 </div>
 
@@ -349,25 +305,14 @@ export default function MaintenancePage() {
                     id="description"
                     value={formData.description}
                     onChange={(e) => handleInputChange('description', e.target.value)}
-                    placeholder="Describe the maintenance work"
                     required
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <Label htmlFor="notes">Additional Notes</Label>
-                  <Textarea
-                    id="notes"
-                    value={formData.notes}
-                    onChange={(e) => handleInputChange('notes', e.target.value)}
-                    placeholder="Any additional information"
                   />
                 </div>
               </div>
 
               <div className="flex gap-4">
                 <Button type="submit" disabled={loading}>
-                  {loading ? 'Creating...' : 'Schedule Maintenance'}
+                  {loading ? 'Creating...' : 'Submit Request'}
                 </Button>
                 <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
                   Cancel
@@ -378,80 +323,103 @@ export default function MaintenancePage() {
         </Card>
       )}
 
-      {/* Maintenance Records */}
+      {/* Request List */}
       <Card>
         <CardHeader>
           <div className="flex justify-between items-center">
-            <CardTitle>Maintenance Records</CardTitle>
+            <CardTitle>Maintenance Requests</CardTitle>
             <Select value={filterStatus} onValueChange={setFilterStatus}>
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="Scheduled">Scheduled</SelectItem>
-                <SelectItem value="In Progress">In Progress</SelectItem>
-                <SelectItem value="Completed">Completed</SelectItem>
-                <SelectItem value="Overdue">Overdue</SelectItem>
+                <SelectItem value="PENDING">Pending</SelectItem>
+                <SelectItem value="APPROVED">Approved</SelectItem>
+                <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                <SelectItem value="COMPLETED">Completed</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Asset</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Scheduled Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Technician</TableHead>
-                  <TableHead>Cost</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredRecords.map((record) => (
-                  <TableRow key={record.id}>
-                    <TableCell className="font-medium">{record.asset_name}</TableCell>
-                    <TableCell>{record.maintenance_type}</TableCell>
-                    <TableCell>{new Date(record.scheduled_date).toLocaleDateString()}</TableCell>
-                    <TableCell>{getStatusBadge(record.status)}</TableCell>
-                    <TableCell>{record.technician}</TableCell>
-                    <TableCell>${record.cost.toLocaleString()}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        {record.status === 'Scheduled' && (
-                          <Button 
-                            size="sm" 
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Asset</TableHead>
+                <TableHead>Title</TableHead>
+                <TableHead>Priority</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Created</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredRecords.map((record) => (
+                <TableRow key={record.id}>
+                  <TableCell className="font-medium">{record.asset?.name || 'Unknown'}</TableCell>
+                  <TableCell>
+                    <div>{record.title}</div>
+                    <div className="text-xs text-gray-500 truncate max-w-[200px]">{record.description}</div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className={
+                      record.priority === 'CRITICAL' ? 'text-red-600 border-red-200' :
+                        record.priority === 'HIGH' ? 'text-orange-600 border-orange-200' : ''
+                    }>
+                      {record.priority}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{getStatusBadge(record.status)}</TableCell>
+                  <TableCell>{new Date(record.createdAt).toLocaleDateString()}</TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
+                      {record.status === 'PENDING' && (
+                        <PermissionGate allowedRoles={[UserRole.ADMIN, UserRole.MANAGER]}>
+                          <Button
+                            size="sm"
                             variant="outline"
-                            onClick={() => updateStatus(record.id, 'In Progress')}
+                            onClick={() => updateStatus(record.id, 'APPROVED')}
                           >
-                            Start
+                            Approve
                           </Button>
-                        )}
-                        {record.status === 'In Progress' && (
-                          <Button 
-                            size="sm" 
-                            onClick={() => updateStatus(record.id, 'Completed')}
+                        </PermissionGate>
+                      )}
+                      {record.status === 'APPROVED' && !record.workOrder && (
+                        <PermissionGate allowedRoles={[UserRole.ADMIN, UserRole.MANAGER]}>
+                          <Button
+                            size="sm"
+                            className="bg-purple-600 hover:bg-purple-700"
+                            onClick={() => convertToWorkOrder(record)}
                           >
-                            Complete
+                            <Wrench className="w-3 h-3 mr-1" />
+                            Work Order
                           </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-          
-          {filteredRecords.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              No maintenance records found.
-            </div>
-          )}
+                        </PermissionGate>
+                      )}
+                      {record.status === 'IN_PROGRESS' && (
+                        <Button
+                          size="sm"
+                          className="bg-green-600"
+                          onClick={() => updateStatus(record.id, 'COMPLETED')}
+                        >
+                          <CheckCircle2 className="w-3 h-3 mr-1" />
+                          Complete
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {filteredRecords.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    No maintenance requests found
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>

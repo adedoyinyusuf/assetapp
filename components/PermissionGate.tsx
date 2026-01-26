@@ -11,47 +11,54 @@ interface PermissionGateProps {
   requiredPermission?: [Action, Resource];
   requiredTask?: Task;
   requiredRole?: UserRole;
+  allowedRoles?: UserRole[];
   fallback?: ReactNode;
   showLoading?: boolean;
 }
 
-export function PermissionGate({ 
-  children, 
-  requiredPermission, 
+export function PermissionGate({
+  children,
+  requiredPermission,
   requiredTask,
   requiredRole,
+  allowedRoles,
   fallback = <AccessDenied />,
   showLoading = true
 }: PermissionGateProps) {
   const { data: session, status } = useSession();
-  
+
   // Show loading while session is loading
   if (status === 'loading' && showLoading) {
     return <LoadingSpinner text="Checking permissions..." />;
   }
-  
+
   // If no session, show access denied
   if (!session?.user?.role) {
     return fallback;
   }
-  
+
   const userRole = session.user.role as UserRole;
-  
-  // Check role-based access first
+
+  // Check allowed roles (strict list check)
+  if (allowedRoles && !allowedRoles.includes(userRole)) {
+    return fallback;
+  }
+
+  // Check role-based access first (hierarchy check)
   if (requiredRole && !canAccessRoute(userRole, requiredRole)) {
     return fallback;
   }
-  
+
   // Check permission-based access
   if (requiredPermission && !can(userRole, requiredPermission[0], requiredPermission[1])) {
     return fallback;
   }
-  
+
   // Check task-based access
   if (requiredTask && !canPerformTask(userRole, requiredTask)) {
     return fallback;
   }
-  
+
   // All checks passed, render children
   return <>{children}</>;
 }
@@ -67,10 +74,10 @@ function AccessDenied() {
       </div>
       <h3 className="text-lg font-semibold text-gray-900 mb-2">Access Denied</h3>
       <p className="text-gray-600 mb-4">
-        You don't have permission to access this feature. Please contact your administrator if you believe this is an error.
+        You don&apos;t have permission to access this feature. Please contact your administrator if you believe this is an error.
       </p>
-      <button 
-        onClick={() => window.history.back()} 
+      <button
+        onClick={() => window.history.back()}
         className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
       >
         Go Back
@@ -80,14 +87,14 @@ function AccessDenied() {
 }
 
 // Convenience components for common permission checks
-export function AssetPermissionGate({ children, action = Action.READ, fallback }: { 
-  children: ReactNode; 
-  action?: Action; 
-  fallback?: ReactNode; 
+export function AssetPermissionGate({ children, action = Action.READ, fallback }: {
+  children: ReactNode;
+  action?: Action;
+  fallback?: ReactNode;
 }) {
   return (
-    <PermissionGate 
-      requiredPermission={[action, Resource.ASSET]} 
+    <PermissionGate
+      requiredPermission={[action, Resource.ASSET]}
       fallback={fallback}
     >
       {children}
@@ -95,14 +102,14 @@ export function AssetPermissionGate({ children, action = Action.READ, fallback }
   );
 }
 
-export function ReportPermissionGate({ children, action = Action.READ, fallback }: { 
-  children: ReactNode; 
-  action?: Action; 
-  fallback?: ReactNode; 
+export function ReportPermissionGate({ children, action = Action.READ, fallback }: {
+  children: ReactNode;
+  action?: Action;
+  fallback?: ReactNode;
 }) {
   return (
-    <PermissionGate 
-      requiredPermission={[action, Resource.REPORT]} 
+    <PermissionGate
+      requiredPermission={[action, Resource.REPORT]}
       fallback={fallback}
     >
       {children}
@@ -110,14 +117,14 @@ export function ReportPermissionGate({ children, action = Action.READ, fallback 
   );
 }
 
-export function AnalyticsPermissionGate({ children, task = Task.VIEW_BASIC_ANALYTICS, fallback }: { 
-  children: ReactNode; 
-  task?: Task; 
-  fallback?: ReactNode; 
+export function AnalyticsPermissionGate({ children, task = Task.VIEW_BASIC_ANALYTICS, fallback }: {
+  children: ReactNode;
+  task?: Task;
+  fallback?: ReactNode;
 }) {
   return (
-    <PermissionGate 
-      requiredTask={task} 
+    <PermissionGate
+      requiredTask={task}
       fallback={fallback}
     >
       {children}
@@ -125,14 +132,14 @@ export function AnalyticsPermissionGate({ children, task = Task.VIEW_BASIC_ANALY
   );
 }
 
-export function SearchPermissionGate({ children, task = Task.BASIC_SEARCH, fallback }: { 
-  children: ReactNode; 
-  task?: Task; 
-  fallback?: ReactNode; 
+export function SearchPermissionGate({ children, task = Task.BASIC_SEARCH, fallback }: {
+  children: ReactNode;
+  task?: Task;
+  fallback?: ReactNode;
 }) {
   return (
-    <PermissionGate 
-      requiredTask={task} 
+    <PermissionGate
+      requiredTask={task}
       fallback={fallback}
     >
       {children}
@@ -140,13 +147,13 @@ export function SearchPermissionGate({ children, task = Task.BASIC_SEARCH, fallb
   );
 }
 
-export function UserManagementGate({ children, fallback }: { 
-  children: ReactNode; 
-  fallback?: ReactNode; 
+export function UserManagementGate({ children, fallback }: {
+  children: ReactNode;
+  fallback?: ReactNode;
 }) {
   return (
-    <PermissionGate 
-      requiredPermission={[Action.READ, Resource.USER]} 
+    <PermissionGate
+      requiredPermission={[Action.READ, Resource.USER]}
       fallback={fallback}
     >
       {children}
@@ -154,13 +161,13 @@ export function UserManagementGate({ children, fallback }: {
   );
 }
 
-export function WebSocketPermissionGate({ children, fallback }: { 
-  children: ReactNode; 
-  fallback?: ReactNode; 
+export function WebSocketPermissionGate({ children, fallback }: {
+  children: ReactNode;
+  fallback?: ReactNode;
 }) {
   return (
-    <PermissionGate 
-      requiredTask={Task.ACCESS_WEBSOCKET} 
+    <PermissionGate
+      requiredTask={Task.ACCESS_WEBSOCKET}
       fallback={fallback}
     >
       {children}
