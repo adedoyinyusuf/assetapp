@@ -58,7 +58,7 @@ export async function GET(req: Request) {
     ]);
 
     // Transform the data to match the frontend expectations
-    const formattedLogs = logs.map((log) => ({
+    const formattedLogs = logs.map((log: any) => ({
       id: log.id,
       action: log.action,
       entityType: log.entityType,
@@ -70,10 +70,10 @@ export async function GET(req: Request) {
       userAgent: log.userAgent,
       user: log.user
         ? {
-            id: log.user.id,
-            name: [log.user.firstName, log.user.lastName].filter(Boolean).join(' ') || 'Unknown',
-            email: log.user.email,
-          }
+          id: log.user.id,
+          name: [log.user.firstName, log.user.lastName].filter(Boolean).join(' ') || 'Unknown',
+          email: log.user.email,
+        }
         : null,
     }));
 
@@ -134,10 +134,10 @@ export async function POST(req: Request) {
       timestamp: auditLog.createdAt,
       user: auditLog.user
         ? {
-            id: auditLog.user.id,
-            name: [auditLog.user.firstName, auditLog.user.lastName].filter(Boolean).join(' ') || 'Unknown',
-            email: auditLog.user.email,
-          }
+          id: auditLog.user.id,
+          name: [auditLog.user.firstName, auditLog.user.lastName].filter(Boolean).join(' ') || 'Unknown',
+          email: auditLog.user.email,
+        }
         : null,
     };
 
