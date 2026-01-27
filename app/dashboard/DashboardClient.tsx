@@ -72,27 +72,6 @@ export default function DashboardClient({ }: DashboardClientProps) {
   const [metrics, setMetrics] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchDashboardStats = async () => {
-      try {
-        const response = await fetch('/api/dashboard/stats');
-        if (response.ok) {
-          const data = await response.json();
-          setMetrics(data);
-        } else {
-          toast.error('Failed to fetch dashboard stats');
-        }
-      } catch (error) {
-        console.error('Error fetching dashboard stats:', error);
-        toast.error('Error connecting to server');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDashboardStats();
-  }, []);
-
   // Formatting functions
   const formatCurrency = (value: number) => `₦${value.toLocaleString()}`;
   const formatNumber = (value: number) => value.toLocaleString();
@@ -122,28 +101,26 @@ export default function DashboardClient({ }: DashboardClientProps) {
     toast.info(`Applying filter: ${JSON.stringify(filter)}`);
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[500px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    const fetchDashboardStats = async () => {
+      try {
+        const response = await fetch('/api/dashboard/stats');
+        if (response.ok) {
+          const data = await response.json();
+          setMetrics(data);
+        } else {
+          toast.error('Failed to fetch dashboard stats');
+        }
+      } catch (error) {
+        console.error('Error fetching dashboard stats:', error);
+        toast.error('Error connecting to server');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  if (!metrics) {
-    return (
-      <div className="flex items-center justify-center min-h-[500px] flex-col gap-4">
-        <p className="text-red-500">Failed to load dashboard data</p>
-        <Button onClick={() => window.location.reload()}>Retry</Button>
-      </div>
-    );
-  }
-
-  const categoryData = metrics?.assetDistribution?.byCategory?.map((cat: any) => ({
-    ...cat,
-    color: `#${Math.floor(Math.random() * 16777215).toString(16)}` // Dummy colors for now
-  })) || [];
-
+    fetchDashboardStats();
+  }, []);
 
   // Handle real-time updates
   useEffect(() => {
@@ -187,6 +164,28 @@ export default function DashboardClient({ }: DashboardClientProps) {
     };
   }, [notificationsEnabled]);
 
+  // Early returns after all hooks
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[500px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (!metrics) {
+    return (
+      <div className="flex items-center justify-center min-h-[500px] flex-col gap-4">
+        <p className="text-red-500">Failed to load dashboard data</p>
+        <Button onClick={() => window.location.reload()}>Retry</Button>
+      </div>
+    );
+  }
+
+  const categoryData = metrics?.assetDistribution?.byCategory?.map((cat: any) => ({
+    ...cat,
+    color: `#${Math.floor(Math.random() * 16777215).toString(16)}` // Dummy colors for now
+  })) || [];
 
   // Get status icon
   const getStatusIcon = (status: string) => {

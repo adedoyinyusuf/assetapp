@@ -234,7 +234,7 @@ export default function RemoteControlPanel({
                     <AlertDialogHeader>
                         <AlertDialogTitle>Play Alarm on {deviceName}?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            This will play a loud alarm sound on the device, even if it's on silent mode.
+                            This will play a loud alarm sound on the device, even if it&apos;s on silent mode.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

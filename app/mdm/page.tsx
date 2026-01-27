@@ -77,7 +77,7 @@ export default async function MDMDashboard() {
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Mobile Device Management</h1>
                     <p className="text-muted-foreground mt-2">
-                        Manage, track, and control your organization's mobile devices
+                        Manage, track, and control your organization&apos;s mobile devices
                     </p>
                 </div>
                 <Link
