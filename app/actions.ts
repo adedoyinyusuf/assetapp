@@ -120,7 +120,7 @@ export async function getAssets(): Promise<Asset[]> {
     });
 
     // Map to the expected asset format
-    return assets.map(asset => {
+    return assets.map((asset: any) => {
       // Calculate current value
       const purchaseDate = new Date(asset.purchaseDate);
       const currentDate = new Date();
