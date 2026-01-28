@@ -56,8 +56,8 @@ export async function GET(
     }
 
     // Calculate total values
-    const totalPurchaseValue = category.assets.reduce((sum, asset) => sum + asset.purchaseValue, 0);
-    const totalCurrentValue = category.assets.reduce((sum, asset) => sum + asset.currentValue, 0);
+    const totalPurchaseValue = category.assets.reduce((sum: number, asset: any) => sum + asset.purchaseValue, 0);
+    const totalCurrentValue = category.assets.reduce((sum: number, asset: any) => sum + asset.currentValue, 0);
 
     return NextResponse.json({
       id: category.id,
