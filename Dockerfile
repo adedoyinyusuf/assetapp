@@ -1,9 +1,9 @@
 # Multi-stage build for better optimization
 FROM node:18-alpine AS base
+RUN apk add --no-cache libc6-compat openssl openssl1.1-compat
 
 # Install dependencies only when needed
 FROM base AS deps
-RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
 # Install dependencies based on the preferred package manager
