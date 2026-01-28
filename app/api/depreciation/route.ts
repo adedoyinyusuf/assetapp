@@ -31,25 +31,25 @@ function calculateDepreciation(asset: {
 }, targetYear: number) {
   const purchaseYear = asset.purchaseDate.getFullYear();
   const yearsElapsed = Math.max(0, targetYear - purchaseYear);
-  
+
   if (asset.usefulLife <= 0) {
     return {
       depreciation: 0,
       currentValue: asset.salvageValue,
     };
   }
-  
+
   const annualDepreciation = (asset.purchaseValue - asset.salvageValue) / asset.usefulLife;
   const totalDepreciation = Math.min(
     annualDepreciation * yearsElapsed,
     asset.purchaseValue - asset.salvageValue
   );
-  
+
   const currentValue = Math.max(
     asset.purchaseValue - totalDepreciation,
     asset.salvageValue
   );
-  
+
   return {
     depreciation: yearsElapsed <= asset.usefulLife ? annualDepreciation : 0,
     currentValue,
@@ -80,11 +80,11 @@ export async function GET(req: Request) {
 
     // Build where clause
     const whereClause: any = {};
-    
+
     if (assetId) {
       whereClause.assetId = assetId;
     }
-    
+
     if (year) {
       whereClause.year = year;
     } else {
@@ -129,15 +129,15 @@ export async function GET(req: Request) {
     ]);
 
     // Format depreciation records
-    const formattedDepreciations = depreciations.map((dep) => ({
+    const formattedDepreciations = depreciations.map((dep: any) => ({
       id: dep.id,
       assetId: dep.assetId,
       asset: dep.asset,
       year: dep.year,
       depreciation: dep.depreciation,
       currentValue: dep.currentValue,
-      depreciationPercentage: dep.asset.purchaseValue > 0 
-        ? ((dep.asset.purchaseValue - dep.currentValue) / dep.asset.purchaseValue) * 100 
+      depreciationPercentage: dep.asset.purchaseValue > 0
+        ? ((dep.asset.purchaseValue - dep.currentValue) / dep.asset.purchaseValue) * 100
         : 0,
       createdAt: dep.createdAt.toISOString(),
       updatedAt: dep.updatedAt.toISOString(),
@@ -173,7 +173,7 @@ export async function POST(req: Request) {
 
     // Handle both single record and bulk operations
     const isBulk = body.type === 'bulk';
-    
+
     if (isBulk) {
       // Bulk depreciation calculation for a specific year
       const bulkSchema = z.object({
@@ -230,7 +230,7 @@ export async function POST(req: Request) {
         }
 
         const { depreciation, currentValue } = calculateDepreciation(asset, year);
-        
+
         depreciationRecords.push({
           assetId: asset.id,
           year,
@@ -247,7 +247,7 @@ export async function POST(req: Request) {
         // Get the created records with asset details
         const created = await prisma.depreciation.findMany({
           where: {
-            assetId: { in: depreciationRecords.map(r => r.assetId) },
+            assetId: { in: depreciationRecords.map((r: any) => r.assetId) },
             year,
           },
           include: {
@@ -283,7 +283,7 @@ export async function POST(req: Request) {
         message: `Created ${createdRecords.length} depreciation records for year ${year}`,
         year,
         recordsCreated: createdRecords.length,
-        records: createdRecords.map(r => ({
+        records: createdRecords.map((r: any) => ({
           id: r.id,
           assetId: r.assetId,
           asset: r.asset,
@@ -308,7 +308,7 @@ export async function POST(req: Request) {
       const data = validation.data;
 
       // Verify asset exists
-      const asset = await prisma.asset.findUnique({ 
+      const asset = await prisma.asset.findUnique({
         where: { id: data.assetId },
         include: {
           category: {
@@ -397,8 +397,8 @@ export async function POST(req: Request) {
         year: depreciation.year,
         depreciation: depreciation.depreciation,
         currentValue: depreciation.currentValue,
-        depreciationPercentage: asset.purchaseValue > 0 
-          ? ((asset.purchaseValue - depreciation.currentValue) / asset.purchaseValue) * 100 
+        depreciationPercentage: asset.purchaseValue > 0
+          ? ((asset.purchaseValue - depreciation.currentValue) / asset.purchaseValue) * 100
           : 0,
         createdAt: depreciation.createdAt.toISOString(),
         updatedAt: depreciation.updatedAt.toISOString(),
@@ -538,8 +538,8 @@ export async function PUT(req: Request) {
       year: depreciation.year,
       depreciation: depreciation.depreciation,
       currentValue: depreciation.currentValue,
-      depreciationPercentage: depreciation.asset.purchaseValue > 0 
-        ? ((depreciation.asset.purchaseValue - depreciation.currentValue) / depreciation.asset.purchaseValue) * 100 
+      depreciationPercentage: depreciation.asset.purchaseValue > 0
+        ? ((depreciation.asset.purchaseValue - depreciation.currentValue) / depreciation.asset.purchaseValue) * 100
         : 0,
       createdAt: depreciation.createdAt.toISOString(),
       updatedAt: depreciation.updatedAt.toISOString(),
