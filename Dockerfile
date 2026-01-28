@@ -1,6 +1,6 @@
 # Multi-stage build for better optimization
-FROM node:18-slim AS base
-RUN apt-get update -y && apt-get install -y openssl ca-certificates
+FROM node:18 AS base
+# Full node image includes openssl and ca-certificates by default
 
 # Install dependencies only when needed
 FROM base AS deps
