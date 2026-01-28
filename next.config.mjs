@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Configure output
-  output: 'standalone',
+  // output: 'standalone',
 
   // Configure images
   images: {

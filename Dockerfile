@@ -22,6 +22,7 @@ COPY . .
 RUN npm run build
 
 # Production image, copy all the files and run next
+# Production image, copy all the files and run next
 FROM base AS runner
 WORKDIR /app
 
@@ -38,13 +39,16 @@ ENV HOME=/app/home/nextjs
 # Copy the public folder
 COPY --from=builder /app/public ./public
 
-# Set the correct permission for prerender cache
+# Set the correct permission for next build
 RUN mkdir .next
 RUN chown nextjs:nodejs .next
 
-# Automatically leverage output traces to reduce image size
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+# Copy necessary files for standard deployment
+# We need full node_modules because custom server uses express/socket.io which might not be in standalone
+COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
+COPY --from=deps --chown=nextjs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
+COPY --from=builder --chown=nextjs:nodejs /app/server.js ./server.js
 
 USER nextjs
 
