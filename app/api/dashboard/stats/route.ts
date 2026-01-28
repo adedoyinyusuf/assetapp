@@ -3,7 +3,6 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
-import { AssetStatus } from '@prisma/client';
 
 export async function GET(req: Request) {
     try {
@@ -37,14 +36,14 @@ export async function GET(req: Request) {
             prisma.asset.count({
                 where: {
                     status: {
-                        notIn: [AssetStatus.DISPOSED, AssetStatus.MISSING]
+                        notIn: ['DISPOSED', 'MISSING']
                     }
                 }
             }),
 
             // 4. Maintenance Needed
             prisma.asset.count({
-                where: { status: AssetStatus.MAINTENANCE }
+                where: { status: 'MAINTENANCE' }
             }),
 
             // 5. Recent Assets (top 5)
