@@ -1,5 +1,5 @@
 # Multi-stage build for better optimization
-FROM node:18 AS base
+FROM node:20 AS base
 # Full node image includes openssl and ca-certificates by default
 
 # Install dependencies only when needed
