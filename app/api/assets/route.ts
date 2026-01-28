@@ -142,7 +142,7 @@ export async function GET(req: Request) {
     ]);
 
     // Format assets with calculated current values
-    const formattedAssets = assets.map((asset) => {
+    const formattedAssets = assets.map((asset: any) => {
       const currentValue = calculateCurrentValue(asset);
 
       return {
