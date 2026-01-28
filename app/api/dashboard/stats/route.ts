@@ -113,7 +113,7 @@ export async function GET(req: Request) {
                 name: category?.name || 'Unknown',
                 value: item._count.id
             };
-        }).sort((a, b) => b.value - a.value); // Sort by count desc
+        }).sort((a: any, b: any) => b.value - a.value); // Sort by count desc
 
         const locationData = assetsByState.map((item: any) => {
             const state = states.find((s: any) => s.id === item.stateId);
@@ -121,7 +121,7 @@ export async function GET(req: Request) {
                 name: state?.name || 'Unknown',
                 value: item._count.id
             };
-        }).sort((a, b) => b.value - a.value);
+        }).sort((a: any, b: any) => b.value - a.value);
 
 
         // Format recent assets
