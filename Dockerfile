@@ -1,10 +1,6 @@
 # Multi-stage build for better optimization
-FROM node:18-alpine AS base
-RUN apk add --no-cache libc6-compat openssl && \
-    ln -s /usr/lib/libssl.so.3 /usr/lib/libssl.so.1.1 && \
-    ln -s /usr/lib/libcrypto.so.3 /usr/lib/libcrypto.so.1.1 && \
-    ln -s /usr/lib/libssl.so.3 /lib/libssl.so.1.1 && \
-    ln -s /usr/lib/libcrypto.so.3 /lib/libcrypto.so.1.1
+FROM node:18-slim AS base
+RUN apt-get update -y && apt-get install -y openssl ca-certificates
 
 # Install dependencies only when needed
 FROM base AS deps
