@@ -22,8 +22,7 @@ const nextConfig = {
     ignoreDuringBuilds: false, // Enable ESLint in builds
   },
 
-  // Configure directory for Next.js build output
-  distDir: 'next-build',
+
 
   // Enable file system routing
   useFileSystemPublicRoutes: true,
