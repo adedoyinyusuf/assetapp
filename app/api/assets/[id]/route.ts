@@ -157,7 +157,7 @@ export async function GET(
       category: asset.category,
       state: asset.state,
       lga: asset.lga,
-      movements: asset.movements.map(movement => ({
+      movements: asset.movements.map((movement: any) => ({
         id: movement.id,
         movementDate: movement.movementDate.toISOString(),
         reason: movement.reason,
@@ -171,7 +171,7 @@ export async function GET(
           lga: movement.toLga,
         },
       })),
-      depreciation: asset.depreciation.map(dep => ({
+      depreciation: asset.depreciation.map((dep: any) => ({
         id: dep.id,
         year: dep.year,
         depreciation: dep.depreciation,
