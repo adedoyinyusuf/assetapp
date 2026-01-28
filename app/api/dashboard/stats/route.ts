@@ -125,7 +125,7 @@ export async function GET(req: Request) {
 
 
         // Format recent assets
-        const formattedRecentAssets = recentAssets.map(asset => ({
+        const formattedRecentAssets = recentAssets.map((asset: any) => ({
             id: asset.id.toString(),
             name: asset.name,
             status: asset.status.toLowerCase(),
@@ -136,7 +136,7 @@ export async function GET(req: Request) {
         }));
 
         // Format recent activities
-        const formattedActivities = recentActivities.map(log => {
+        const formattedActivities = recentActivities.map((log: any) => {
             const userName = log.user
                 ? `${log.user.firstName || ''} ${log.user.lastName || ''}`.trim() || log.user.email
                 : 'UnknownUser';
