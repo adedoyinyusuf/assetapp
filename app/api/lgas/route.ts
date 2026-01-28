@@ -78,7 +78,7 @@ export async function GET(req: Request) {
     ]);
 
     // Format LGAs
-    const formattedLGAs = lgas.map((lga) => ({
+    const formattedLGAs = lgas.map((lga: any) => ({
       id: lga.id,
       name: lga.name,
       stateId: lga.stateId,
@@ -235,7 +235,7 @@ export async function PUT(req: Request) {
     const { id, ...data } = validation.data;
 
     // Check if LGA exists
-    const existingLGA = await prisma.lGA.findUnique({ 
+    const existingLGA = await prisma.lGA.findUnique({
       where: { id },
       include: { state: true }
     });
