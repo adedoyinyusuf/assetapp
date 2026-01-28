@@ -49,6 +49,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
 COPY --from=deps --chown=nextjs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
 COPY --from=builder --chown=nextjs:nodejs /app/server.js ./server.js
+COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma/
 
 USER nextjs
 
