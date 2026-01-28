@@ -101,7 +101,7 @@ export async function POST(req: Request) {
 
     // Create a mapping from state name to database ID
     const stateNameToDbId: { [key: string]: number } = {};
-    allStates.forEach(state => {
+    allStates.forEach((state: any) => {
       stateNameToDbId[state.name] = state.id;
     });
 
