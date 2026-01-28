@@ -42,14 +42,14 @@ export async function GET() {
     });
 
     // Format the response
-    const formattedRoles = roles.map(role => ({
+    const formattedRoles = roles.map((role: any) => ({
       id: role.id,
       name: role.name,
       description: role.description,
       createdAt: role.createdAt,
       updatedAt: role.updatedAt,
       userCount: role._count.users,
-      permissions: role.permissions.map(p => ({
+      permissions: role.permissions.map((p: any) => ({
         id: p.permission.id,
         name: p.permission.name,
         description: p.permission.description,
@@ -83,7 +83,7 @@ export async function POST(req: Request) {
     // Validate request body
     const body = await req.json();
     const validation = roleSchema.safeParse(body);
-    
+
     if (!validation.success) {
       return NextResponse.json(
         { error: 'Validation failed', details: validation.error.issues },
@@ -127,7 +127,7 @@ export async function POST(req: Request) {
         }
 
         await tx.rolePermission.createMany({
-          data: permissions.map(permissionId => ({
+          data: permissions.map((permissionId: number) => ({
             roleId: role.id,
             permissionId,
           })),
@@ -162,7 +162,7 @@ export async function POST(req: Request) {
         id: result?.id,
         name: result?.name,
         description: result?.description,
-        permissions: result?.permissions.map(p => ({
+        permissions: result?.permissions.map((p: any) => ({
           id: p.permission.id,
           name: p.permission.name,
           resource: p.permission.resource,
@@ -198,7 +198,7 @@ export async function PUT(req: Request) {
     const validation = roleSchema.extend({
       id: z.number().int().positive(),
     }).safeParse(body);
-    
+
     if (!validation.success) {
       return NextResponse.json(
         { error: 'Validation failed', details: validation.error.issues },
@@ -264,7 +264,7 @@ export async function PUT(req: Request) {
         }
 
         await tx.rolePermission.createMany({
-          data: permissions.map(permissionId => ({
+          data: permissions.map((permissionId: number) => ({
             roleId: role.id,
             permissionId,
           })),
@@ -301,7 +301,7 @@ export async function PUT(req: Request) {
         id: result?.id,
         name: result?.name,
         description: result?.description,
-        permissions: result?.permissions.map(p => ({
+        permissions: result?.permissions.map((p: any) => ({
           id: p.permission.id,
           name: p.permission.name,
           resource: p.permission.resource,
