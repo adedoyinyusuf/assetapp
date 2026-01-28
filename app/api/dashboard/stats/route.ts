@@ -92,8 +92,8 @@ export async function GET(req: Request) {
         // We need to fetch category names and state names
 
         // Get unique category IDs and State IDs from the grouped results
-        const categoryIds = assetsByCategory.map(item => item.categoryId);
-        const stateIds = assetsByState.map(item => item.stateId);
+        const categoryIds = assetsByCategory.map((item: any) => item.categoryId);
+        const stateIds = assetsByState.map((item: any) => item.stateId);
 
         const [categories, states] = await Promise.all([
             prisma.category.findMany({
@@ -107,16 +107,16 @@ export async function GET(req: Request) {
         ]);
 
         // Map names back to the grouped data
-        const categoryData = assetsByCategory.map(item => {
-            const category = categories.find(c => c.id === item.categoryId);
+        const categoryData = assetsByCategory.map((item: any) => {
+            const category = categories.find((c: any) => c.id === item.categoryId);
             return {
                 name: category?.name || 'Unknown',
                 value: item._count.id
             };
         }).sort((a, b) => b.value - a.value); // Sort by count desc
 
-        const locationData = assetsByState.map(item => {
-            const state = states.find(s => s.id === item.stateId);
+        const locationData = assetsByState.map((item: any) => {
+            const state = states.find((s: any) => s.id === item.stateId);
             return {
                 name: state?.name || 'Unknown',
                 value: item._count.id
