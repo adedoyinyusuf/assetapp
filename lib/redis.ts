@@ -45,9 +45,15 @@ redis.on('end', () => {
   console.log('Redis Client Disconnected');
 });
 
-// Initialize connection if not already connected
+// Initialize connection if not already connected and we are in a runtime environment
 const initRedis = async () => {
   if (!redis.isOpen) {
+    // Skip connection attempts during build if REDIS_URL is not provided
+    if (!process.env.REDIS_URL && process.env.NODE_ENV === 'production') {
+      console.warn('Skipping Redis connection: REDIS_URL not set');
+      return;
+    }
+
     try {
       await redis.connect();
     } catch (error) {
