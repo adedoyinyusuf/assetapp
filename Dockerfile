@@ -30,6 +30,10 @@ ENV NODE_ENV production
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
+# Create a writable home directory for the user
+RUN mkdir -p /app/home/nextjs && chown nextjs:nodejs /app/home/nextjs
+ENV HOME=/app/home/nextjs
+
 # Copy the public folder
 COPY --from=builder /app/public ./public
 
