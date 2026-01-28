@@ -10,6 +10,7 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 COPY prisma ./prisma/
 RUN npm ci --legacy-peer-deps
+RUN npm install sharp
 
 # Rebuild the source code only when needed
 FROM base AS builder
