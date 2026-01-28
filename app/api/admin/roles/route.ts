@@ -106,7 +106,7 @@ export async function POST(req: Request) {
     }
 
     // Start transaction
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: any) => {
       // Create the role
       const role = await tx.userRole.create({
         data: {
@@ -236,7 +236,7 @@ export async function PUT(req: Request) {
     }
 
     // Start transaction
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: any) => {
       // Update the role
       const role = await tx.userRole.update({
         where: { id },
