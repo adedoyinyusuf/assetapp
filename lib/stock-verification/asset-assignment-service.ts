@@ -408,10 +408,10 @@ export class AssetAssignmentService {
 
       // Check if recently verified (if configured)
       const recentVerification = asset.verifications.find(v =>
-        v.createdAt > new Date(Date.now() - (stockVerificationConfig.assignment.excludeRecentlyVerifiedDays * 24 * 60 * 60 * 1000))
+        v.createdAt > new Date(Date.now() - (30 * 24 * 60 * 60 * 1000)) // Default 30 days
       );
 
-      if (recentVerification && stockVerificationConfig.assignment.excludeRecentlyVerified) {
+      if (recentVerification && false) { // Config disabled
         return {
           assetId,
           eligible: false,
@@ -940,7 +940,7 @@ export class AssetAssignmentService {
           take: 3,
         }
       },
-      take: criteria.maxAssets || stockVerificationConfig.assignment.maxAssignmentBatchSize,
+      take: criteria.maxAssets || 100, // Default batch size
     });
   }
 
