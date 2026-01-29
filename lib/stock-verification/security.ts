@@ -312,13 +312,15 @@ export class InputValidator {
   // Validate file uploads
   static validateFileUpload(file: File): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
-    const config = stockVerificationConfig.upload;
+    // const config = stockVerificationConfig.upload; (Disabled)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
 
-    if (file.size > config.maxFileSize) {
-      errors.push(`File size must be less than ${config.maxFileSize} bytes`);
+    if (file.size > maxSize) {
+      errors.push(`File size must be less than ${maxSize} bytes`);
     }
 
-    if (!config.allowedMimeTypes.includes(file.type)) {
+    if (!allowedTypes.includes(file.type)) {
       errors.push('File type not allowed');
     }
 
