@@ -77,20 +77,20 @@ interface Modal {
 export default function LocationsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  
+
   // States
   const [states, setStates] = useState<State[]>([]);
   const [lgas, setLGAs] = useState<LGA[]>([]);
   const [filteredStates, setFilteredStates] = useState<State[]>([]);
   const [filteredLGAs, setFilteredLGAs] = useState<LGA[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   // Filters and search
   const [stateSearch, setStateSearch] = useState('');
   const [lgaSearch, setLGASearch] = useState('');
   const [selectedStateForLGA, setSelectedStateForLGA] = useState<string>('');
   const [activeTab, setActiveTab] = useState('states');
-  
+
   // Modal state
   const [modal, setModal] = useState<Modal>({ isOpen: false, type: 'create', entity: 'state' });
   const [stateForm, setStateForm] = useState<StateFormData>({ name: '', code: '' });
@@ -112,7 +112,7 @@ export default function LocationsPage() {
       const data = await response.json();
 
       if (response.ok) {
-        setStates(data.data || []);
+        setStates(Array.isArray(data) ? data : data.data || []);
       } else {
         toast.error('Failed to fetch states', {
           description: data.error || 'Failed to fetch states'
@@ -131,7 +131,7 @@ export default function LocationsPage() {
       const data = await response.json();
 
       if (response.ok) {
-        setLGAs(data.data || []);
+        setLGAs(Array.isArray(data) ? data : data.data || []);
       } else {
         toast.error('Failed to fetch LGAs', {
           description: data.error || 'Failed to fetch LGAs'
@@ -197,7 +197,7 @@ export default function LocationsPage() {
     try {
       const url = modal.type === 'edit' ? '/api/states' : '/api/states';
       const method = modal.type === 'edit' ? 'PUT' : 'POST';
-      const body = modal.type === 'edit' 
+      const body = modal.type === 'edit'
         ? { ...stateForm, id: modal.data.id }
         : stateForm;
 
@@ -238,7 +238,7 @@ export default function LocationsPage() {
     try {
       const url = modal.type === 'edit' ? '/api/lgas' : '/api/lgas';
       const method = modal.type === 'edit' ? 'PUT' : 'POST';
-      const body = modal.type === 'edit' 
+      const body = modal.type === 'edit'
         ? { ...lgaForm, id: modal.data.id }
         : lgaForm;
 
@@ -274,7 +274,7 @@ export default function LocationsPage() {
 
     setIsSubmitting(true);
     try {
-      const url = modal.entity === 'state' 
+      const url = modal.entity === 'state'
         ? `/api/states?id=${modal.data.id}`
         : `/api/lgas?id=${modal.data.id}`;
 
@@ -283,7 +283,7 @@ export default function LocationsPage() {
       if (response.ok) {
         toast.success(`${modal.entity.toUpperCase()} deleted successfully`);
         setModal({ isOpen: false, type: 'create', entity: 'state' });
-        
+
         if (modal.entity === 'state') {
           fetchStates();
         } else {
@@ -306,7 +306,7 @@ export default function LocationsPage() {
   // Open modal for editing
   const openEditModal = (entity: 'state' | 'lga', data: any) => {
     setModal({ isOpen: true, type: 'edit', entity, data });
-    
+
     if (entity === 'state') {
       setStateForm({ name: data.name, code: data.code });
     } else {
@@ -432,7 +432,7 @@ export default function LocationsPage() {
               <div>
                 <p className="text-sm text-gray-600">Avg. LGAs per State</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {states.length > 0 
+                  {states.length > 0
                     ? Math.round(lgas.length / states.length)
                     : 0
                   }
@@ -565,7 +565,7 @@ export default function LocationsPage() {
                     <SelectValue placeholder="Filter by state" />
                   </SelectTrigger>
                   <SelectContent>
-                  <SelectItem value="all">All states</SelectItem>
+                    <SelectItem value="all">All states</SelectItem>
                     {states.map(state => (
                       <SelectItem key={state.id} value={state.id.toString()}>
                         {state.name}
@@ -674,7 +674,7 @@ export default function LocationsPage() {
             >
               <div className="p-6 border-b border-gray-200">
                 <h2 className="text-xl font-semibold text-gray-900">
-                  {modal.type === 'delete' 
+                  {modal.type === 'delete'
                     ? `Delete ${modal.entity.toUpperCase()}`
                     : `${modal.type === 'edit' ? 'Edit' : 'Create'} ${modal.entity.toUpperCase()}`
                   }
@@ -777,10 +777,10 @@ export default function LocationsPage() {
                   Cancel
                 </Button>
                 <Button
-                  onClick={modal.type === 'delete' 
-                    ? handleDelete 
-                    : modal.entity === 'state' 
-                      ? handleStateSubmit 
+                  onClick={modal.type === 'delete'
+                    ? handleDelete
+                    : modal.entity === 'state'
+                      ? handleStateSubmit
                       : handleLGASubmit
                   }
                   disabled={isSubmitting}
@@ -794,10 +794,10 @@ export default function LocationsPage() {
                   ) : (
                     <Save className="h-4 w-4 mr-2" />
                   )}
-                  {modal.type === 'delete' 
-                    ? 'Delete' 
-                    : modal.type === 'edit' 
-                      ? 'Update' 
+                  {modal.type === 'delete'
+                    ? 'Delete'
+                    : modal.type === 'edit'
+                      ? 'Update'
                       : 'Create'
                   }
                 </Button>
