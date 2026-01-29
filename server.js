@@ -589,8 +589,26 @@ app.prepare().then(() => {
   // States routes
   server.get('/api/states', async (req, res) => {
     try {
-      const { rows } = await pool.query('SELECT * FROM states ORDER BY name');
-      res.json(rows);
+      const { rows } = await pool.query(`
+        SELECT 
+          s.*,
+          (SELECT COUNT(*)::int FROM lgas l WHERE l.state_id = s.id) as lga_count,
+          (SELECT COUNT(*)::int FROM assets a WHERE a.state_id = s.id) as asset_count
+        FROM states s 
+        ORDER BY s.name
+      `);
+
+      const states = rows.map(row => ({
+        id: row.id,
+        name: row.name,
+        code: row.code, // Assuming code exists in DB, otherwise might need null check
+        lgaCount: row.lga_count || 0,
+        assetCount: row.asset_count || 0,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      }));
+
+      res.json(states);
     } catch (error) {
       console.error('Error fetching states:', error);
       res.status(500).json({ error: 'Internal server error' });
