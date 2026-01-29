@@ -8,11 +8,29 @@ import prisma from '@/lib/prisma';
  * Simple Stock Verification API Test Endpoint
  * GET /api/stock-verification - Returns module status and basic info
  */
+
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
+  console.log('[API stock-verification] Request received');
   try {
+    // Timeout Promise
+    const timeout = (ms: number) => new Promise((_, reject) => setTimeout(() => reject(new Error('DB Timeout')), ms));
+
     // Test database connection with a simple count query
-    const campaignCount = await prisma.verificationCampaign.count();
-    const userCount = await prisma.user.count();
+    console.log('[API stock-verification] Checking DB connection...');
+    const dbCheckPromise = Promise.all([
+      prisma.verificationCampaign.count(),
+      prisma.user.count()
+    ]);
+
+    // Race DB check against 5s timeout
+    const [campaignCount, userCount] = await Promise.race([
+      dbCheckPromise,
+      timeout(5000)
+    ]) as [number, number];
+
+    console.log('[API stock-verification] DB Connected. Campaigns:', campaignCount, 'Users:', userCount);
 
     // Get current user session for context
     const session = await getServerSession(authOptions);
@@ -20,10 +38,13 @@ export async function GET(request: NextRequest) {
 
     if (session?.user?.email) {
       try {
-        const user = await prisma.user.findUnique({
+        console.log('[API stock-verification] Fetching user context for:', session.user.email);
+        const userPromise = prisma.user.findUnique({
           where: { email: session.user.email },
           include: { state: true, lga: true, role: true } as any
         });
+
+        const user = await Promise.race([userPromise, timeout(5000)]) as any;
 
         if (user) {
           const userAny = user as any;
@@ -38,7 +59,7 @@ export async function GET(request: NextRequest) {
           };
         }
       } catch (err) {
-        console.warn('Failed to fetch user context details:', err);
+        console.warn('[API stock-verification] Failed to fetch user context details:', err);
         // Continue without userContext if fetch fails (e.g. schema mismatch)
       }
     }
@@ -56,10 +77,10 @@ export async function GET(request: NextRequest) {
         totalUsers: userCount,
       },
       features: {
-        photoUpload: stockVerificationConfig.features.photoUpload,
-        autoAssignment: stockVerificationConfig.features.autoAssignment,
-        caching: stockVerificationConfig.performance.caching.enabled,
-        notifications: stockVerificationConfig.notifications.enabled,
+        photoUpload: stockVerificationConfig?.features?.photoUpload ?? false,
+        autoAssignment: stockVerificationConfig?.features?.autoAssignment ?? false,
+        caching: stockVerificationConfig?.performance?.caching?.enabled ?? false,
+        notifications: stockVerificationConfig?.notifications?.enabled ?? false,
       },
       endpoints: {
         health: '/api/stock-verification/health',
@@ -77,8 +98,8 @@ export async function GET(request: NextRequest) {
     };
 
     return NextResponse.json(response);
-  } catch (error) {
-    console.error('Stock Verification API Error:', error);
+  } catch (error: any) {
+    console.error('[API stock-verification] Fatal Error:', error);
 
     return NextResponse.json(
       {
