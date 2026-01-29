@@ -2,8 +2,8 @@ import { prisma } from '@/lib/prisma';
 // import { stockVerificationConfig } from '@/lib/config/stock-verification'; // Temporarily disabled
 import { stockVerificationLogger } from './logging';
 import { stockVerificationCache } from './performance';
-import { 
-  AssetVerificationStatus, 
+import {
+  AssetVerificationStatus,
   VerificationCampaignStatus,
   DiscrepancySeverity,
   AssignmentStatus
@@ -256,7 +256,7 @@ export class CampaignAnalyticsService {
       const cacheKey = `analytics:${campaignId}:${dateRange ? `${dateRange.startDate.toISOString()}-${dateRange.endDate.toISOString()}` : 'all'}`;
       if (false) {
         const cached = await stockVerificationCache.get<CampaignAnalytics>('analytics', cacheKey);
-        if (cached) {
+        if (cached && cached !== null) {
           return cached;
         }
       }
@@ -474,7 +474,7 @@ export class CampaignAnalyticsService {
 
     const targetCount = campaign?.targetAssetCount || totalAssets;
     const assignedAssets = totalAssets;
-    
+
     return {
       totalAssets: targetCount,
       assignedAssets,
@@ -592,7 +592,7 @@ export class CampaignAnalyticsService {
     });
 
     const currentVelocity = Math.round(last7Days / 7);
-    
+
     // Get overall average
     const totalVerifications = await prisma.assetVerification.count({
       where: {
@@ -650,7 +650,7 @@ export class CampaignAnalyticsService {
     for (let day = 0; day <= totalDays; day++) {
       const date = new Date(campaign.startDate.getTime() + day * 24 * 60 * 60 * 1000);
       const dateStr = date.toISOString().split('T')[0];
-      
+
       const dayProgress = dailyProgress.find(p => p.date === dateStr);
       if (dayProgress) {
         remaining -= dayProgress.verified;
@@ -768,7 +768,7 @@ export class CampaignAnalyticsService {
       }),
     ]);
 
-    const discrepancyRate = totalVerifications > 0 
+    const discrepancyRate = totalVerifications > 0
       ? Math.round((discrepancies.length / totalVerifications) * 100)
       : 0;
     const accuracyRate = 100 - discrepancyRate;
@@ -889,7 +889,7 @@ export class CampaignAnalyticsService {
       totalAssets: stat.total_assets,
       verifiedAssets: stat.verified_assets,
       pendingAssets: stat.pending_assets,
-      completionRate: stat.total_assets > 0 
+      completionRate: stat.total_assets > 0
         ? Math.round((stat.verified_assets / stat.total_assets) * 100)
         : 0,
       // lgaBreakdown would be calculated separately if needed
@@ -923,7 +923,7 @@ export class CampaignAnalyticsService {
       totalAssets: stat.total_assets,
       verifiedAssets: stat.verified_assets,
       averageValue: Math.round(stat.average_value || 0),
-      completionRate: stat.total_assets > 0 
+      completionRate: stat.total_assets > 0
         ? Math.round((stat.verified_assets / stat.total_assets) * 100)
         : 0,
     }));
@@ -935,7 +935,7 @@ export class CampaignAnalyticsService {
   ): Promise<TrendDataPoint[]> {
     // Get daily verification trend
     const dailyStats = await this.getDailyProgress(campaignId, dateRange);
-    
+
     return dailyStats.map(stat => ({
       date: stat.date,
       value: stat.cumulative,
@@ -996,7 +996,7 @@ export class CampaignAnalyticsService {
     const basicMetrics = await this.getBasicMetrics(campaignId);
 
     const remaining = basicMetrics.totalAssets - basicMetrics.verifiedAssets;
-    const daysToComplete = velocity.currentVelocity > 0 
+    const daysToComplete = velocity.currentVelocity > 0
       ? Math.ceil(remaining / velocity.currentVelocity)
       : Infinity;
 
@@ -1004,7 +1004,7 @@ export class CampaignAnalyticsService {
 
     // Calculate confidence intervals (simplified)
     const confidenceRange = Math.ceil(daysToComplete * 0.2); // ±20%
-    
+
     return {
       estimatedCompletionDate,
       confidenceInterval: {
@@ -1046,7 +1046,7 @@ export class CampaignAnalyticsService {
 
   private async getActiveUsersCount(campaignId: number): Promise<number> {
     const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    
+
     return await prisma.assetVerification.findMany({
       where: {
         campaignId,
@@ -1088,7 +1088,7 @@ export class CampaignAnalyticsService {
       `Completion Percentage,${basicMetrics.completionPercentage}%`,
       // Add more metrics...
     ].join('\n');
-    
+
     return csv;
   }
 
