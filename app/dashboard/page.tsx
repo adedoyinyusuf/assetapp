@@ -32,6 +32,7 @@ import { FieldOpsWidget } from '@/components/dashboard/FieldOpsWidget';
 import { TrendCharts } from '@/components/dashboard/TrendCharts';
 import { AnalyticsData } from '@/lib/analytics'; // Ensure this type is exported from lib/analytics
 
+
 // Dynamically import AssetMap to prevent SSR issues with Leaflet
 const AssetMap = dynamic(() => import('@/components/dashboard/AssetMap'), {
   ssr: false,
