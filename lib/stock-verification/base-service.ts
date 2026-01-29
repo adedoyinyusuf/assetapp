@@ -105,13 +105,19 @@ export abstract class BaseService {
 
       if (!user || !user.isActive) return false;
 
+      // Super Admin bypass - they have all permissions
+      const roleName = user.role?.name?.toUpperCase();
+      if (roleName && ['SUPER_ADMIN', 'SUPERADMIN'].includes(roleName)) {
+        return true;
+      }
+
       // Check if user has the required permission
-      const hasPermission = user.role.permissions.some(rp =>
+      const hasPermission = user.role?.permissions?.some(rp =>
         rp.permission.resource === resource &&
         rp.permission.action === action
       );
 
-      return hasPermission;
+      return hasPermission || false;
     } catch (error) {
       console.error('checkUserAccess Error:', error);
       return false;
