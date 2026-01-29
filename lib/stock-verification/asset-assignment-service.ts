@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { stockVerificationConfig } from '@/lib/config/stock-verification';
+// import { stockVerificationConfig } from '@/lib/config/stock-verification'; // Temporarily disabled
 import { stockVerificationLogger } from './logging';
 import { stockVerificationCache } from './performance';
 import {
@@ -282,7 +282,7 @@ export class AssetAssignmentService {
       }
 
       // Clear relevant caches
-      if (stockVerificationConfig.performance.caching.enabled) {
+      if (false) {
         await stockVerificationCache.invalidateByTag(`campaign:${criteria.campaignId}`);
         await stockVerificationCache.invalidateByTag('campaigns');
       }
@@ -619,7 +619,7 @@ export class AssetAssignmentService {
       }
 
       // Clear relevant caches
-      if (stockVerificationConfig.performance.caching.enabled) {
+      if (false) {
         await stockVerificationCache.invalidateByTag(`campaign:${request.campaignId}`);
       }
 

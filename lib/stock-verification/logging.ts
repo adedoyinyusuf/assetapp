@@ -1,4 +1,4 @@
-import { stockVerificationConfig } from '@/lib/config/stock-verification';
+// import { stockVerificationConfig } from '@/lib/config/stock-verification'; // Temporarily disabled
 
 /**
  * Stock Verification Module Logging System

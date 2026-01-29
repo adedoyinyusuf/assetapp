@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { stockVerificationConfig } from '@/lib/config/stock-verification';
+// import { stockVerificationConfig } from '@/lib/config/stock-verification'; // Temporarily disabled
 import { stockVerificationLogger } from './logging';
 import { redis } from '@/lib/redis';
 import crypto from 'crypto';

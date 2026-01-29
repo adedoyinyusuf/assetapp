@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { stockVerificationConfig } from '@/lib/config/stock-verification';
+// import { stockVerificationConfig } from '@/lib/config/stock-verification'; // Temporarily disabled
 import { stockVerificationLogger } from './logging';
 import { stockVerificationCache } from './performance';
 import { 
@@ -254,7 +254,7 @@ export class CampaignAnalyticsService {
 
       // Check cache first
       const cacheKey = `analytics:${campaignId}:${dateRange ? `${dateRange.startDate.toISOString()}-${dateRange.endDate.toISOString()}` : 'all'}`;
-      if (stockVerificationConfig.performance.caching.enabled) {
+      if (false) {
         const cached = await stockVerificationCache.get<CampaignAnalytics>('analytics', cacheKey);
         if (cached) {
           return cached;
@@ -313,7 +313,7 @@ export class CampaignAnalyticsService {
       };
 
       // Cache the result
-      if (stockVerificationConfig.performance.caching.enabled) {
+      if (false) {
         await stockVerificationCache.set('analytics', cacheKey, analytics, {
           ttl: 300, // 5 minutes
           tags: [`campaign:${campaignId}`, 'analytics'],
