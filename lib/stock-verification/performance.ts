@@ -1,4 +1,4 @@
-// import { stockVerificationConfig } from '@/lib/config/stock-verification'; // Temporarily disabled
+
 import { stockVerificationLogger } from './logging';
 import { redis } from '@/lib/redis';
 import { prisma } from '@/lib/prisma';

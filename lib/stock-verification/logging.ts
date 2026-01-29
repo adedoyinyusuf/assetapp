@@ -1,4 +1,4 @@
-// import { stockVerificationConfig } from '@/lib/config/stock-verification'; // Temporarily disabled
+
 
 /**
  * Stock Verification Module Logging System
@@ -165,19 +165,19 @@ export class StockVerificationLogger {
 
     const color = levelColors[entry.level] || '';
     const levelName = levelNames[entry.level] || 'UNKNOWN';
-    
+
     const logOutput = `${color}[${entry.timestamp}] [${levelName}] [${entry.context.module}] ${entry.message}${resetColor}`;
-    
+
     console.log(logOutput);
-    
+
     if (entry.context && Object.keys(entry.context).length > 1) {
       console.log('  Context:', JSON.stringify(entry.context, null, 2));
     }
-    
+
     if (entry.error) {
       console.error('  Error:', entry.error);
     }
-    
+
     if (entry.performance) {
       console.log('  Performance:', entry.performance);
     }
@@ -187,13 +187,13 @@ export class StockVerificationLogger {
     try {
       const fs = require('fs').promises;
       const path = require('path');
-      
+
       const logsDir = path.join(process.cwd(), 'logs');
       await fs.mkdir(logsDir, { recursive: true });
-      
+
       const logFile = path.join(logsDir, 'stock-verification.log');
       const logLine = JSON.stringify(entry) + '\n';
-      
+
       await fs.appendFile(logFile, logLine);
     } catch (error) {
       console.error('Failed to write log to file:', error);
@@ -204,17 +204,17 @@ export class StockVerificationLogger {
     try {
       // Send to external logging service (e.g., Datadog, Sentry, etc.)
       // This is a placeholder for actual external logging integration
-      
+
       if (process.env.DATADOG_API_KEY) {
         // Send to Datadog
         await this.sendToDatadog(entry);
       }
-      
+
       if (process.env.SENTRY_DSN && entry.level >= LogLevel.ERROR) {
         // Send errors to Sentry
         await this.sendToSentry(entry);
       }
-      
+
     } catch (error) {
       console.error('Failed to write log to external service:', error);
     }
@@ -291,7 +291,7 @@ export class StockVerificationLogger {
       action: event,
       metadata: data,
     };
-    
+
     await this.info(`Business Event: ${event}`, enrichedContext);
   }
 
@@ -301,10 +301,10 @@ export class StockVerificationLogger {
     severity: 'low' | 'medium' | 'high' | 'critical',
     context?: LogContext
   ): Promise<void> {
-    const level = severity === 'critical' ? LogLevel.FATAL : 
-                  severity === 'high' ? LogLevel.ERROR :
-                  severity === 'medium' ? LogLevel.WARN : LogLevel.INFO;
-    
+    const level = severity === 'critical' ? LogLevel.FATAL :
+      severity === 'high' ? LogLevel.ERROR :
+        severity === 'medium' ? LogLevel.WARN : LogLevel.INFO;
+
     const enrichedContext = {
       ...context,
       action: 'security_event',
@@ -359,23 +359,23 @@ export function logPerformance(
     try {
       const result = await method.apply(this, args);
       const duration = Date.now() - startTime;
-      
+
       await logger.logPerformance(
         `Method ${propertyName} completed`,
         duration,
         context
       );
-      
+
       return result;
     } catch (error) {
       const duration = Date.now() - startTime;
-      
+
       await logger.error(
         `Method ${propertyName} failed`,
         error as Error,
         { ...context, performance: { duration } }
       );
-      
+
       throw error;
     }
   };

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-// import { stockVerificationConfig } from '@/lib/config/stock-verification'; // Temporarily disabled
+
 import { stockVerificationLogger } from './logging';
 import { redis } from '@/lib/redis';
 import crypto from 'crypto';
@@ -206,7 +206,7 @@ export async function applyRateLimit(
   context: SecurityContext,
   limitType: string = 'default'
 ): Promise<boolean> {
-  // if (stockVerificationConfig.security.rateLimiting.enabled === false) { 
+
   if (false) { // Rate limiting temporarily disabled
     return true;
   }
@@ -312,7 +312,7 @@ export class InputValidator {
   // Validate file uploads
   static validateFileUpload(file: File): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
-    // const config = stockVerificationConfig.upload; (Disabled)
+
     const maxSize = 5 * 1024 * 1024; // 5MB
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
 

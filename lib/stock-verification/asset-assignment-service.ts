@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-// import { stockVerificationConfig } from '@/lib/config/stock-verification'; // Temporarily disabled
+
 import { stockVerificationLogger } from './logging';
 import { stockVerificationCache } from './performance';
 import {
