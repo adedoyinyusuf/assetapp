@@ -56,6 +56,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma/
 COPY --from=builder --chown=nextjs:nodejs /app/start.sh ./start.sh
 RUN chmod +x ./start.sh
 
+# Ensure the entire app directory is owned by the user (fixes any missed permissions)
+RUN chown -R nextjs:nodejs /app
+
 USER nextjs
 
 EXPOSE 3000
