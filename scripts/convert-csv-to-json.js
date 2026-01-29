@@ -16,49 +16,64 @@ try {
         const line = lines[i].trim();
         if (!line) continue;
 
-        // Split by comma, handling potential quotes if any (simple split for now as data seems clean)
-        const [stateId, stateName, lgaId, lgaName] = line.split(',');
+        // Header: STATE_CODE,STATE_NAME,LGA_CODE,LGA_NAME
+        // Example: 1,SOKOTO,1,GUDU
+        const parts = line.split(',');
 
-        if (!stateId || !stateName || !lgaId || !lgaName) continue;
+        if (parts.length < 4) continue;
 
-        const sId = parseInt(stateId);
-        const lId = parseInt(lgaId);
+        const stateCodeRaw = parts[0].trim(); // "1"
+        const stateName = parts[1].trim();    // "SOKOTO"
+        const lgaCodeRaw = parts[2].trim();   // "1"
+        const lgaName = parts[3].trim();      // "GUDU"
 
-        if (!statesMap.has(sId)) {
-            statesMap.set(sId, {
-                id: sId,
-                name: stateName.trim()
+        if (!stateCodeRaw || !stateName || !lgaCodeRaw || !lgaName) continue;
+
+        const stateId = parseInt(stateCodeRaw);
+        const lgaId = parseInt(lgaCodeRaw); // This seems to be the LGA ID *within* the state or globally? 
+        // In the previous file, LGAs had IDs 1..774. 
+        // Let's verify if LGA_CODE is unique or per-state. 
+        // Actually, for the purpose of the primary key 'id' in our DB, we might want to generate a unique ID if the CSV reuses 1..N for each state, 
+        // OR if the CSV has unique IDs. 
+        // Looking at the file: 1,SOKOTO,1,GUDU ... 1,SOKOTO,19,DANGE SHUNI ... then 2,ZAMFARA,?,?
+        // We should probably generate a sequential ID for LGAs to ensure uniqueness if the CSV resets.
+        // But let's trust the CSV structure for now? No, better to be safe.
+        // However, the State ID seems to be the code.
+
+        // Organization Standard Code:
+        // If the user says "1" is the code, we use "1" (maybe padded to "01").
+        // Let's pad it to 2 digits to look like standard codes if it's a number.
+        const stateCode = stateCodeRaw.length === 1 ? `0${stateCodeRaw}` : stateCodeRaw;
+
+        if (!statesMap.has(stateId)) {
+            statesMap.set(stateId, {
+                id: stateId,
+                name: stateName,
+                code: stateCode
             });
         }
 
+        // For LGAs, we need a unique global ID for the database primary key.
+        // We can use the row index or check if LGA_CODE is globally unique.
+        // Let's generate a unique ID based on state and lga index if needed, 
+        // BUT the previous seeded data used sequential IDs 1..774.
+        // Let's just correct the State Code issue mostly.
+
         lgas.push({
-            id: lId,
-            name: lgaName.trim(),
-            stateId: sId
+            id: lgas.length + 1, // Auto-increment ID to be safe
+            name: lgaName,
+            stateId: stateId
         });
     }
 
-    const stateCodes = {
-        'ABIA': 'AB', 'ADAMAWA': 'AD', 'AKWA IBOM': 'AK', 'ANAMBRA': 'AN', 'BAUCHI': 'BA',
-        'BAYELSA': 'BY', 'BENUE': 'BE', 'BORNO': 'BO', 'CROSS RIVER': 'CR', 'DELTA': 'DE',
-        'EBONYI': 'EB', 'EDO': 'ED', 'EKITI': 'EK', 'ENUGU': 'EN', 'FCT': 'FC',
-        'GOMBE': 'GO', 'IMO': 'IM', 'JIGAWA': 'JI', 'KADUNA': 'KD', 'KANO': 'KN',
-        'KATSINA': 'KT', 'KEBBI': 'KE', 'KOGI': 'KG', 'KWARA': 'KW', 'LAGOS': 'LA',
-        'NASARAWA': 'NA', 'NIGER': 'NI', 'OGUN': 'OG', 'ONDO': 'ON', 'OSUN': 'OS',
-        'OYO': 'OY', 'PLATEAU': 'PL', 'RIVERS': 'RI', 'SOKOTO': 'SO', 'TARABA': 'TA',
-        'YOBE': 'YO', 'ZAMFARA': 'ZA'
-    };
-
     const data = {
-        states: Array.from(statesMap.values()).map(s => ({
-            ...s,
-            code: stateCodes[s.name.toUpperCase()] || s.name.substring(0, 2).toUpperCase()
-        })).sort((a, b) => a.id - b.id),
+        states: Array.from(statesMap.values()).sort((a, b) => a.id - b.id),
         lgas: lgas.sort((a, b) => a.id - b.id)
     };
 
     fs.writeFileSync(jsonPath, JSON.stringify(data, null, 2));
     console.log(`Successfully wrote ${data.states.length} states and ${data.lgas.length} LGAs to ${jsonPath}`);
+    console.log('Sample State:', data.states[0]);
 
 } catch (error) {
     console.error('Error processing CSV:', error);
