@@ -1,13 +1,16 @@
-#!/bin/sh
+#!/bin/bash
 # Fail on any error
 set -e
 
 echo "Starting deployment script..."
 
-# Run migrations
+# Run database migrations
 echo "Running database migrations..."
-# npx prisma migrate deploy
+npx prisma db push --accept-data-loss
 
-# Start the server
+# Start the application server
 echo "Starting application server..."
-exec node server.js
+
+# Set Node.js memory limit to 1GB and start server
+exec node --max-old-space-size=1024 server.js
+

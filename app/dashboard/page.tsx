@@ -130,9 +130,9 @@ export default function DashboardPage() {
       setIsLoading(true);
       setError(null);
 
-      // Fetch all assets to calculate summary data
+      // Fetch all assets to calculate summary data (reduced limit to prevent OOM)
       const [assetsRes, categoriesRes, analyticsRes] = await Promise.all([
-        fetch('/api/assets?limit=1000', { cache: 'no-store' }),
+        fetch('/api/assets?limit=100', { cache: 'no-store' }),
         fetch('/api/categories', { cache: 'no-store' }),
         fetch('/api/analytics', { cache: 'no-store' })
       ]);
