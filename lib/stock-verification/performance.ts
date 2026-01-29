@@ -36,7 +36,7 @@ export class StockVerificationCache {
 
   constructor() {
     this.enabled = false;
-    this.defaultTTL = stockVerificationConfig.performance.caching.ttl;
+    this.defaultTTL = 300; // Default 5 minutes
   }
 
   static getInstance(): StockVerificationCache {
@@ -70,13 +70,13 @@ export class StockVerificationCache {
     try {
       const key = this.generateKey(namespace, identifier);
       const cached = await redis.get(key);
-      
+
       if (!cached) {
         return null;
       }
 
       const entry: CacheEntry<T> = JSON.parse(cached);
-      
+
       // Check if entry has expired
       if (Date.now() > entry.timestamp + (entry.ttl * 1000)) {
         await this.delete(namespace, identifier);
@@ -85,7 +85,7 @@ export class StockVerificationCache {
 
       // Decompress if needed
       const data: T = entry.compressed ? this.decompressData<T>(entry.data as string) : (entry.data as T);
-      
+
       await stockVerificationLogger.debug('Cache hit', {
         namespace,
         identifier,
@@ -182,19 +182,19 @@ export class StockVerificationCache {
     try {
       const tagKey = `${this.keyPrefix}tag:${tag}`;
       const keys = await redis.sMembers(tagKey);
-      
+
       if (keys.length === 0) {
         return 0;
       }
 
       const deletePromises = keys.map(key => redis.del(key));
       const results = await Promise.all(deletePromises);
-      
+
       // Clean up the tag set
       await redis.del(tagKey);
-      
+
       const deletedCount = results.reduce((sum, result) => sum + result, 0);
-      
+
       await stockVerificationLogger.debug('Cache invalidated by tag', {
         tag,
         keysCount: keys.length,
@@ -218,13 +218,13 @@ export class StockVerificationCache {
     try {
       const pattern = namespace ? `${this.keyPrefix}${namespace}:*` : `${this.keyPrefix}*`;
       const keys = await redis.keys(pattern);
-      
+
       if (keys.length === 0) {
         return true;
       }
 
       await redis.del(keys);
-      
+
       await stockVerificationLogger.info('Cache cleared', {
         namespace,
         keysCount: keys.length,
@@ -494,12 +494,12 @@ export class PerformanceMonitor {
   static recordMetric(name: string, value: number): void {
     const existing = this.metrics.get(name) || [];
     existing.push(value);
-    
+
     // Keep only last 100 measurements
     if (existing.length > 100) {
       existing.shift();
     }
-    
+
     this.metrics.set(name, existing);
   }
 
@@ -552,13 +552,13 @@ export function withCache<T>(
   keyGenerator: (...args: any[]) => string,
   options: CacheOptions = {}
 ) {
-  return function(target: any, propertyName: string, descriptor: PropertyDescriptor) {
+  return function (target: any, propertyName: string, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value;
     const cache = StockVerificationCache.getInstance();
 
-    descriptor.value = async function(...args: any[]): Promise<T> {
+    descriptor.value = async function (...args: any[]): Promise<T> {
       const cacheKey = keyGenerator(...args);
-      
+
       // Try to get from cache first
       const cached = await cache.get<T>(namespace, cacheKey);
       if (cached !== null) {
@@ -567,10 +567,10 @@ export function withCache<T>(
 
       // Execute original method
       const result = await originalMethod.apply(this, args);
-      
+
       // Store in cache
       await cache.set(namespace, cacheKey, result, options);
-      
+
       return result;
     };
 
@@ -579,16 +579,16 @@ export function withCache<T>(
 }
 
 export function withPerformanceMonitoring(operationName: string) {
-  return function(target: any, propertyName: string, descriptor: PropertyDescriptor) {
+  return function (target: any, propertyName: string, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value;
 
-    descriptor.value = async function(...args: any[]) {
+    descriptor.value = async function (...args: any[]) {
       const endTiming = PerformanceMonitor.startTiming(`${operationName}_${propertyName}`);
-      
+
       try {
         const result = await originalMethod.apply(this, args);
         const duration = endTiming();
-        
+
         // Log slow operations
         if (duration > 1000) {
           await stockVerificationLogger.warn(
@@ -599,7 +599,7 @@ export function withPerformanceMonitoring(operationName: string) {
             }
           );
         }
-        
+
         return result;
       } catch (error) {
         endTiming();
@@ -617,7 +617,7 @@ export function withPerformanceMonitoring(operationName: string) {
 export async function optimizeDatabaseConnections(): Promise<void> {
   // Configure Prisma connection pool
   const poolSize = stockVerificationConfig.performance.database.connectionPoolSize;
-  
+
   await stockVerificationLogger.info('Optimizing database connections', {
     poolSize,
     queryTimeout: stockVerificationConfig.performance.database.queryTimeout,
@@ -655,7 +655,7 @@ export class MemoryManager {
   static async monitorMemory(): Promise<void> {
     const usage = this.getMemoryUsage();
     const formatted = this.formatMemoryUsage(usage);
-    
+
     // Log memory usage if it's high
     const heapUsedPercent = (usage.heapUsed / usage.heapTotal) * 100;
     if (heapUsedPercent > 80) {
