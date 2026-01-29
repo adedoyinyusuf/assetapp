@@ -56,6 +56,16 @@ COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma/
 COPY --from=builder --chown=nextjs:nodejs /app/start.sh ./start.sh
 RUN chmod +x ./start.sh
 
+# Copy remaining source folders required for runtime import resolution
+COPY --from=builder --chown=nextjs:nodejs /app/components ./components
+COPY --from=builder --chown=nextjs:nodejs /app/lib ./lib
+COPY --from=builder --chown=nextjs:nodejs /app/styles ./styles
+COPY --from=builder --chown=nextjs:nodejs /app/types ./types
+# Optional folders if they exist (ignoring errors if not, but Docker COPY fails if missing, so checking existence first is safer or just copy indiscriminately if known)
+# Based on list_dir, these exist:
+COPY --from=builder --chown=nextjs:nodejs /app/hooks ./hooks
+COPY --from=builder --chown=nextjs:nodejs /app/utils ./utils
+
 # Ensure the entire app directory is owned by the user (fixes any missed permissions)
 RUN chown -R nextjs:nodejs /app
 
