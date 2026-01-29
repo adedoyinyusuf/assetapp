@@ -616,11 +616,11 @@ export function withPerformanceMonitoring(operationName: string) {
  */
 export async function optimizeDatabaseConnections(): Promise<void> {
   // Configure Prisma connection pool
-  const poolSize = stockVerificationConfig.performance.database.connectionPoolSize;
+  const poolSize = 10; // Default pool size
 
   await stockVerificationLogger.info('Optimizing database connections', {
     poolSize,
-    queryTimeout: stockVerificationConfig.performance.database.queryTimeout,
+    queryTimeout: 30000, // Default 30 seconds
   });
 
   // You could add more database optimization here
