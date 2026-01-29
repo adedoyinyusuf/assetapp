@@ -104,10 +104,6 @@ export default withAuth(
     const { pathname } = req.nextUrl;
     const { token } = req.nextauth;
 
-    // Set x-invoke-path header for layout reference
-    const requestHeaders = new Headers(req.headers);
-    requestHeaders.set('x-invoke-path', pathname);
-
     // Allow access to root path, auth routes, and public pages without authentication
     if (
       pathname === '/' ||
@@ -133,9 +129,7 @@ export default withAuth(
 
     // Super Admin has access to everything
     if (userRole === UserRole.SUPER_ADMIN) {
-      return NextResponse.next({
-        headers: requestHeaders,
-      });
+      return NextResponse.next();
     }
 
     // Get allowed routes for the user's role
@@ -148,9 +142,7 @@ export default withAuth(
       return NextResponse.rewrite(new URL('/unauthorized', req.url));
     }
 
-    return NextResponse.next({
-      headers: requestHeaders,
-    });
+    return NextResponse.next();
   },
   {
     callbacks: {
