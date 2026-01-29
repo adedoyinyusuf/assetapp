@@ -69,32 +69,6 @@ export const viewport: Viewport = {
   colorScheme: 'light dark',
 };
 
-function AuthWrapper({ children }: { children: ReactNode }) {
-  const headersList = headers();
-  const pathname = headersList.get('x-invoke-path') || '';
-  const isAuthPage = pathname.startsWith('/auth') || pathname.startsWith('/api/auth');
-
-  if (isAuthPage) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        {children}
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
-      <main className="flex-1 py-6 md:py-8">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          {children}
-        </div>
-      </main>
-      <Footer />
-    </div>
-  );
-}
-
 export default function RootLayout({
   children,
 }: {
@@ -102,11 +76,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} font-sans antialiased min-h-screen bg-background text-foreground flex flex-col`}>
+      <body className={`${inter.variable} font-sans antialiased min-h-screen bg-background text-foreground`}>
         <Providers>
-          <AuthWrapper>
-            {children}
-          </AuthWrapper>
+          {children}
         </Providers>
       </body>
     </html>
