@@ -14,82 +14,23 @@ const protectedRoutes = [
 ];
 
 const roleBasedRoutes: Record<string, string[]> = {
-  [UserRole.VIEWER]: [
-    '/dashboard',
-    '/assets',
-    '/reports',
-    '/stock-verification',
-  ],
-  [UserRole.OPERATOR]: [
-    '/dashboard',
-    '/assets',
-    '/operations',
-    '/reports',
-    '/stock-verification',
-  ],
-  [UserRole.MANAGER]: [
-    '/dashboard',
-    '/assets',
-    '/operations',
-    '/reports',
-    '/team',
-    '/stock-verification',
-  ],
-  [UserRole.AUDITOR]: [
-    '/dashboard',
-    '/assets',
-    '/reports',
-    '/admin/audit-logs',
-    '/stock-verification',
-  ],
-  [UserRole.ADMIN]: [
-    '/dashboard',
-    '/assets',
-    '/operations',
-    '/reports',
-    '/team',
-    '/settings',
-    '/admin',
-    '/stock-verification',
-  ],
-  [UserRole.SUPER_ADMIN]: protectedRoutes, // Access to everything
+  // --- ASSET MANAGEMENT MODULE ---
+  [UserRole.VIEWER]: ['/dashboard', '/assets', '/reports', '/settings/profile'],
+  [UserRole.OPERATOR]: ['/dashboard', '/assets', '/operations', '/reports', '/settings/profile'],
+  [UserRole.MANAGER]: ['/dashboard', '/assets', '/operations', '/reports', '/team', '/settings/profile'],
+  [UserRole.AUDITOR]: ['/dashboard', '/assets', '/reports', '/admin/audit-logs', '/settings/profile'],
 
-  // Stock Verification Specific Roles
-  [UserRole.TEAM_LEADER]: [
-    '/dashboard',
-    '/assets',
-    '/reports',
-    '/team',
-    '/stock-verification',
-  ],
-  [UserRole.SENIOR_VERIFIER]: [
-    '/dashboard',
-    '/assets',
-    '/reports',
-    '/stock-verification',
-  ],
-  [UserRole.VERIFIER]: [
-    '/dashboard',
-    '/assets',
-    '/stock-verification',
-  ],
-  [UserRole.ASSISTANT_VERIFIER]: [
-    '/dashboard',
-    '/assets',
-    '/stock-verification',
-  ],
-  [UserRole.QUALITY_CONTROLLER]: [
-    '/dashboard',
-    '/assets',
-    '/reports',
-    '/stock-verification',
-  ],
-  [UserRole.OBSERVER]: [
-    '/dashboard',
-    '/assets',
-    '/reports',
-    '/stock-verification',
-  ],
+  // --- STOCK VERIFICATION MODULE ---
+  [UserRole.VERIFIER]: ['/stock-verification', '/settings/profile'],
+  [UserRole.ASSISTANT_VERIFIER]: ['/stock-verification', '/settings/profile'],
+  [UserRole.SENIOR_VERIFIER]: ['/stock-verification', '/settings/profile'],
+  [UserRole.TEAM_LEADER]: ['/stock-verification', '/settings/profile'],
+  [UserRole.QUALITY_CONTROLLER]: ['/stock-verification', '/settings/profile'],
+  [UserRole.OBSERVER]: ['/stock-verification', '/settings/profile'],
+
+  // --- ADMIN / MDM MODULE ---
+  [UserRole.ADMIN]: ['/dashboard', '/assets', '/operations', '/reports', '/team', '/settings', '/admin', '/mdm', '/stock-verification'], // Admin often needs broader access, but we can restrict if requested. Keeping broad for now as 'System Admin'.
+  [UserRole.SUPER_ADMIN]: protectedRoutes,
 };
 
 function isPathAllowed(path: string, allowedPaths: string[]): boolean {
@@ -115,16 +56,31 @@ export default withAuth(
       return NextResponse.next();
     }
 
-    // Redirect to dashboard if already authenticated and trying to access root
-    if (pathname === '/' && token) {
-      return NextResponse.redirect(new URL('/dashboard', req.url));
-    }
-
     // Check role-based access
     const userRole = token?.role as UserRole;
 
     if (!userRole) {
       return new NextResponse('Access Denied', { status: 403 });
+    }
+
+    // Determine Role-Based Home URL
+    let homeUrl = '/dashboard'; // Default for Asset/Admin roles
+
+    // Stock Roles -> go to Stock Dashboard
+    if ([
+      UserRole.VERIFIER,
+      UserRole.ASSISTANT_VERIFIER,
+      UserRole.SENIOR_VERIFIER,
+      UserRole.TEAM_LEADER,
+      UserRole.QUALITY_CONTROLLER,
+      UserRole.OBSERVER
+    ].includes(userRole)) {
+      homeUrl = '/stock-verification';
+    }
+
+    // Redirect to home if already authenticated and trying to access root
+    if (pathname === '/' && token) {
+      return NextResponse.redirect(new URL(homeUrl, req.url));
     }
 
     // Super Admin has access to everything

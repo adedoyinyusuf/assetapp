@@ -155,33 +155,44 @@ export function Header() {
     );
   }, [pathname, isAllowed]);
 
+  // --- Role Families ---
+  const ASSET_ROLES = [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.OPERATOR, UserRole.VIEWER, UserRole.AUDITOR];
+  const STOCK_ROLES = [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEAM_LEADER, UserRole.SENIOR_VERIFIER, UserRole.VERIFIER, UserRole.ASSISTANT_VERIFIER, UserRole.QUALITY_CONTROLLER, UserRole.OBSERVER];
+  const MDM_ROLES = [UserRole.SUPER_ADMIN, UserRole.ADMIN]; // Assuming Admin manages MDM. Add specific MDM role if created.
+
   // --- Menu Data Definitions ---
 
   const mainMenuItems = useMemo((): MenuItem[] => [
     { href: '/', title: 'Home', icon: <Home className="h-4 w-4" /> },
-    { href: '/dashboard', title: 'Dashboard', icon: <BarChart2 className="h-4 w-4" />, requiredPermission: { action: Action.READ, resource: Resource.DASHBOARD } },
+    {
+      href: '/dashboard',
+      title: 'Dashboard',
+      icon: <BarChart2 className="h-4 w-4" />,
+      allowedRoles: ASSET_ROLES
+    },
   ], []);
 
   const assetOperations = useMemo((): MenuItem[] => [
-    { href: '/assets/manage', title: 'Manage Assets', icon: <Package className="h-4 w-4" />, requiredPermission: { action: Action.READ, resource: Resource.ASSET } },
-    { href: '/asset-movement', title: 'Asset Movement', icon: <Move className="h-4 w-4" />, requiredPermission: { action: Action.READ, resource: Resource.ASSET_MOVEMENT } },
-    { href: '/depreciation', title: 'Track Depreciation', icon: <TrendingDown className="h-4 w-4" />, requiredPermission: { action: Action.READ, resource: Resource.REPORT } },
-    { href: '/categories', title: 'Categories', icon: <Package className="h-4 w-4" />, allowedRoles: [UserRole.ADMIN, UserRole.SUPER_ADMIN] },
+    { href: '/assets/manage', title: 'Manage Assets', icon: <Package className="h-4 w-4" />, allowedRoles: ASSET_ROLES },
+    { href: '/asset-movement', title: 'Asset Movement', icon: <Move className="h-4 w-4" />, allowedRoles: ASSET_ROLES },
+    { href: '/depreciation', title: 'Track Depreciation', icon: <TrendingDown className="h-4 w-4" />, allowedRoles: ASSET_ROLES },
+    // Categories/Locations restricts further to Admin/Manager within Asset context
+    { href: '/categories', title: 'Categories', icon: <Package className="h-4 w-4" />, allowedRoles: [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.MANAGER] },
     { href: '/locations', title: 'Locations', icon: <Move className="h-4 w-4" />, allowedRoles: [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.MANAGER] },
   ], []);
 
   const stockVerificationItems = useMemo((): MenuItem[] => [
-    { href: '/stock-verification', title: 'Dashboard', icon: <BarChart2 className="h-4 w-4" />, allowedRoles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER] },
-    { href: '/stock-verification/campaigns', title: 'Campaigns', icon: <Users className="h-4 w-4" />, allowedRoles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER] },
-    { href: '/stock-verification/verifications', title: 'Verification', icon: <Shield className="h-4 w-4" />, allowedRoles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.VERIFIER] },
-    { href: '/stock-verification/discrepancies', title: 'Discrepancies', icon: <Shield className="h-4 w-4" />, allowedRoles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER] },
-    { href: '/stock-verification/reports', title: 'Reports', icon: <FileText className="h-4 w-4" />, allowedRoles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER] },
+    { href: '/stock-verification', title: 'Dashboard', icon: <BarChart2 className="h-4 w-4" />, allowedRoles: STOCK_ROLES },
+    { href: '/stock-verification/campaigns', title: 'Campaigns', icon: <Users className="h-4 w-4" />, allowedRoles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEAM_LEADER, UserRole.SENIOR_VERIFIER] }, // Managerial stock roles
+    { href: '/stock-verification/verifications', title: 'Verification', icon: <Shield className="h-4 w-4" />, allowedRoles: STOCK_ROLES },
+    { href: '/stock-verification/discrepancies', title: 'Discrepancies', icon: <Shield className="h-4 w-4" />, allowedRoles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEAM_LEADER, UserRole.QUALITY_CONTROLLER] },
+    { href: '/stock-verification/reports', title: 'Reports', icon: <FileText className="h-4 w-4" />, allowedRoles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEAM_LEADER, UserRole.QUALITY_CONTROLLER] },
   ], []);
 
   const reports = useMemo((): MenuItem[] => [
-    { href: '/reports', title: 'Asset Reports', icon: <FileText className="h-4 w-4" />, requiredPermission: { action: Action.READ, resource: Resource.REPORT } },
-    { href: '/reports/depreciation', title: 'Depreciation Reports', icon: <BarChart2 className="h-4 w-4" />, requiredPermission: { action: Action.READ, resource: Resource.REPORT } },
-    { href: '/reports/export', title: 'Export Data', icon: <Download className="h-4 w-4" />, requiredPermission: { action: Action.EXPORT, resource: Resource.REPORT } }
+    { href: '/reports', title: 'Asset Reports', icon: <FileText className="h-4 w-4" />, allowedRoles: ASSET_ROLES },
+    { href: '/reports/depreciation', title: 'Depreciation Reports', icon: <BarChart2 className="h-4 w-4" />, allowedRoles: ASSET_ROLES },
+    { href: '/reports/export', title: 'Export Data', icon: <Download className="h-4 w-4" />, allowedRoles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.AUDITOR] }
   ], []);
 
   const adminItems = useMemo((): MenuItem[] => [
@@ -191,9 +202,9 @@ export function Header() {
   ], []);
 
   const mdmItems = useMemo((): MenuItem[] => [
-    { href: '/mdm', title: 'MDM Dashboard', icon: <Smartphone className="h-4 w-4" />, requiredPermission: { action: Action.READ, resource: Resource.ASSET } },
-    { href: '/mdm/devices', title: 'Mobile Devices', icon: <Smartphone className="h-4 w-4" />, requiredPermission: { action: Action.READ, resource: Resource.ASSET } },
-    { href: '/mdm/staff', title: 'Staff Management', icon: <Users className="h-4 w-4" />, allowedRoles: [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.MANAGER] },
+    { href: '/mdm', title: 'MDM Dashboard', icon: <Smartphone className="h-4 w-4" />, allowedRoles: MDM_ROLES },
+    { href: '/mdm/devices', title: 'Mobile Devices', icon: <Smartphone className="h-4 w-4" />, allowedRoles: MDM_ROLES },
+    { href: '/mdm/staff', title: 'Staff Management', icon: <Users className="h-4 w-4" />, allowedRoles: MDM_ROLES },
   ], []);
 
   // --- Render Helpers ---
