@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
-import { stockVerificationConfig } from '@/config/stock-verification';
+import { stockVerificationConfig } from '../../../config/stock-verification';
 import prisma from '@/lib/prisma';
 
 /**
