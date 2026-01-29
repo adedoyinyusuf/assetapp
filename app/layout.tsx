@@ -3,10 +3,8 @@ import './stock-verification/enhanced-styles.css';
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import { Providers } from './providers';
-import { Header } from '@/components/Header';
-import { Footer } from '@/components/Footer';
 import { type ReactNode } from 'react';
-import { headers } from 'next/headers';
+
 
 // Load Inter font with optimized settings
 const inter = Inter({
