@@ -61,6 +61,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/components ./components
 COPY --from=builder --chown=nextjs:nodejs /app/lib ./lib
 COPY --from=builder --chown=nextjs:nodejs /app/styles ./styles
 COPY --from=builder --chown=nextjs:nodejs /app/types ./types
+COPY --from=builder --chown=nextjs:nodejs /app/tailwind.config.js ./tailwind.config.js
+COPY --from=builder --chown=nextjs:nodejs /app/postcss.config.js ./postcss.config.js
 # Optional folders if they exist (ignoring errors if not, but Docker COPY fails if missing, so checking existence first is safer or just copy indiscriminately if known)
 # Based on list_dir, these exist:
 COPY --from=builder --chown=nextjs:nodejs /app/hooks ./hooks
