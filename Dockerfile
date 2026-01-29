@@ -64,7 +64,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/types ./types
 # Optional folders if they exist (ignoring errors if not, but Docker COPY fails if missing, so checking existence first is safer or just copy indiscriminately if known)
 # Based on list_dir, these exist:
 COPY --from=builder --chown=nextjs:nodejs /app/hooks ./hooks
-COPY --from=builder --chown=nextjs:nodejs /app/utils ./utils
+# COPY utils removed as it does not exist
 
 # Ensure the entire app directory is owned by the user (fixes any missed permissions)
 RUN chown -R nextjs:nodejs /app
