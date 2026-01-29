@@ -257,7 +257,7 @@ export class CampaignAnalyticsService {
       if (false) {
         const cached = await stockVerificationCache.get<CampaignAnalytics>('analytics', cacheKey);
         if (cached && cached !== null) {
-          return cached;
+          return cached as CampaignAnalytics;
         }
       }
 
