@@ -652,7 +652,7 @@ app.prepare().then(() => {
       console.log(`Seeding ${states.length} states...`);
       for (const state of states) {
         await pool.query(
-          'INSERT INTO states (id, name, code) VALUES ($1, $2, $3) ON CONFLICT (id) DO UPDATE SET name = $2, code = $3',
+          'INSERT INTO states (id, name, code, created_at, updated_at) VALUES ($1, $2, $3, NOW(), NOW()) ON CONFLICT (id) DO UPDATE SET name = $2, code = $3, updated_at = NOW()',
           [state.id, state.name, state.code]
         );
       }
@@ -668,14 +668,14 @@ app.prepare().then(() => {
 
         chunk.forEach((lga, idx) => {
           const offset = idx * 3;
-          placeholders.push(`($${offset + 1}, $${offset + 2}, $${offset + 3})`);
+          placeholders.push(`($${offset + 1}, $${offset + 2}, $${offset + 3}, NOW(), NOW())`);
           values.push(lga.id, lga.name, lga.stateId);
         });
 
         const query = `
-          INSERT INTO lgas (id, name, state_id) 
+          INSERT INTO lgas (id, name, state_id, created_at, updated_at) 
           VALUES ${placeholders.join(', ')}
-          ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, state_id = EXCLUDED.state_id
+          ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, state_id = EXCLUDED.state_id, updated_at = NOW()
         `;
 
         await pool.query(query, values);
