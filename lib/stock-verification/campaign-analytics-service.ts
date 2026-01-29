@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { stockVerificationConfig } from '@/config/stock-verification';
+import { stockVerificationConfig } from '@/lib/config/stock-verification';
 import { stockVerificationLogger } from './logging';
 import { stockVerificationCache } from './performance';
 import { 

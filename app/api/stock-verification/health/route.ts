@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth/auth-options';
+import prisma from '@/lib/prisma';
 import { redis } from '@/lib/redis';
-import { stockVerificationConfig } from '@/config/stock-verification';
+import { stockVerificationConfig } from '@/lib/config/stock-verification';
 import { DiscrepancyStatus, AssetVerificationStatus, VerificationCampaignStatus, DiscrepancySeverity } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
@@ -73,7 +75,7 @@ const startTime = Date.now();
 export async function GET(request: NextRequest) {
   const checkStartTime = Date.now();
   const enabled = process.env.STOCK_VERIFICATION_RATE_LIMITING_ENABLED !== 'false';
-  
+
   // lightweight rate limiting (per IP) to protect from excessive polling
   if (enabled) {
     try {
@@ -105,7 +107,7 @@ export async function GET(request: NextRequest) {
       // if redis unavailable, skip rate limiting
     }
   }
-  
+
   try {
     // Perform all health checks
     const checks = await Promise.allSettled([
@@ -131,7 +133,7 @@ export async function GET(request: NextRequest) {
     // Determine overall status
     const allChecks = [database, redis, configuration, features, storage];
     const failedChecks = allChecks.filter(check => check.status === 'fail');
-    
+
     let overallStatus: 'healthy' | 'degraded' | 'unhealthy';
     if (failedChecks.length === 0) {
       overallStatus = 'healthy';
@@ -168,10 +170,10 @@ export async function GET(request: NextRequest) {
     };
 
     // Return appropriate HTTP status code
-    const httpStatus = overallStatus === 'healthy' ? 200 : 
-                      overallStatus === 'degraded' ? 200 : 503;
+    const httpStatus = overallStatus === 'healthy' ? 200 :
+      overallStatus === 'degraded' ? 200 : 503;
 
-    return NextResponse.json(healthStatus, { 
+    return NextResponse.json(healthStatus, {
       status: httpStatus,
       headers: {
         'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -181,7 +183,7 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('Health check failed:', error);
-    
+
     const errorStatus: HealthStatus = {
       status: 'unhealthy',
       timestamp: new Date().toISOString(),
@@ -203,16 +205,16 @@ export async function GET(request: NextRequest) {
 
 async function checkDatabase(): Promise<HealthCheck> {
   const startTime = Date.now();
-  
+
   try {
     // Test basic database connectivity
     await prisma.$queryRaw`SELECT 1`;
-    
+
     // Test Stock Verification tables exist
     await prisma.verificationCampaign.count({ take: 1 });
-    
+
     const responseTime = Date.now() - startTime;
-    
+
     return {
       status: 'pass',
       message: 'Database connection successful',
@@ -235,7 +237,7 @@ async function checkDatabase(): Promise<HealthCheck> {
 
 async function checkRedis(): Promise<HealthCheck> {
   const startTime = Date.now();
-  
+
   try {
     if (!stockVerificationConfig.performance.caching.enabled) {
       return {
@@ -271,21 +273,21 @@ async function checkRedis(): Promise<HealthCheck> {
 
     // Test Redis connectivity
     await redis.ping();
-    
+
     // Test set and get operation
     const testKey = 'health_check_test';
     const testValue = Date.now().toString();
     await redis.set(testKey, testValue, { EX: 30 });
     const retrievedValue = await redis.get(testKey);
-    
+
     if (retrievedValue !== testValue) {
       throw new Error('Redis set/get operation failed');
     }
-    
+
     await redis.del(testKey);
-    
+
     const responseTime = Date.now() - startTime;
-    
+
     return {
       status: 'pass',
       message: 'Redis connection successful',
@@ -309,14 +311,14 @@ async function checkRedis(): Promise<HealthCheck> {
 async function checkConfiguration(): Promise<HealthCheck> {
   try {
     const errors = [];
-    
+
     // Validate required environment variables
     if (!process.env.DATABASE_URL) errors.push('DATABASE_URL missing');
     if (!process.env.NEXTAUTH_SECRET) errors.push('NEXTAUTH_SECRET missing');
-    
+
     // Validate Stock Verification configuration
     const configErrors = stockVerificationConfig ? [] : ['Stock verification config not loaded'];
-    
+
     if (errors.length > 0 || configErrors.length > 0) {
       return {
         status: 'fail',
@@ -328,7 +330,7 @@ async function checkConfiguration(): Promise<HealthCheck> {
         }
       };
     }
-    
+
     return {
       status: 'pass',
       message: 'Configuration valid',
@@ -354,12 +356,12 @@ async function checkFeatures(): Promise<HealthCheck> {
     const enabledFeatures = Object.entries(stockVerificationConfig.features)
       .filter(([_, enabled]) => enabled)
       .map(([feature, _]) => feature);
-    
+
     const criticalFeatures = ['photoUpload', 'autoAssignment'];
     const missingCriticalFeatures = criticalFeatures.filter(
       feature => !enabledFeatures.includes(feature)
     );
-    
+
     return {
       status: 'pass',
       message: `${enabledFeatures.length} features enabled`,
@@ -382,14 +384,14 @@ async function checkFeatures(): Promise<HealthCheck> {
 async function checkStorage(): Promise<HealthCheck> {
   try {
     const storageProvider = stockVerificationConfig.integrations.storage.provider;
-    
+
     if (storageProvider === 'local') {
       // Check if upload directories exist and are writable
       const fs = require('fs').promises;
       const path = require('path');
-      
+
       const uploadDir = path.join(process.cwd(), 'uploads', 'verifications');
-      
+
       try {
         await fs.access(uploadDir);
         // attempt write/delete to verify writability
@@ -409,7 +411,7 @@ async function checkStorage(): Promise<HealthCheck> {
               totalSize += st.size;
             }
           }
-        } catch {}
+        } catch { }
         return {
           status: 'pass',
           message: 'Local storage accessible and writable',

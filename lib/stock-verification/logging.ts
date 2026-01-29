@@ -1,4 +1,4 @@
-import { stockVerificationConfig } from '@/config/stock-verification';
+import { stockVerificationConfig } from '@/lib/config/stock-verification';
 
 /**
  * Stock Verification Module Logging System
