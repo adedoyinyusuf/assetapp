@@ -24,7 +24,8 @@ const nextConfig = {
       outputFileTracingExcludes: { '*': [] },
       outputFileTracingIgnores: ['**'],
       telemetry: false,
-      output: 'standalone'
+      telemetry: false,
+      // output: 'standalone'
     }
   }
 }
