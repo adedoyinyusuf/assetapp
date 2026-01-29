@@ -4,6 +4,9 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth/auth-options'
 import { UserRole } from '@/lib/auth/roles'
 
+export const dynamic = 'force-dynamic';
+
+
 // Get audit logs with filtering and pagination
 export async function GET(req: Request) {
   try {

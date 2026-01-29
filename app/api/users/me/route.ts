@@ -6,6 +6,9 @@ import { prisma } from "@/lib/db";
 import { getPermissionsForRole, UserRole } from "@/lib/auth/roles";
 import type { Permission } from "@/types/permissions";
 
+export const dynamic = 'force-dynamic';
+
+
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);

@@ -4,6 +4,9 @@ import { redis } from '@/lib/redis';
 import { stockVerificationConfig } from '@/config/stock-verification';
 import { DiscrepancyStatus, AssetVerificationStatus, VerificationCampaignStatus, DiscrepancySeverity } from '@prisma/client';
 
+export const dynamic = 'force-dynamic';
+
+
 /**
  * Health Check Endpoint for Stock Verification Module
  * Provides comprehensive health status including dependencies

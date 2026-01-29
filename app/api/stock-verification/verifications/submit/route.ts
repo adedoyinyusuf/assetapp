@@ -4,6 +4,9 @@ import { authOptions } from '@/lib/auth/auth-options';
 import { VerificationService } from '@/lib/stock-verification/verification-service';
 import { submitVerificationSchema } from '@/lib/stock-verification/validation';
 
+export const dynamic = 'force-dynamic';
+
+
 export async function POST(request: NextRequest) {
     try {
         // Check authentication

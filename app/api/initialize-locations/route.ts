@@ -4,6 +4,9 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { UserRole } from '@/lib/auth/roles'
 
+export const dynamic = 'force-dynamic';
+
+
 // Nigerian States and LGAs data
 const NIGERIAN_STATES_AND_LGAS = [
   {

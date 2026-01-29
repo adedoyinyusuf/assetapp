@@ -5,6 +5,9 @@ import { authOptions } from '@/lib/auth/auth-options';
 import { z } from 'zod';
 import { UserRole } from '@/lib/auth/roles';
 
+export const dynamic = 'force-dynamic';
+
+
 // Input validation schemas
 const stateSchema = z.object({
   name: z.string().min(1, 'State name is required'),

@@ -3,6 +3,9 @@ import { getSession } from '@/lib/auth/auth-utils';
 import { DiscrepancyService } from '@/lib/stock-verification/discrepancy-service';
 import { createDiscrepancySchema, discrepancyQuerySchema } from '@/lib/stock-verification/validation';
 import { redis } from '@/lib/redis';
+
+export const dynamic = 'force-dynamic';
+
 const enabled = process.env.STOCK_VERIFICATION_RATE_LIMITING_ENABLED !== 'false';
 
 // =============================================================================

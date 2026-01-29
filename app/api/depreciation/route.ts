@@ -5,6 +5,9 @@ import { authOptions } from '@/lib/auth/auth-options';
 import { z } from 'zod';
 import { UserRole } from '@/lib/auth/roles';
 
+export const dynamic = 'force-dynamic';
+
+
 // Input validation schemas
 const depreciationSchema = z.object({
   assetId: z.number().int().positive('Asset ID is required'),

@@ -3,6 +3,9 @@ import { getSession } from '@/lib/auth/auth-utils';
 import { VerificationService } from '@/lib/stock-verification/verification-service';
 import { z } from 'zod';
 import { redis } from '@/lib/redis';
+
+export const dynamic = 'force-dynamic';
+
 const enabled = process.env.STOCK_VERIFICATION_RATE_LIMITING_ENABLED !== 'false';
 
 // =============================================================================

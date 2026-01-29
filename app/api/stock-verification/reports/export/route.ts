@@ -6,6 +6,9 @@ import ExcelJS from 'exceljs';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
+export const dynamic = 'force-dynamic';
+
+
 export async function GET(request: NextRequest) {
     try {
         const session = await getServerSession(authOptions);

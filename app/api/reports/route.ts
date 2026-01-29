@@ -3,6 +3,9 @@ import { prisma } from '@/lib/db';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 
+export const dynamic = 'force-dynamic';
+
+
 // Define types for the asset with relations
 type AssetWithRelations = {
   id: number;

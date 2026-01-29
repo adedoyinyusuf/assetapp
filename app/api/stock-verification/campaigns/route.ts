@@ -10,6 +10,9 @@ import {
 } from '@/lib/stock-verification/validation';
 import { ZodError } from 'zod';
 import { redis } from '@/lib/redis';
+
+export const dynamic = 'force-dynamic';
+
 const enabled = process.env.STOCK_VERIFICATION_RATE_LIMITING_ENABLED !== 'false';
 
 // Initialize campaign service

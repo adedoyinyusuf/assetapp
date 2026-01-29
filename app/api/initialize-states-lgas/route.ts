@@ -4,6 +4,9 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth/auth-options'
 import { UserRole } from '@/lib/auth/roles'
 
+export const dynamic = 'force-dynamic';
+
+
 // Nigerian States from CSV
 const STATES_DATA = [
   { id: 1, name: 'SOKOTO' },
