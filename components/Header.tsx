@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { signOut, useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Menu,
@@ -25,13 +25,7 @@ import {
 } from 'lucide-react';
 import { UserRole, Action, Resource, can } from '@/lib/auth/roles';
 import { cn } from '@/lib/utils';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import { UserMenu } from './UserMenu';
+// import { UserMenu } from './UserMenu'; // Temporarily reverting to inline or simple user menu to isolate issues
 
 interface MenuItem {
   href: string;
@@ -50,8 +44,9 @@ interface MenuItem {
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({}); // Manual accordion state
   const pathname = usePathname();
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
   const userRole = session?.user?.role as UserRole | undefined;
   const isAuthenticated = !!session?.user;
 
@@ -82,6 +77,9 @@ export function Header() {
     }
   }, [mobileMenuOpen]);
 
+  const toggleGroup = (group: string) => {
+    setOpenGroups(prev => ({ ...prev, [group]: !prev[group] }));
+  };
 
   const hasPermission = useCallback((action: Action, resource: Resource): boolean => {
     if (!isAuthenticated || !userRole) return false;
@@ -156,7 +154,7 @@ export function Header() {
     );
   }, [pathname, isAllowed]);
 
-  // --- Menu Data Definitions (Cached) ---
+  // --- Menu Data Definitions ---
 
   const mainMenuItems = useMemo((): MenuItem[] => [
     { href: '/', title: 'Home', icon: <Home className="h-4 w-4" /> },
@@ -216,6 +214,60 @@ export function Header() {
     );
   };
 
+  const renderMobileGroup = (id: string, title: string, items: MenuItem[]) => {
+    const filtered = items.filter(isAllowed);
+    if (filtered.length === 0) return null;
+    const isOpen = openGroups[id];
+
+    return (
+      <div className="border-b border-gray-100 last:border-0">
+        <button
+          onClick={() => toggleGroup(id)}
+          className="flex items-center justify-between w-full px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+        >
+          {title}
+          <ChevronDown className={cn("h-4 w-4 transition-transform", isOpen && "rotate-180")} />
+        </button>
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden bg-gray-50/50"
+            >
+              <div className="pl-4 pb-2">
+                {filtered.map(item => renderNavigationItem(item, true))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  };
+
+  const UserMenuInline = () => {
+    // Simplified inline user menu to avoid import issues
+    if (!session) return (
+      <Link href="/auth/signin" className="text-sm font-medium text-primary hover:text-primary/80">Sign In</Link>
+    );
+
+    return (
+      <div className="flex items-center gap-3">
+        <span className="text-sm font-medium text-gray-700 hidden md:block">
+          {session.user?.name}
+        </span>
+        <button
+          onClick={() => signOut()}
+          title="Sign Out"
+          className="text-gray-500 hover:text-red-600"
+        >
+          <LogOut className="h-5 w-5" />
+        </button>
+      </div>
+    );
+  };
+
 
   return (
     <header
@@ -248,9 +300,7 @@ export function Header() {
           {/* Right Area: User Menu & Mobile Toggle */}
           <div className="flex items-center gap-4">
             <div className="hidden md:block">
-              {session ? <UserMenu /> : (
-                <Link href="/auth/signin" className="text-sm font-medium text-primary hover:text-primary/80">Sign In</Link>
-              )}
+              <UserMenuInline />
             </div>
 
             <button
@@ -296,76 +346,28 @@ export function Header() {
                 </div>
 
                 {/* Drawer Body - Scrollable */}
-                <div className="flex-1 p-4 space-y-1">
+                <div className="flex-1 overflow-y-auto">
+                  <div className="p-4 space-y-1">
+                    {mainMenuItems.map(item => (
+                      <div key={item.href} onClick={() => setMobileMenuOpen(false)}>
+                        {renderNavigationItem(item, true)}
+                      </div>
+                    ))}
+                  </div>
 
-                  {/* Direct Links */}
-                  {mainMenuItems.map(item => (
-                    <div key={item.href} onClick={() => setMobileMenuOpen(false)}>
-                      {renderNavigationItem(item, true)}
-                    </div>
-                  ))}
+                  <div className="border-t border-gray-100" />
 
-                  <div className="my-4 border-t border-gray-100" />
+                  {/* Manual Accordions */}
+                  {renderMobileGroup('assets', 'Asset Operations', assetOperations)}
+                  {renderMobileGroup('mdm', 'MDM', mdmItems)}
+                  {renderMobileGroup('reports', 'Reports', reports)}
+                  {renderMobileGroup('manage', 'Management', managementItems)}
+                  {isAuthenticated && renderMobileGroup('admin', 'Administration', adminItems)}
 
-                  {/* Accordion Groups */}
-                  <Accordion type="single" collapsible className="w-full">
-
-                    {/* Assets */}
-                    <AccordionItem value="assets" className="border-b-0">
-                      <AccordionTrigger className="hover:no-underline py-2 px-4 rounded-md hover:bg-gray-50 text-sm font-medium text-gray-700">
-                        Asset Operations
-                      </AccordionTrigger>
-                      <AccordionContent className="pt-1 pb-2 pl-4">
-                        {assetOperations.map(item => renderNavigationItem(item, true))}
-                      </AccordionContent>
-                    </AccordionItem>
-
-                    {/* MDM */}
-                    <AccordionItem value="mdm" className="border-b-0">
-                      <AccordionTrigger className="hover:no-underline py-2 px-4 rounded-md hover:bg-gray-50 text-sm font-medium text-gray-700">
-                        MDM
-                      </AccordionTrigger>
-                      <AccordionContent className="pt-1 pb-2 pl-4">
-                        {mdmItems.map(item => renderNavigationItem(item, true))}
-                      </AccordionContent>
-                    </AccordionItem>
-
-                    {/* Reports */}
-                    <AccordionItem value="reports" className="border-b-0">
-                      <AccordionTrigger className="hover:no-underline py-2 px-4 rounded-md hover:bg-gray-50 text-sm font-medium text-gray-700">
-                        Reports
-                      </AccordionTrigger>
-                      <AccordionContent className="pt-1 pb-2 pl-4">
-                        {reports.map(item => renderNavigationItem(item, true))}
-                      </AccordionContent>
-                    </AccordionItem>
-
-                    {/* Management */}
-                    <AccordionItem value="manage" className="border-b-0">
-                      <AccordionTrigger className="hover:no-underline py-2 px-4 rounded-md hover:bg-gray-50 text-sm font-medium text-gray-700">
-                        Management
-                      </AccordionTrigger>
-                      <AccordionContent className="pt-1 pb-2 pl-4">
-                        {managementItems.map(item => renderNavigationItem(item, true))}
-                      </AccordionContent>
-                    </AccordionItem>
-
-                    {/* Admin */}
-                    {isAuthenticated && (
-                      <AccordionItem value="admin" className="border-b-0">
-                        <AccordionTrigger className="hover:no-underline py-2 px-4 rounded-md hover:bg-gray-50 text-sm font-medium text-gray-700">
-                          Administration
-                        </AccordionTrigger>
-                        <AccordionContent className="pt-1 pb-2 pl-4">
-                          {adminItems.map(item => renderNavigationItem(item, true))}
-                        </AccordionContent>
-                      </AccordionItem>
-                    )}
-                  </Accordion>
                 </div>
 
                 {/* Drawer Footer - User Profile */}
-                <div className="p-4 border-t border-gray-100 bg-gray-50">
+                <div className="p-4 border-t border-gray-100 bg-gray-50 mt-auto">
                   {session ? (
                     <div className="flex flex-col gap-3">
                       <div className="flex items-center gap-3">
@@ -374,7 +376,7 @@ export function Header() {
                         </div>
                         <div>
                           <p className="font-medium text-sm text-gray-900">{session.user?.name}</p>
-                          <p className="text-xs text-gray-500 truncate max-w-[150px]">{session.user?.email}</p>
+                          <p className="text-xs text-gray-500 truncate max-w-[200px]">{session.user?.email}</p>
                         </div>
                       </div>
                       <button
