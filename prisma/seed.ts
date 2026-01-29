@@ -146,6 +146,7 @@ async function main() {
       description: 'Observes verification process',
       permissions: ['VIEW_ASSETS'],
     },
+  ];
 
   // Create roles in the database
   for (const role of roles) {
