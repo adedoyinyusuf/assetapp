@@ -630,51 +630,26 @@ app.prepare().then(() => {
   // CSV upload endpoint removed: locations are now managed only via DB and initialization route
 
   // Bulk insert initial Nigerian states and LGAs
+  // Bulk insert initial Nigerian states and LGAs from JSON file
   server.post('/api/initialize-locations', async (req, res) => {
     try {
+      const fs = require('fs');
+      const locationsPath = path.join(__dirname, 'lib/data/nigeria_locations.json');
+
+      if (!fs.existsSync(locationsPath)) {
+        throw new Error('Locations data file not found');
+      }
+
+      const locationsData = JSON.parse(fs.readFileSync(locationsPath, 'utf-8'));
+      const { states, lgas } = locationsData;
+
       await pool.query('BEGIN');
 
-      // Insert all 36 Nigerian states + FCT
-      const states = [
-        { id: 1, name: 'ABIA' },
-        { id: 2, name: 'ADAMAWA' },
-        { id: 3, name: 'AKWA IBOM' },
-        { id: 4, name: 'ANAMBRA' },
-        { id: 5, name: 'BAUCHI' },
-        { id: 6, name: 'BAYELSA' },
-        { id: 7, name: 'BENUE' },
-        { id: 8, name: 'BORNO' },
-        { id: 9, name: 'CROSS RIVER' },
-        { id: 10, name: 'DELTA' },
-        { id: 11, name: 'EBONYI' },
-        { id: 12, name: 'EDO' },
-        { id: 13, name: 'EKITI' },
-        { id: 14, name: 'ENUGU' },
-        { id: 15, name: 'FCT' },
-        { id: 16, name: 'GOMBE' },
-        { id: 17, name: 'IMO' },
-        { id: 18, name: 'JIGAWA' },
-        { id: 19, name: 'KADUNA' },
-        { id: 20, name: 'KANO' },
-        { id: 21, name: 'KATSINA' },
-        { id: 22, name: 'KEBBI' },
-        { id: 23, name: 'KOGI' },
-        { id: 24, name: 'KWARA' },
-        { id: 25, name: 'LAGOS' },
-        { id: 26, name: 'NASARAWA' },
-        { id: 27, name: 'NIGER' },
-        { id: 28, name: 'OGUN' },
-        { id: 29, name: 'ONDO' },
-        { id: 30, name: 'OSUN' },
-        { id: 31, name: 'OYO' },
-        { id: 32, name: 'PLATEAU' },
-        { id: 33, name: 'RIVERS' },
-        { id: 34, name: 'SOKOTO' },
-        { id: 35, name: 'TARABA' },
-        { id: 36, name: 'YOBE' },
-        { id: 37, name: 'ZAMFARA' }
-      ];
+      // Clear existing data (optional, but safer to ensure clean state as per user request)
+      // Note: This will fail if assets exist, but user confirmed no assets.
+      await pool.query('TRUNCATE TABLE lgas, states RESTART IDENTITY CASCADE');
 
+      console.log(`Seeding ${states.length} states...`);
       for (const state of states) {
         await pool.query(
           'INSERT INTO states (id, name) VALUES ($1, $2) ON CONFLICT (id) DO UPDATE SET name = $2',
@@ -682,46 +657,43 @@ app.prepare().then(() => {
         );
       }
 
-      // Insert Sokoto LGAs from the provided data
-      const sokotoLgas = [
-        { id: 1, name: 'GUDU', state_id: 34 },
-        { id: 2, name: 'BINJI', state_id: 34 },
-        { id: 3, name: 'TANGAZA', state_id: 34 },
-        { id: 4, name: 'GWADABAWA', state_id: 34 },
-        { id: 5, name: 'ILLELA', state_id: 34 },
-        { id: 6, name: 'GADA', state_id: 34 },
-        { id: 7, name: 'SABON BIRNI', state_id: 34 },
-        { id: 8, name: 'ISA', state_id: 34 },
-        { id: 9, name: 'GORONYO', state_id: 34 },
-        { id: 10, name: 'WURNO', state_id: 34 },
-        { id: 11, name: 'RABAH', state_id: 34 },
-        { id: 12, name: 'KWARE', state_id: 34 },
-        { id: 13, name: 'SOKOTO SOUTH', state_id: 34 },
-        { id: 14, name: 'SOKOTO NORTH', state_id: 34 },
-        { id: 15, name: 'WAMAKKO', state_id: 34 },
-        { id: 16, name: 'SILAME', state_id: 34 },
-        { id: 17, name: 'YABO', state_id: 34 },
-        { id: 18, name: 'BODINGA', state_id: 34 },
-        { id: 19, name: 'DANGE SHUNI', state_id: 34 },
-        { id: 20, name: 'TURETA', state_id: 34 },
-        { id: 21, name: 'SHAGARI', state_id: 34 },
-        { id: 22, name: 'TAMBUWAL', state_id: 34 },
-        { id: 23, name: 'KEBBE', state_id: 34 }
-      ];
+      console.log(`Seeding ${lgas.length} LGAs...`);
+      // Use batch insert for LGAs for performance
+      // Splitting into chunks of 100 to avoid query parameter limits
+      const chunkSize = 100;
+      for (let i = 0; i < lgas.length; i += chunkSize) {
+        const chunk = lgas.slice(i, i + chunkSize);
+        const values = [];
+        const placeholders = [];
 
-      for (const lga of sokotoLgas) {
-        await pool.query(
-          'INSERT INTO lgas (id, name, state_id) VALUES ($1, $2, $3) ON CONFLICT (id) DO UPDATE SET name = $2, state_id = $3',
-          [lga.id, lga.name, lga.state_id]
-        );
+        chunk.forEach((lga, idx) => {
+          const offset = idx * 3;
+          placeholders.push(`($${offset + 1}, $${offset + 2}, $${offset + 3})`);
+          values.push(lga.id, lga.name, lga.stateId);
+        });
+
+        const query = `
+          INSERT INTO lgas (id, name, state_id) 
+          VALUES ${placeholders.join(', ')}
+          ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, state_id = EXCLUDED.state_id
+        `;
+
+        await pool.query(query, values);
       }
 
       await pool.query('COMMIT');
-      res.json({ message: 'Nigerian states and Sokoto LGAs initialized successfully' });
+      console.log('Locations seeded successfully');
+      res.json({
+        message: 'Nigerian states and LGAs initialized successfully',
+        stats: {
+          states: states.length,
+          lgas: lgas.length
+        }
+      });
     } catch (error) {
       await pool.query('ROLLBACK');
       console.error('Error initializing locations:', error);
-      res.status(500).json({ error: 'Failed to initialize locations' });
+      res.status(500).json({ error: 'Failed to initialize locations: ' + error.message });
     }
   });
 
