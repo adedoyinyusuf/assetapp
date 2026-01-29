@@ -165,7 +165,14 @@ export function Header() {
     { href: '/assets/manage', title: 'Manage Assets', icon: <Package className="h-4 w-4" />, requiredPermission: { action: Action.READ, resource: Resource.ASSET } },
     { href: '/asset-movement', title: 'Asset Movement', icon: <Move className="h-4 w-4" />, requiredPermission: { action: Action.READ, resource: Resource.ASSET_MOVEMENT } },
     { href: '/depreciation', title: 'Track Depreciation', icon: <TrendingDown className="h-4 w-4" />, requiredPermission: { action: Action.READ, resource: Resource.REPORT } },
-    { href: '/stock-verification', title: 'Stock Verification', icon: <Shield className="h-4 w-4" />, allowedRoles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.TEAM_LEADER, UserRole.VERIFIER] },
+  ], []);
+
+  const stockVerificationItems = useMemo((): MenuItem[] => [
+    { href: '/stock-verification', title: 'Dashboard', icon: <BarChart2 className="h-4 w-4" />, allowedRoles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER] },
+    { href: '/stock-verification/campaigns', title: 'Campaigns', icon: <Users className="h-4 w-4" />, allowedRoles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER] },
+    { href: '/stock-verification/verifications', title: 'Verification', icon: <Shield className="h-4 w-4" />, allowedRoles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.VERIFIER] },
+    { href: '/stock-verification/discrepancies', title: 'Discrepancies', icon: <Shield className="h-4 w-4" />, allowedRoles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER] },
+    { href: '/stock-verification/reports', title: 'Reports', icon: <FileText className="h-4 w-4" />, allowedRoles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER] },
   ], []);
 
   const reports = useMemo((): MenuItem[] => [
@@ -291,6 +298,7 @@ export function Header() {
           <nav className="hidden md:flex items-center space-x-1">
             {mainMenuItems.map(item => renderNavigationItem(item))}
             {renderDropdown('Assets', assetOperations)}
+            {renderDropdown('Stock Verification', stockVerificationItems)}
             {renderDropdown('MDM', mdmItems)}
             {renderDropdown('Reports', reports)}
             {renderDropdown('Manage', managementItems)}
@@ -359,6 +367,7 @@ export function Header() {
 
                   {/* Manual Accordions */}
                   {renderMobileGroup('assets', 'Asset Operations', assetOperations)}
+                  {renderMobileGroup('stockVerification', 'Stock Verification', stockVerificationItems)}
                   {renderMobileGroup('mdm', 'MDM', mdmItems)}
                   {renderMobileGroup('reports', 'Reports', reports)}
                   {renderMobileGroup('manage', 'Management', managementItems)}
