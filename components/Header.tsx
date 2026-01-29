@@ -165,6 +165,8 @@ export function Header() {
     { href: '/assets/manage', title: 'Manage Assets', icon: <Package className="h-4 w-4" />, requiredPermission: { action: Action.READ, resource: Resource.ASSET } },
     { href: '/asset-movement', title: 'Asset Movement', icon: <Move className="h-4 w-4" />, requiredPermission: { action: Action.READ, resource: Resource.ASSET_MOVEMENT } },
     { href: '/depreciation', title: 'Track Depreciation', icon: <TrendingDown className="h-4 w-4" />, requiredPermission: { action: Action.READ, resource: Resource.REPORT } },
+    { href: '/categories', title: 'Categories', icon: <Package className="h-4 w-4" />, allowedRoles: [UserRole.ADMIN, UserRole.SUPER_ADMIN] },
+    { href: '/locations', title: 'Locations', icon: <Move className="h-4 w-4" />, allowedRoles: [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.MANAGER] },
   ], []);
 
   const stockVerificationItems = useMemo((): MenuItem[] => [
@@ -185,11 +187,6 @@ export function Header() {
     { href: '/admin/users', title: 'User Management', icon: <Users className="h-4 w-4" />, allowedRoles: [UserRole.ADMIN, UserRole.SUPER_ADMIN] },
     { href: '/admin/roles', title: 'Role Management', icon: <Shield className="h-4 w-4" />, allowedRoles: [UserRole.SUPER_ADMIN] },
     { href: '/admin/audit-logs', title: 'Audit Logs', icon: <FileText className="h-4 w-4" />, allowedRoles: [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.AUDITOR] },
-  ], []);
-
-  const managementItems = useMemo((): MenuItem[] => [
-    { href: '/categories', title: 'Categories', icon: <Package className="h-4 w-4" />, allowedRoles: [UserRole.ADMIN, UserRole.SUPER_ADMIN] },
-    { href: '/locations', title: 'Locations', icon: <Move className="h-4 w-4" />, allowedRoles: [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.MANAGER] },
   ], []);
 
   const mdmItems = useMemo((): MenuItem[] => [
@@ -301,7 +298,6 @@ export function Header() {
             {renderDropdown('Stock Verification', stockVerificationItems)}
             {renderDropdown('MDM', mdmItems)}
             {renderDropdown('Reports', reports)}
-            {renderDropdown('Manage', managementItems)}
             {renderDropdown('Admin', adminItems)}
           </nav>
 
@@ -370,7 +366,6 @@ export function Header() {
                   {renderMobileGroup('stockVerification', 'Stock Verification', stockVerificationItems)}
                   {renderMobileGroup('mdm', 'MDM', mdmItems)}
                   {renderMobileGroup('reports', 'Reports', reports)}
-                  {renderMobileGroup('manage', 'Management', managementItems)}
                   {isAuthenticated && renderMobileGroup('admin', 'Administration', adminItems)}
 
                 </div>
