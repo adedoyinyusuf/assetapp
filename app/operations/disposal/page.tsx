@@ -2,6 +2,8 @@ import { disposalService } from '@/lib/disposal/disposal-service';
 import { db } from '@/lib/db';
 import { DisposalDashboard } from '@/components/operations/disposal/DisposalDashboard';
 
+export const dynamic = 'force-dynamic';
+
 export default async function DisposalPage() {
   // Fetch requests
   const requests = await disposalService.getRequests({ limit: 50 });

@@ -7,6 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { db } from "@/lib/db";
 
+export const dynamic = 'force-dynamic';
+
 export default async function NewRequestPage() {
     // Fetch assets for the dropdown - only show active assets (not disposed)
     const assets = await db.asset.findMany({

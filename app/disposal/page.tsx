@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 
+export const dynamic = 'force-dynamic';
+
 export default async function DisposalDashboard() {
     const requests = await disposalService.getRequests({ limit: 10 });
 

@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { runAnnualDepreciation } from './actions';
 import { Badge } from "@/components/ui/badge";
 
+export const dynamic = 'force-dynamic';
+
 export default async function DepreciationPage() {
   const assets = await getAssets();
   const currentDate = new Date();
