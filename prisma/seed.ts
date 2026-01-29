@@ -26,7 +26,7 @@ async function main() {
   await clearTableIfExists(prisma.rolePermission);
   await clearTableIfExists(prisma.permission);
   await clearTableIfExists(prisma.userRole);
-  
+
   // Clear asset-related tables
   await clearTableIfExists(prisma.assetMovement);
   await clearTableIfExists(prisma.asset);
@@ -43,22 +43,22 @@ async function main() {
     { name: 'CREATE_ASSETS', description: 'Create assets', resource: 'assets', action: 'create' },
     { name: 'EDIT_ASSETS', description: 'Edit assets', resource: 'assets', action: 'update' },
     { name: 'DELETE_ASSETS', description: 'Delete assets', resource: 'assets', action: 'delete' },
-    
+
     // Category permissions
     { name: 'VIEW_CATEGORIES', description: 'View categories', resource: 'categories', action: 'view' },
     { name: 'MANAGE_CATEGORIES', description: 'Manage categories', resource: 'categories', action: 'manage' },
-    
+
     // User management permissions
     { name: 'VIEW_USERS', description: 'View users', resource: 'users', action: 'view' },
     { name: 'MANAGE_USERS', description: 'Manage users', resource: 'users', action: 'manage' },
-    
+
     // Reports permissions
     { name: 'VIEW_REPORTS', description: 'View reports', resource: 'reports', action: 'view' },
     { name: 'EXPORT_REPORTS', description: 'Export reports', resource: 'reports', action: 'export' },
-    
+
     // System settings
     { name: 'MANAGE_SETTINGS', description: 'Manage system settings', resource: 'settings', action: 'manage' },
-    
+
     // Audit logs
     { name: 'VIEW_AUDIT_LOGS', description: 'View audit logs', resource: 'audit_logs', action: 'view' },
   ];
@@ -115,12 +115,42 @@ async function main() {
       description: 'Full system access including user management',
       permissions: permissions.map(p => p.name),
     },
-  ];
+    // Stock Verification Roles
+    {
+      name: 'TEAM_LEADER',
+      description: 'Leads stock verification teams',
+      permissions: ['VIEW_ASSETS', 'VIEW_REPORTS', 'VIEW_CATEGORIES'], // Basic permissions for now
+    },
+    {
+      name: 'SENIOR_VERIFIER',
+      description: 'Senior stock verifier',
+      permissions: ['VIEW_ASSETS', 'VIEW_REPORTS'],
+    },
+    {
+      name: 'VERIFIER',
+      description: 'Standard stock verifier',
+      permissions: ['VIEW_ASSETS'],
+    },
+    {
+      name: 'ASSISTANT_VERIFIER',
+      description: 'Assistant stock verifier',
+      permissions: ['VIEW_ASSETS'],
+    },
+    {
+      name: 'QUALITY_CONTROLLER',
+      description: 'Ensures verification quality',
+      permissions: ['VIEW_ASSETS', 'VIEW_REPORTS'],
+    },
+    {
+      name: 'OBSERVER',
+      description: 'Observes verification process',
+      permissions: ['VIEW_ASSETS'],
+    },
 
   // Create roles in the database
   for (const role of roles) {
     const { permissions: permissionNames, ...roleData } = role;
-    
+
     // Create or update the role
     const createdRole = await prisma.userRole.upsert({
       where: { name: roleData.name },
@@ -219,7 +249,7 @@ async function main() {
         isActive: true,
       },
     });
-      console.log(`✅ Created/Updated user: ${user.email} (${user.roleName})`);
+    console.log(`✅ Created/Updated user: ${user.email} (${user.roleName})`);
   }
 
   // Create asset categories
@@ -307,7 +337,7 @@ async function main() {
 
   // Create test assets
   const assets = [];
-  
+
   // Generate 50 test assets
   for (let i = 0; i < 50; i++) {
     const category = faker.helpers.arrayElement(createdCategories);
@@ -317,7 +347,7 @@ async function main() {
     const purchaseValue = parseFloat(faker.finance.amount({ min: 1000, max: 500000, dec: 2 }));
     const usefulLife = faker.number.int({ min: 1, max: 10 });
     const salvageValue = purchaseValue * 0.1; // 10% of purchase value
-    
+
     // Calculate current value based on depreciation (simplified)
     const yearsOld = (new Date().getFullYear() - purchaseDate.getFullYear());
     const annualDepreciation = (purchaseValue - salvageValue) / usefulLife;
@@ -325,7 +355,7 @@ async function main() {
       purchaseValue - (annualDepreciation * yearsOld),
       salvageValue
     );
-    
+
     const asset = await prisma.asset.create({
       data: {
         name: `${category.name} - ${faker.commerce.productName()}`,
@@ -349,16 +379,16 @@ async function main() {
     const asset = faker.helpers.arrayElement(assets);
     const fromState = faker.helpers.arrayElement(allStates);
     const toState = faker.helpers.arrayElement(allStates.filter(s => s.id !== fromState.id));
-    
+
     // Get LGAs from the selected states
     const fromLgas = allLgas.filter(l => l.stateId === fromState.id);
     const toLgas = allLgas.filter(l => l.stateId === toState.id);
-    
+
     if (fromLgas.length === 0 || toLgas.length === 0) continue;
-    
+
     const fromLga = faker.helpers.arrayElement(fromLgas);
     const toLga = faker.helpers.arrayElement(toLgas);
-    
+
     await prisma.assetMovement.create({
       data: {
         assetId: asset.id,
@@ -374,25 +404,25 @@ async function main() {
     });
   }
   console.log('✅ Created 100 asset movement records');
-  
+
   // Create annual depreciation records for assets
   for (const asset of assets) {
     const purchaseYear = new Date(asset.purchaseDate).getFullYear();
     const currentYear = new Date().getFullYear();
     const years = currentYear - purchaseYear;
-    
+
     if (years <= 0) continue;
-    
+
     const annualDepreciation = (asset.purchaseValue - asset.salvageValue) / asset.usefulLife;
     let currentValue = asset.purchaseValue;
-    
+
     for (let year = 1; year <= Math.min(years, asset.usefulLife); year++) {
       const yearDepreciation = Math.min(annualDepreciation, currentValue - asset.salvageValue);
       currentValue -= yearDepreciation;
-      
+
       // Skip some years randomly to make it more realistic
       if (faker.datatype.boolean(0.2)) continue;
-      
+
       await prisma.depreciation.create({
         data: {
           assetId: asset.id,

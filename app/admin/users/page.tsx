@@ -191,13 +191,15 @@ export default function UsersManagementPage() {
       'MANAGER': 'default',
       'OPERATOR': 'secondary',
       'VIEWER': 'outline',
-      'AUDITOR': 'outline',
+      'AUDITOR': 'secondary',
+
+      // Stock Roles
       'TEAM_LEADER': 'default',
       'SENIOR_VERIFIER': 'secondary',
       'VERIFIER': 'secondary',
       'ASSISTANT_VERIFIER': 'outline',
       'OBSERVER': 'outline',
-      'QUALITY_CONTROLLER': 'default'
+      'QUALITY_CONTROLLER': 'destructive' // QC is critical
     }
 
     const formatRoleName = (name: string) => {
@@ -240,6 +242,63 @@ export default function UsersManagementPage() {
     roleId: 0,
     isActive: true
   })
+
+  // Helper to visually group roles
+  const getRoleGroups = (rolesList: Role[]) => {
+    const assetRoles = ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'OPERATOR', 'VIEWER', 'AUDITOR'];
+    const stockRoles = ['TEAM_LEADER', 'SENIOR_VERIFIER', 'VERIFIER', 'ASSISTANT_VERIFIER', 'QUALITY_CONTROLLER', 'OBSERVER'];
+
+    const assetGroup = rolesList.filter(r => assetRoles.includes(r.name));
+    const stockGroup = rolesList.filter(r => stockRoles.includes(r.name));
+    const otherGroup = rolesList.filter(r => !assetRoles.includes(r.name) && !stockRoles.includes(r.name));
+
+    return { assetGroup, stockGroup, otherGroup };
+  };
+
+  const { assetGroup, stockGroup, otherGroup } = getRoleGroups(roles);
+
+  const renderRoleSelectItems = () => {
+    if (roles.length === 0) return <SelectItem value="VIEWER">Loading Roles...</SelectItem>;
+
+    return (
+      <>
+        {assetGroup.length > 0 && (
+          <>
+            <SelectItem value="header_asset" disabled className="font-bold text-gray-900 bg-gray-50 opacity-100">Asset Management</SelectItem>
+            {assetGroup.map(role => (
+              <SelectItem key={role.id} value={role.name} className="pl-6">
+                {role.name.split('_').map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(' ')}
+              </SelectItem>
+            ))}
+          </>
+        )}
+
+        {stockGroup.length > 0 && (
+          <>
+            <div className="h-px bg-gray-100 my-1" />
+            <SelectItem value="header_stock" disabled className="font-bold text-gray-900 bg-gray-50 opacity-100">Stock Verification</SelectItem>
+            {stockGroup.map(role => (
+              <SelectItem key={role.id} value={role.name} className="pl-6">
+                {role.name.split('_').map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(' ')}
+              </SelectItem>
+            ))}
+          </>
+        )}
+
+        {otherGroup.length > 0 && (
+          <>
+            <div className="h-px bg-gray-100 my-1" />
+            <SelectItem value="header_other" disabled className="font-bold text-gray-900 bg-gray-50 opacity-100">Other Roles</SelectItem>
+            {otherGroup.map(role => (
+              <SelectItem key={role.id} value={role.name} className="pl-6">
+                {role.name.split('_').map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(' ')}
+              </SelectItem>
+            ))}
+          </>
+        )}
+      </>
+    )
+  }
 
   const handleEditClick = (user: User) => {
     setEditingUser(user)
@@ -395,11 +454,7 @@ export default function UsersManagementPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {roles.length > 0 ? roles.map((role) => (
-                      <SelectItem key={role.id} value={role.name}>
-                        {role.name.split('_').map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(' ')}
-                      </SelectItem>
-                    )) : <SelectItem value="VIEWER">Loading Roles...</SelectItem>}
+                    {renderRoleSelectItems()}
                   </SelectContent>
                 </Select>
               </div>
@@ -469,6 +524,7 @@ export default function UsersManagementPage() {
                       <SelectValue placeholder="Select role" />
                     </SelectTrigger>
                     <SelectContent>
+                      {renderRoleSelectItems().props.children /* This is a bit hacky for reuse, but the structure is simple enough to just inline the map logic if needed. Actually simpler to just map here again or extract properly. Let's inspect renderRoleSelectItems: it returns Fragment. For "Role ID" select we need ID values. `renderRoleSelectItems` uses strings. Wait, Edit form uses `roleId` (string of number). Add User uses `role` name. Let's stick to consistent logic but we need to map role items differently for ID vs Name. I'll just copy the grouping logic layout but use proper values. */}
                       {roles.map((role) => (
                         <SelectItem key={role.id} value={String(role.id)}>
                           {role.name.split('_').map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(' ')}
