@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
-import { stockVerificationConfig } from '@/lib/config/stock-verification';
 import prisma from '@/lib/prisma';
 
 /**
@@ -76,12 +75,25 @@ export async function GET(request: NextRequest) {
         campaigns: campaignCount,
         totalUsers: userCount,
       },
-      features: {
-        photoUpload: stockVerificationConfig?.features?.photoUpload ?? false,
-        autoAssignment: stockVerificationConfig?.features?.autoAssignment ?? false,
-        caching: stockVerificationConfig?.performance?.caching?.enabled ?? false,
-        notifications: stockVerificationConfig?.notifications?.enabled ?? false,
-      },
+      features: await (async () => {
+        try {
+          const { stockVerificationConfig } = await import('@/lib/config/stock-verification');
+          return {
+            photoUpload: stockVerificationConfig?.features?.photoUpload ?? false,
+            autoAssignment: stockVerificationConfig?.features?.autoAssignment ?? false,
+            caching: stockVerificationConfig?.performance?.caching?.enabled ?? false,
+            notifications: stockVerificationConfig?.notifications?.enabled ?? false,
+          };
+        } catch (err) {
+          console.warn('[API stock-verification] Config load error:', err);
+          return {
+            photoUpload: false,
+            autoAssignment: false,
+            caching: false,
+            notifications: false,
+          };
+        }
+      })(),
       endpoints: {
         health: '/api/stock-verification/health',
         campaigns: '/api/stock-verification/campaigns',
