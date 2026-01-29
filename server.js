@@ -652,8 +652,8 @@ app.prepare().then(() => {
       console.log(`Seeding ${states.length} states...`);
       for (const state of states) {
         await pool.query(
-          'INSERT INTO states (id, name) VALUES ($1, $2) ON CONFLICT (id) DO UPDATE SET name = $2',
-          [state.id, state.name]
+          'INSERT INTO states (id, name, code) VALUES ($1, $2, $3) ON CONFLICT (id) DO UPDATE SET name = $2, code = $3',
+          [state.id, state.name, state.code]
         );
       }
 

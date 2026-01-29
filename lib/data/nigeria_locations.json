@@ -2,151 +2,188 @@
   "states": [
     {
       "id": 1,
-      "name": "SOKOTO"
+      "name": "SOKOTO",
+      "code": "SO"
     },
     {
       "id": 2,
-      "name": "ZAMFARA"
+      "name": "ZAMFARA",
+      "code": "ZA"
     },
     {
       "id": 3,
-      "name": "KATSINA"
+      "name": "KATSINA",
+      "code": "KT"
     },
     {
       "id": 4,
-      "name": "JIGAWA"
+      "name": "JIGAWA",
+      "code": "JI"
     },
     {
       "id": 5,
-      "name": "YOBE"
+      "name": "YOBE",
+      "code": "YO"
     },
     {
       "id": 6,
-      "name": "BORNO"
+      "name": "BORNO",
+      "code": "BO"
     },
     {
       "id": 7,
-      "name": "ADAMAWA"
+      "name": "ADAMAWA",
+      "code": "AD"
     },
     {
       "id": 8,
-      "name": "GOMBE"
+      "name": "GOMBE",
+      "code": "GO"
     },
     {
       "id": 9,
-      "name": "BAUCHI"
+      "name": "BAUCHI",
+      "code": "BA"
     },
     {
       "id": 10,
-      "name": "KANO"
+      "name": "KANO",
+      "code": "KN"
     },
     {
       "id": 11,
-      "name": "KADUNA"
+      "name": "KADUNA",
+      "code": "KD"
     },
     {
       "id": 12,
-      "name": "KEBBI"
+      "name": "KEBBI",
+      "code": "KE"
     },
     {
       "id": 13,
-      "name": "NIGER"
+      "name": "NIGER",
+      "code": "NI"
     },
     {
       "id": 14,
-      "name": "FCT"
+      "name": "FCT",
+      "code": "FC"
     },
     {
       "id": 15,
-      "name": "NASARAWA"
+      "name": "NASARAWA",
+      "code": "NA"
     },
     {
       "id": 16,
-      "name": "PLATEAU"
+      "name": "PLATEAU",
+      "code": "PL"
     },
     {
       "id": 17,
-      "name": "TARABA"
+      "name": "TARABA",
+      "code": "TA"
     },
     {
       "id": 18,
-      "name": "BENUE"
+      "name": "BENUE",
+      "code": "BE"
     },
     {
       "id": 19,
-      "name": "KOGI"
+      "name": "KOGI",
+      "code": "KG"
     },
     {
       "id": 20,
-      "name": "KWARA"
+      "name": "KWARA",
+      "code": "KW"
     },
     {
       "id": 21,
-      "name": "OYO"
+      "name": "OYO",
+      "code": "OY"
     },
     {
       "id": 22,
-      "name": "OSUN"
+      "name": "OSUN",
+      "code": "OS"
     },
     {
       "id": 23,
-      "name": "EKITI"
+      "name": "EKITI",
+      "code": "EK"
     },
     {
       "id": 24,
-      "name": "ONDO"
+      "name": "ONDO",
+      "code": "ON"
     },
     {
       "id": 25,
-      "name": "EDO"
+      "name": "EDO",
+      "code": "ED"
     },
     {
       "id": 26,
-      "name": "ANAMBRA"
+      "name": "ANAMBRA",
+      "code": "AN"
     },
     {
       "id": 27,
-      "name": "ENUGU"
+      "name": "ENUGU",
+      "code": "EN"
     },
     {
       "id": 28,
-      "name": "EBONYI"
+      "name": "EBONYI",
+      "code": "EB"
     },
     {
       "id": 29,
-      "name": "CROSS RIVER"
+      "name": "CROSS RIVER",
+      "code": "CR"
     },
     {
       "id": 30,
-      "name": "AKWA IBOM"
+      "name": "AKWA IBOM",
+      "code": "AK"
     },
     {
       "id": 31,
-      "name": "ABIA"
+      "name": "ABIA",
+      "code": "AB"
     },
     {
       "id": 32,
-      "name": "IMO"
+      "name": "IMO",
+      "code": "IM"
     },
     {
       "id": 33,
-      "name": "RIVERS"
+      "name": "RIVERS",
+      "code": "RI"
     },
     {
       "id": 34,
-      "name": "BAYELSA"
+      "name": "BAYELSA",
+      "code": "BY"
     },
     {
       "id": 35,
-      "name": "DELTA"
+      "name": "DELTA",
+      "code": "DE"
     },
     {
       "id": 36,
-      "name": "LAGOS"
+      "name": "LAGOS",
+      "code": "LA"
     },
     {
       "id": 37,
-      "name": "OGUN"
+      "name": "OGUN",
+      "code": "OG"
     }
   ],
   "lgas": [
