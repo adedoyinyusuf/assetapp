@@ -337,9 +337,7 @@ async function checkConfiguration(): Promise<HealthCheck> {
       lastChecked: new Date().toISOString(),
       details: {
         environment: process.env.NODE_ENV,
-        featuresEnabled: Object.keys({photoUpload:false,autoAssignment:false,advancedReporting:false,realTimeNotifications:false,bulkOperations:false,mobileApp:false,offlineMode:false,aiAssistedVerification:false}).filter(
-          key => {photoUpload:false,autoAssignment:false,advancedReporting:false,realTimeNotifications:false,bulkOperations:false,mobileApp:false,offlineMode:false,aiAssistedVerification:false}[key as keyof typeof {photoUpload:false,autoAssignment:false,advancedReporting:false,realTimeNotifications:false,bulkOperations:false,mobileApp:false,offlineMode:false,aiAssistedVerification:false}]
-        ).length
+        featuresEnabled: 0 // Config disabled for now
       }
     };
   } catch (error) {
@@ -353,7 +351,7 @@ async function checkConfiguration(): Promise<HealthCheck> {
 
 async function checkFeatures(): Promise<HealthCheck> {
   try {
-    const enabledFeatures = Object.entries({photoUpload:false,autoAssignment:false,advancedReporting:false,realTimeNotifications:false,bulkOperations:false,mobileApp:false,offlineMode:false,aiAssistedVerification:false})
+    const enabledFeatures = Object.entries({ photoUpload: false, autoAssignment: false, advancedReporting: false, realTimeNotifications: false, bulkOperations: false, mobileApp: false, offlineMode: false, aiAssistedVerification: false })
       .filter(([_, enabled]) => enabled)
       .map(([feature, _]) => feature);
 
