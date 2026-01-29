@@ -16,7 +16,7 @@ const lgaSchema = z.object({
 
 const querySchema = z.object({
   page: z.string().regex(/^\d+$/).transform(Number).default('1'),
-  limit: z.string().regex(/^\d+$/).transform(Number).default('50'),
+  limit: z.string().regex(/^\d+$/).transform(Number).default('1000'),
   search: z.string().optional(),
   stateId: z.string().regex(/^\d+$/).transform(Number).optional(),
 });
