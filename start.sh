@@ -12,5 +12,5 @@ npx prisma db push --accept-data-loss
 echo "Starting application server..."
 
 # Set Node.js memory limit to 1GB and start server
-exec node --max-old-space-size=1024 server.js
+exec node --max-old-space-size=512 server.js
 
