@@ -154,7 +154,7 @@ export class AssetAssignmentService {
             take: 3,
           }
         },
-        take: criteria.maxAssets || stockVerificationConfig.assignment.maxAssignmentBatchSize,
+        take: criteria.maxAssets || 100, // Default batch size
       });
 
       if (eligibleAssets.length === 0) {
