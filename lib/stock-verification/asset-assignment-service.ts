@@ -415,7 +415,7 @@ export class AssetAssignmentService {
         return {
           assetId,
           eligible: false,
-          reason: `Recently verified on ${recentVerification.createdAt.toDateString()}`,
+          reason: `Recently verified on ${recentVerification?.createdAt.toDateString()}`,
         };
       }
 
