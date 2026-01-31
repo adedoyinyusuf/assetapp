@@ -953,21 +953,21 @@ export class VerificationService extends BaseService {
 
 
   /**
- * Helper to notify the dashboard via internal API
+ * Helper to notify the dashboard via Pusher
  */
   private async notifyDashboard(type: string, payload: any) {
     try {
-      // We need absolute URL since this runs on server
-      const host = headers().get('host') || 'localhost:3000';
-      const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+      const { pusherServer } = await import('@/lib/pusher');
 
-      await fetch(`${protocol}://${host}/api/notify-update`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type, data: payload })
-      });
+      // Map internal event types to Pusher channels/events
+      // We'll use a single 'verification' channel for simplicity, or specific ones.
+      // Events: 'verification:created', 'verification:updated', 'campaign:progress', 'discrepancy:new'
+
+      const channel = 'verification-updates';
+      await pusherServer.trigger(channel, type, payload);
+
     } catch (error) {
-      console.error('Socket notification error:', error);
+      console.error('Pusher notification error:', error);
     }
   }
 }

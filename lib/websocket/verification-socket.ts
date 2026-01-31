@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { io, Socket } from 'socket.io-client';
+import Pusher, { Channel } from 'pusher-js';
 
 export interface VerificationEvent {
     id: number;
@@ -34,100 +34,122 @@ export interface DiscrepancyEvent {
 type EventCallback<T> = (data: T) => void;
 
 export function useVerificationSocket() {
-    const socketRef = useRef<Socket | null>(null);
+    const pusherRef = useRef<Pusher | null>(null);
+    const channelRef = useRef<Channel | null>(null);
     const [isConnected, setIsConnected] = useState(false);
     const [connectionError, setConnectionError] = useState<string | null>(null);
 
-    // Initialize socket connection
+    // Initialize Pusher connection
     useEffect(() => {
-        // Connect to the same host/port that's serving the app
-        const socket = io({
-            path: '/socket.io',
-            transports: ['websocket', 'polling'],
-            reconnection: true,
-            reconnectionDelay: 1000,
-            reconnectionAttempts: 5
-        });
+        const appKey = process.env.NEXT_PUBLIC_PUSHER_KEY || 'APP_KEY';
+        const cluster = process.env.NEXT_PUBLIC_PUSHER_CLUSTER || 'mt1';
 
-        socketRef.current = socket;
+        // Prevent double init
+        if (pusherRef.current) return;
 
-        socket.on('connect', () => {
-            console.log('[WebSocket] Connected');
-            setIsConnected(true);
-            setConnectionError(null);
-        });
+        try {
+            const pusher = new Pusher(appKey, {
+                cluster: cluster,
+            });
 
-        socket.on('disconnect', (reason) => {
-            console.log('[WebSocket] Disconnected:', reason);
-            setIsConnected(false);
-        });
+            pusherRef.current = pusher;
 
-        socket.on('connect_error', (error) => {
-            console.error('[WebSocket] Connection error:', error);
+            pusher.connection.bind('connected', () => {
+                console.log('[Pusher] Connected');
+                setIsConnected(true);
+                setConnectionError(null);
+            });
+
+            pusher.connection.bind('disconnected', () => {
+                console.log('[Pusher] Disconnected');
+                setIsConnected(false);
+            });
+
+            pusher.connection.bind('error', (err: any) => {
+                console.error('[Pusher] Connection error:', err);
+                setConnectionError(err?.error?.data?.message || 'Connection error');
+                setIsConnected(false);
+            });
+
+            // Subscribe to the channel
+            const channel = pusher.subscribe('verification-updates');
+            channelRef.current = channel;
+
+        } catch (error: any) {
+            console.error('[Pusher] Init error:', error);
             setConnectionError(error.message);
-            setIsConnected(false);
-        });
+        }
 
         return () => {
-            socket.disconnect();
+            if (pusherRef.current) {
+                pusherRef.current.disconnect();
+                pusherRef.current = null;
+            }
         };
     }, []);
 
     // Subscribe to verification events
     const subscribeToVerifications = useCallback((callback: EventCallback<VerificationEvent>) => {
-        if (!socketRef.current) return () => { };
+        if (!channelRef.current) return () => { };
 
-        const handler = (data: VerificationEvent) => {
-            console.log('[WebSocket] Verification event:', data);
+        const handlerCreated = (data: VerificationEvent) => {
+            console.log('[Pusher] Verification created:', data);
+            callback(data);
+        };
+        const handlerUpdated = (data: VerificationEvent) => {
+            console.log('[Pusher] Verification updated:', data);
             callback(data);
         };
 
-        socketRef.current.on('verification:created', handler);
-        socketRef.current.on('verification:updated', handler);
+        // Pusher allows binding multiple events to channel
+        channelRef.current.bind('verification:created', handlerCreated);
+        channelRef.current.bind('verification:updated', handlerUpdated);
 
         return () => {
-            socketRef.current?.off('verification:created', handler);
-            socketRef.current?.off('verification:updated', handler);
+            channelRef.current?.unbind('verification:created', handlerCreated);
+            channelRef.current?.unbind('verification:updated', handlerUpdated);
         };
     }, []);
 
     // Subscribe to campaign progress
     const subscribeToCampaignProgress = useCallback((callback: EventCallback<CampaignProgressEvent>) => {
-        if (!socketRef.current) return () => { };
+        if (!channelRef.current) return () => { };
 
         const handler = (data: CampaignProgressEvent) => {
-            console.log('[WebSocket] Campaign progress:', data);
+            console.log('[Pusher] Campaign progress:', data);
             callback(data);
         };
 
-        socketRef.current.on('campaign:progress', handler);
+        channelRef.current.bind('campaign:progress', handler);
 
         return () => {
-            socketRef.current?.off('campaign:progress', handler);
+            channelRef.current?.unbind('campaign:progress', handler);
         };
     }, []);
 
     // Subscribe to discrepancies
     const subscribeToDiscrepancies = useCallback((callback: EventCallback<DiscrepancyEvent>) => {
-        if (!socketRef.current) return () => { };
+        if (!channelRef.current) return () => { };
 
         const handler = (data: DiscrepancyEvent) => {
-            console.log('[WebSocket] Discrepancy event:', data);
+            console.log('[Pusher] Discrepancy new:', data);
             callback(data);
         };
 
-        socketRef.current.on('discrepancy:new', handler);
+        channelRef.current.bind('discrepancy:new', handler);
 
         return () => {
-            socketRef.current?.off('discrepancy:new', handler);
+            channelRef.current?.unbind('discrepancy:new', handler);
         };
     }, []);
 
-    // Emit verification created (for optimistic updates)
+    // Emit verification created (for optimistic updates or theoretically client-triggered events)
+    // Note: Pusher client events require specific plan/settings. usually best to trigger via server action.
+    // For now we will keep empty or log warning.
     const emitVerificationCreated = useCallback((data: Partial<VerificationEvent>) => {
-        if (socketRef.current?.connected) {
-            socketRef.current.emit('verification:created', data);
-        }
+        // Client triggering is generally discouraged unless 'client-events' enabled.
+        // We'll trust the server trigger via Server Action flow.
+        console.log('[Pusher] Client emit not supported directly, use Server Action.');
     }, []);
 
     return {

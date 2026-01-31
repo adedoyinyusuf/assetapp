@@ -2,18 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/prisma';
-import ExcelJS from 'exceljs';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
 
 export const dynamic = 'force-dynamic';
-
 
 export async function GET(request: NextRequest) {
     try {
         const session = await getServerSession(authOptions);
 
         if (!session?.user) {
+            // ... (auth check same)
             return NextResponse.json(
                 { success: false, error: 'Unauthorized' },
                 { status: 401 }
@@ -165,6 +162,7 @@ function objectFilter(obj: any) {
 }
 
 async function generateExcel(data: any[], startDate: string | null, endDate: string | null, type: string) {
+    const ExcelJS = (await import('exceljs')).default;
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet(type === 'verifications' ? 'Verifications' : 'Campaign Report');
 
@@ -224,7 +222,10 @@ async function generateExcel(data: any[], startDate: string | null, endDate: str
     });
 }
 
-function generatePDF(data: any[], startDate: string | null, endDate: string | null, type: string) {
+async function generatePDF(data: any[], startDate: string | null, endDate: string | null, type: string) {
+    const { jsPDF } = await import('jspdf');
+    const autoTable = (await import('jspdf-autotable')).default;
+
     const doc = new jsPDF();
 
     // Title

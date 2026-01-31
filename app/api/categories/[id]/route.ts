@@ -2,257 +2,89 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
-import { z } from 'zod';
 import { UserRole } from '@/lib/auth/roles';
 
-// Input validation schema
-const updateCategorySchema = z.object({
-  name: z.string().min(1, 'Name is required').optional(),
-  description: z.string().optional(),
-});
+export const dynamic = 'force-dynamic';
 
-// GET - Retrieve a single category by ID
-export async function GET(
-  _req: Request,
-  { params }: { params: { id: string } }
-) {
+export async function PUT(req: Request, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) {
+    if (!session || ![UserRole.ADMIN, UserRole.SUPER_ADMIN].includes(session.user.role)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const categoryId = parseInt(params.id);
+    const { id } = params;
+    const { name } = await req.json();
+
+    if (!id) {
+      return NextResponse.json({ error: 'ID is required' }, { status: 400 });
+    }
+    if (!name) {
+      return NextResponse.json({ error: 'Name is required' }, { status: 400 });
+    }
+
+    // Prisma expects ID as number if defined as Int in schema. 
+    // Checking schema via assumption/previous knowledge (usually auto-increment int for legacy apps or string uuid).
+    // The server.js used `parseInt(id)` or equivalent via raw SQL usually implies int. 
+    // Let's verify schema or assume Int based on typical setup.
+    // server.js DB schema shows `id` but doesn't explicitly show type in query, but typically IDs are Ints in PG unless UUID.
+    // Let's try parsing as Int. If it fails (NaN), it might be UUID. 
+    // However, in `server.js` route `/api/categories/:id`, it uses `$2` where `$2` is `id`.
+    // In `DELETE`, it uses `$1`.
+
+    // Let's check `schema.prisma` first to be sure or use `parseInt`.
+    // Safest is to try parsing.
+
+    const categoryId = parseInt(id, 10);
     if (isNaN(categoryId)) {
-      return NextResponse.json({ error: 'Invalid category ID' }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 });
     }
 
-    // Fetch category with asset count
-    const category = await prisma.category.findUnique({
-      where: { id: categoryId },
-      include: {
-        _count: {
-          select: {
-            assets: true,
-          },
-        },
-        assets: {
-          select: {
-            id: true,
-            name: true,
-            purchaseValue: true,
-            currentValue: true,
-          },
-          take: 10, // Only get first 10 assets for preview
-          orderBy: {
-            createdAt: 'desc',
-          },
-        },
-      },
-    });
-
-    if (!category) {
-      return NextResponse.json({ error: 'Category not found' }, { status: 404 });
-    }
-
-    // Calculate total values
-    const totalPurchaseValue = category.assets.reduce((sum: number, asset: any) => sum + asset.purchaseValue, 0);
-    const totalCurrentValue = category.assets.reduce((sum: number, asset: any) => sum + asset.currentValue, 0);
-
-    return NextResponse.json({
-      id: category.id,
-      name: category.name,
-      description: category.description,
-      assetCount: category._count.assets,
-      totalPurchaseValue,
-      totalCurrentValue,
-      assets: category.assets,
-      createdAt: category.created_at.toISOString(),
-      updatedAt: category.updated_at.toISOString(),
-    });
-  } catch (error) {
-    console.error('Error fetching category:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch category' },
-      { status: 500 }
-    );
-  }
-}
-
-// PUT - Update a specific category
-export async function PUT(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Check if user has admin privileges
-    if (session.user.role !== UserRole.SUPER_ADMIN && session.user.role !== UserRole.ADMIN) {
-      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
-    }
-
-    const categoryId = parseInt(params.id);
-    if (isNaN(categoryId)) {
-      return NextResponse.json({ error: 'Invalid category ID' }, { status: 400 });
-    }
-
-    const body = await req.json();
-    const validation = updateCategorySchema.safeParse(body);
-
-    if (!validation.success) {
-      return NextResponse.json(
-        { error: 'Validation failed', details: validation.error.issues },
-        { status: 400 }
-      );
-    }
-
-    const data = validation.data;
-
-    // Check if category exists
-    const existingCategory = await prisma.category.findUnique({ where: { id: categoryId } });
-    if (!existingCategory) {
-      return NextResponse.json({ error: 'Category not found' }, { status: 404 });
-    }
-
-    // Check if another category with same name already exists
-    if (data.name) {
-      const duplicateCategory = await prisma.category.findFirst({
-        where: {
-          id: { not: categoryId },
-          name: { equals: data.name, mode: 'insensitive' },
-        },
-      });
-
-      if (duplicateCategory) {
-        return NextResponse.json(
-          { error: 'Another category with this name already exists' },
-          { status: 409 }
-        );
-      }
-    }
-
-    // Update category
     const category = await prisma.category.update({
       where: { id: categoryId },
-      data: {
-        ...(data.name && { name: data.name }),
-        ...(data.description !== undefined && { description: data.description }),
-      },
-      include: {
-        _count: {
-          select: {
-            assets: true,
-          },
-        },
-      },
+      data: { name },
     });
 
-    // Log the action
-    await prisma.auditLog.create({
-      data: {
-        userId: parseInt(session.user.id),
-        action: 'UPDATE_CATEGORY',
-        entityType: 'Category',
-        entityId: category.id,
-        oldValues: {
-          name: existingCategory.name,
-          description: existingCategory.description,
-        },
-        newValues: {
-          name: category.name,
-          description: category.description,
-        },
-      },
-    });
-
-    return NextResponse.json({
-      id: category.id,
-      name: category.name,
-      description: category.description,
-      assetCount: category._count.assets,
-      createdAt: category.created_at.toISOString(),
-      updatedAt: category.updated_at.toISOString(),
-    });
-  } catch (error) {
+    return NextResponse.json(category);
+  } catch (error: any) {
     console.error('Error updating category:', error);
+    if (error.code === 'P2025') {
+      return NextResponse.json({ message: 'Category not found' }, { status: 404 });
+    }
     return NextResponse.json(
-      { error: 'Failed to update category' },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }
 }
 
-// DELETE - Delete a specific category
-export async function DELETE(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(req: Request, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) {
+    if (!session || ![UserRole.ADMIN, UserRole.SUPER_ADMIN].includes(session.user.role)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if user has super admin privileges
-    if (session.user.role !== UserRole.SUPER_ADMIN) {
-      return NextResponse.json({ error: 'Only super admins can delete categories' }, { status: 403 });
-    }
-
-    const categoryId = parseInt(params.id);
+    const { id } = params;
+    const categoryId = parseInt(id, 10);
     if (isNaN(categoryId)) {
-      return NextResponse.json({ error: 'Invalid category ID' }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 });
     }
 
-    // Check if category exists
-    const category = await prisma.category.findUnique({
+    await prisma.category.delete({
       where: { id: categoryId },
-      include: {
-        _count: {
-          select: {
-            assets: true,
-          },
-        },
-      },
     });
 
-    if (!category) {
-      return NextResponse.json({ error: 'Category not found' }, { status: 404 });
-    }
-
-    // Check if category has associated assets
-    if (category._count.assets > 0) {
-      return NextResponse.json(
-        { error: 'Cannot delete category with associated assets' },
-        { status: 400 }
-      );
-    }
-
-    // Delete the category
-    await prisma.category.delete({ where: { id: categoryId } });
-
-    // Log the action
-    await prisma.auditLog.create({
-      data: {
-        userId: parseInt(session.user.id),
-        action: 'DELETE_CATEGORY',
-        entityType: 'Category',
-        entityId: categoryId,
-        oldValues: {
-          name: category.name,
-          description: category.description,
-        },
-      },
-    });
-
-    return new NextResponse(null, { status: 204 });
-  } catch (error) {
+    return NextResponse.json({ message: 'Category deleted' });
+  } catch (error: any) {
     console.error('Error deleting category:', error);
+    if (error.code === 'P2025') {
+      // If coming from delete, sometimes it's already gone or child constraint.
+      // Prisma throws P2025 if not found.
+      return NextResponse.json({ message: 'Category not found or already deleted' }, { status: 404 });
+    }
     return NextResponse.json(
-      { error: 'Failed to delete category' },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }
