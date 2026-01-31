@@ -23,7 +23,7 @@ export default function SignInPage() {
   const { login } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
+  const callbackUrl = searchParams.get('callbackUrl') || '/';
 
   useEffect(() => {
     const animationInterval = setInterval(() => {
@@ -55,8 +55,8 @@ export default function SignInPage() {
       const hasAdminAccess = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN';
 
       if (isAdminRoute && !hasAdminAccess) {
-        // Redirect non-admins to dashboard instead of the restricted page
-        router.push('/dashboard');
+        // Redirect non-admins to home instead of the restricted page
+        router.push('/');
       } else {
         router.push(callbackUrl);
       }
