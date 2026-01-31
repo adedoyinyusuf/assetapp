@@ -49,6 +49,7 @@ export default function StockVerificationDashboard() {
   const userRole = session?.user?.role;
   const isManagerial = ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'TEAM_LEADER'].includes(userRole || '');
 
+  const { subscribeToVerifications } = useVerificationSocket();
   const [status, setStatus] = useState<ModuleStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -92,8 +93,6 @@ export default function StockVerificationDashboard() {
     fetchAllData();
 
     // Real-time updates via Pusher
-    const { subscribeToVerifications } = useVerificationSocket();
-
     const unsubscribe = subscribeToVerifications((data: any) => {
       console.log('Real-time update received:', data);
       // Refresh data on any verification event
@@ -103,7 +102,7 @@ export default function StockVerificationDashboard() {
     return () => {
       unsubscribe();
     };
-  }, []);
+  }, [subscribeToVerifications]);
 
   if (loading) {
     return (
