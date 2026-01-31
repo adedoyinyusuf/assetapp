@@ -9,6 +9,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import StockVerificationAnalytics from '@/components/stock-verification/StockVerificationAnalytics';
 import RecentActivityWidget from '@/components/stock-verification/RecentActivityWidget';
+import { useVerificationSocket } from '@/lib/websocket/verification-socket';
 
 interface ModuleStatus {
   success: boolean;
@@ -90,23 +91,17 @@ export default function StockVerificationDashboard() {
 
     fetchAllData();
 
-    // Real-time updates
-    const onVerificationNew = (data: any) => {
-      console.log('Real-time update received:', data);
-      // Refresh data
-      fetchAllData();
-      // Optional: Show toast
-      // toast.success("New verification received!"); 
-    };
+    // Real-time updates via Pusher
+    const { subscribeToVerifications } = useVerificationSocket();
 
-    import('@/lib/socket').then(({ socket }) => {
-      socket.on('verification:new', onVerificationNew);
+    const unsubscribe = subscribeToVerifications((data: any) => {
+      console.log('Real-time update received:', data);
+      // Refresh data on any verification event
+      fetchAllData();
     });
 
     return () => {
-      import('@/lib/socket').then(({ socket }) => {
-        socket.off('verification:new', onVerificationNew);
-      });
+      unsubscribe();
     };
   }, []);
 
