@@ -13,7 +13,12 @@ export enum UserRole {
   ASSISTANT_VERIFIER = 'ASSISTANT_VERIFIER',
   VERIFIER = 'VERIFIER',
   OBSERVER = 'OBSERVER',
-  QUALITY_CONTROLLER = 'QUALITY_CONTROLLER'
+  QUALITY_CONTROLLER = 'QUALITY_CONTROLLER',
+
+  // MDM Roles
+  MDM_ADMIN = 'MDM_ADMIN',
+  MDM_OFFICER = 'MDM_OFFICER',
+  MDM_AUDITOR = 'MDM_AUDITOR'
 }
 
 // Available resources in the system
@@ -253,6 +258,24 @@ const taskPermissions: Record<UserRole, Task[]> = {
   [UserRole.SUPER_ADMIN]: [
     // All tasks
     ...Object.values(Task)
+  ],
+  [UserRole.MDM_ADMIN]: [
+    Task.BASIC_SEARCH,
+    Task.ADVANCED_SEARCH,
+    Task.VIEW_BASIC_ANALYTICS,
+    Task.VIEW_USERS,
+    Task.ACCESS_WEBSOCKET
+    // We should add MDM tasks but they aren't defined in Task enum yet.
+    // For now giving them basic access.
+  ],
+  [UserRole.MDM_OFFICER]: [
+    Task.BASIC_SEARCH,
+    Task.VIEW_BASIC_ANALYTICS,
+    Task.ACCESS_WEBSOCKET
+  ],
+  [UserRole.MDM_AUDITOR]: [
+    Task.BASIC_SEARCH,
+    Task.VIEW_BASIC_ANALYTICS
   ]
 };
 
@@ -413,6 +436,20 @@ const basePermissions: Record<UserRole, Permission[]> = {
     `${Action.MANAGE}_${Resource.SEARCH}`,
     `${Action.MANAGE}_${Resource.WEBSOCKET}`,
     `${Action.MANAGE}_${Resource.VERIFICATION}`
+  ],
+  [UserRole.MDM_ADMIN]: [
+    `${Action.MANAGE}_${Resource.SEARCH}`,
+    `${Action.READ}_${Resource.USER}`
+    // Since MDM resources aren't in Resource enum yet, we use generic ones.
+    // Ideally we would add MDM resource to Resource enum too.
+  ],
+  [UserRole.MDM_OFFICER]: [
+    `${Action.READ}_${Resource.USER}`,
+    `${Action.SEARCH}_${Resource.SEARCH}`
+  ],
+  [UserRole.MDM_AUDITOR]: [
+    `${Action.READ}_${Resource.USER}`,
+    `${Action.SEARCH}_${Resource.SEARCH}`
   ]
 };
 
@@ -439,7 +476,12 @@ const defaultPermissions: Record<UserRole, Permission[]> = {
   [UserRole.VERIFIER]: getAccumulatedPermissions(UserRole.VERIFIER),
   [UserRole.ASSISTANT_VERIFIER]: getAccumulatedPermissions(UserRole.ASSISTANT_VERIFIER),
   [UserRole.OBSERVER]: getAccumulatedPermissions(UserRole.OBSERVER),
-  [UserRole.QUALITY_CONTROLLER]: getAccumulatedPermissions(UserRole.QUALITY_CONTROLLER)
+  [UserRole.QUALITY_CONTROLLER]: getAccumulatedPermissions(UserRole.QUALITY_CONTROLLER),
+
+  // MDM Roles
+  [UserRole.MDM_ADMIN]: getAccumulatedPermissions(UserRole.MDM_ADMIN),
+  [UserRole.MDM_OFFICER]: getAccumulatedPermissions(UserRole.MDM_OFFICER),
+  [UserRole.MDM_AUDITOR]: getAccumulatedPermissions(UserRole.MDM_AUDITOR)
 };
 
 // Type for permission checking

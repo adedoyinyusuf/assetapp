@@ -29,8 +29,13 @@ const roleBasedRoutes: Record<string, string[]> = {
   [UserRole.OBSERVER]: ['/stock-verification', '/settings/profile'],
 
   // --- ADMIN / MDM MODULE ---
-  [UserRole.ADMIN]: ['/dashboard', '/assets', '/operations', '/reports', '/team', '/settings', '/admin', '/mdm', '/stock-verification'], // Admin often needs broader access, but we can restrict if requested. Keeping broad for now as 'System Admin'.
+  [UserRole.ADMIN]: ['/dashboard', '/assets', '/operations', '/reports', '/team', '/settings', '/admin', '/mdm', '/stock-verification'],
   [UserRole.SUPER_ADMIN]: protectedRoutes,
+
+  // --- MDM ROLES ---
+  [UserRole.MDM_ADMIN]: ['/mdm', '/settings/profile'],
+  [UserRole.MDM_OFFICER]: ['/mdm', '/settings/profile'],
+  [UserRole.MDM_AUDITOR]: ['/mdm', '/settings/profile'],
 };
 
 function isPathAllowed(path: string, allowedPaths: string[]): boolean {
@@ -75,39 +80,51 @@ export default withAuth(
       UserRole.QUALITY_CONTROLLER,
       UserRole.OBSERVER
     ].includes(userRole)) {
-      homeUrl = '/stock-verification';
-    }
+      UserRole.QUALITY_CONTROLLER,
+        UserRole.OBSERVER
+    ].includes(userRole)) {
+  homeUrl = '/stock-verification';
+}
 
-    // Redirect to home if already authenticated and trying to access root
-    if (pathname === '/' && token) {
-      return NextResponse.redirect(new URL(homeUrl, req.url));
-    }
+// MDM Roles -> go to MDM Dashboard
+if ([
+  UserRole.MDM_ADMIN,
+  UserRole.MDM_OFFICER,
+  UserRole.MDM_AUDITOR
+].includes(userRole)) {
+  homeUrl = '/mdm';
+}
 
-    // Super Admin has access to everything
-    if (userRole === UserRole.SUPER_ADMIN) {
-      return NextResponse.next();
-    }
+// Redirect to home if already authenticated and trying to access root
+if (pathname === '/' && token) {
+  return NextResponse.redirect(new URL(homeUrl, req.url));
+}
 
-    // Get allowed routes for the user's role
-    const allowedRoutes = roleBasedRoutes[userRole] || [];
+// Super Admin has access to everything
+if (userRole === UserRole.SUPER_ADMIN) {
+  return NextResponse.next();
+}
 
-    // Check if the current path is allowed for the user's role
-    const isAllowed = isPathAllowed(pathname, allowedRoutes);
+// Get allowed routes for the user's role
+const allowedRoutes = roleBasedRoutes[userRole] || [];
 
-    if (!isAllowed) {
-      return NextResponse.rewrite(new URL('/unauthorized', req.url));
-    }
+// Check if the current path is allowed for the user's role
+const isAllowed = isPathAllowed(pathname, allowedRoutes);
 
-    return NextResponse.next();
+if (!isAllowed) {
+  return NextResponse.rewrite(new URL('/unauthorized', req.url));
+}
+
+return NextResponse.next();
   },
-  {
-    callbacks: {
-      authorized: ({ token }) => !!token,
+{
+  callbacks: {
+    authorized: ({ token }) => !!token,
     },
-    pages: {
-      signIn: '/auth/signin',
+  pages: {
+    signIn: '/auth/signin',
     },
-  }
+}
 );
 
 export const config = {
