@@ -192,12 +192,12 @@ export async function POST(req: Request) {
       referenceNumber: newAsset.referenceNumber,
       imei1: newAsset.imei1,
       imei2: newAsset.imei2,
-      category: newAsset.category,
-      state: newAsset.state,
-      lga: newAsset.lga,
-      category_name: newAsset.category?.name,
-      state_name: newAsset.state?.name,
-      lga_name: newAsset.lga?.name,
+      category: (newAsset as any).category,
+      state: (newAsset as any).state,
+      lga: (newAsset as any).lga,
+      category_name: (newAsset as any).category?.name,
+      state_name: (newAsset as any).state?.name,
+      lga_name: (newAsset as any).lga?.name,
     };
 
     return NextResponse.json(formattedAsset, { status: 201 });
