@@ -1,6 +1,8 @@
 import { PrismaClient } from '@prisma/client';
 import { hash } from 'bcryptjs';
 import { faker } from '@faker-js/faker';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const prisma = new PrismaClient();
 
@@ -17,6 +19,15 @@ async function main() {
       }
     }
   };
+
+  // Clear stock verification tables (children first)
+  await clearTableIfExists(prisma.verificationDiscrepancy);
+  await clearTableIfExists(prisma.assetVerification);
+  await clearTableIfExists(prisma.verificationAssignment);
+  await clearTableIfExists(prisma.verificationSchedule);
+  await clearTableIfExists(prisma.verificationAnalytics);
+  await clearTableIfExists(prisma.verificationTemplate);
+  await clearTableIfExists(prisma.verificationCampaign);
 
   // Clear auth-related tables
   await clearTableIfExists(prisma.auditLog);
@@ -61,6 +72,14 @@ async function main() {
 
     // Audit logs
     { name: 'VIEW_AUDIT_LOGS', description: 'View audit logs', resource: 'audit_logs', action: 'view' },
+
+    // Stock Verification
+    { name: 'READ_CAMPAIGN', description: 'View verification campaigns', resource: 'campaign', action: 'read' },
+    { name: 'CREATE_CAMPAIGN', description: 'Create verification campaigns', resource: 'campaign', action: 'create' },
+    { name: 'UPDATE_CAMPAIGN', description: 'Edit verification campaigns', resource: 'campaign', action: 'update' },
+    { name: 'READ_VERIFICATION', description: 'View verifications', resource: 'verification', action: 'read' },
+    { name: 'CREATE_VERIFICATION', description: 'Create verifications', resource: 'verification', action: 'create' },
+    { name: 'UPDATE_VERIFICATION', description: 'Edit verifications', resource: 'verification', action: 'update' },
   ];
 
   // Create permissions in the database
@@ -116,35 +135,60 @@ async function main() {
       permissions: permissions.map(p => p.name),
     },
     // Stock Verification Roles
+    // Stock Verification Roles
     {
       name: 'TEAM_LEADER',
       description: 'Leads stock verification teams',
-      permissions: ['VIEW_ASSETS', 'VIEW_REPORTS', 'VIEW_CATEGORIES'], // Basic permissions for now
+      permissions: [
+        'VIEW_ASSETS', 'VIEW_REPORTS', 'VIEW_CATEGORIES',
+        'READ_CAMPAIGN', 'CREATE_CAMPAIGN', 'UPDATE_CAMPAIGN',
+        'READ_VERIFICATION', 'CREATE_VERIFICATION', 'UPDATE_VERIFICATION'
+      ],
     },
     {
       name: 'SENIOR_VERIFIER',
       description: 'Senior stock verifier',
-      permissions: ['VIEW_ASSETS', 'VIEW_REPORTS'],
+      permissions: [
+        'VIEW_ASSETS', 'VIEW_REPORTS',
+        'READ_CAMPAIGN',
+        'READ_VERIFICATION', 'CREATE_VERIFICATION', 'UPDATE_VERIFICATION'
+      ],
     },
     {
       name: 'VERIFIER',
       description: 'Standard stock verifier',
-      permissions: ['VIEW_ASSETS'],
+      permissions: [
+        'VIEW_ASSETS',
+        'READ_CAMPAIGN',
+        'READ_VERIFICATION', 'CREATE_VERIFICATION', 'UPDATE_VERIFICATION'
+      ],
     },
     {
       name: 'ASSISTANT_VERIFIER',
       description: 'Assistant stock verifier',
-      permissions: ['VIEW_ASSETS'],
+      permissions: [
+        'VIEW_ASSETS',
+        'READ_CAMPAIGN',
+        'READ_VERIFICATION', 'CREATE_VERIFICATION'
+      ],
     },
     {
       name: 'QUALITY_CONTROLLER',
       description: 'Ensures verification quality',
-      permissions: ['VIEW_ASSETS', 'VIEW_REPORTS'],
+      permissions: [
+        'VIEW_ASSETS', 'VIEW_REPORTS',
+        'READ_CAMPAIGN',
+        'READ_VERIFICATION'
+      ],
     },
     {
       name: 'OBSERVER',
       description: 'Observes verification process',
-      permissions: ['VIEW_ASSETS'],
+      permissions: [
+        'VIEW_ASSETS',
+        'READ_CAMPAIGN',
+        'READ_VERIFICATION'
+      ],
     },
   ];
 
@@ -271,44 +315,13 @@ async function main() {
   }
   console.log(`✅ Created ${createdCategories.length} asset categories`);
 
-  // Create Nigerian states and LGAs with state codes
-  const nigeriaStates = [
-    {
-      name: 'Lagos',
-      code: 'LA',
-      lgAs: [
-        'Agege', 'Ajeromi-Ifelodun', 'Alimosho', 'Amuwo-Odofin', 'Apapa',
-        'Badagry', 'Epe', 'Eti Osa', 'Ibeju-Lekki', 'Ifako-Ijaiye',
-        'Ikeja', 'Ikorodu', 'Kosofe', 'Lagos Island', 'Lagos Mainland',
-        'Mushin', 'Ojo', 'Oshodi-Isolo', 'Shomolu', 'Surulere'
-      ]
-    },
-    {
-      name: 'Abuja',
-      code: 'FC',
-      lgAs: [
-        'Abuja Municipal', 'Bwari', 'Gwagwalada', 'Kuje', 'Kwali', 'Abaji'
-      ]
-    },
-    {
-      name: 'Rivers',
-      code: 'RI',
-      lgAs: [
-        'Port Harcourt', 'Obio-Akpor', 'Okrika', 'Eleme', 'Oyigbo', 'Etche',
-        'Ikwerre', 'Khana', 'Gokana', 'Tai', 'Andoni', 'Opobo/Nkoro',
-        'Bonny', 'Ahoada East', 'Ahoada West', 'Omuma', 'Ogba/Egbema/Ndoni',
-        'Emohua', 'Asari-Toru', 'Akuku-Toru', 'Degema', 'Ogu-Bolo'
-      ]
-    },
-    {
-      name: 'Kano',
-      code: 'KN',
-      lgAs: [
-        'Dala', 'Fagge', 'Gezawa', 'Kano Municipal', 'Kumbotso', 'Nassarawa',
-        'Rano', 'Tarauni', 'Ungogo', 'Warawa'
-      ]
-    }
-  ];
+  // Read location data from JSON file
+  const locationDataPath = path.join(__dirname, '../lib/data/nigeria_locations.json');
+  console.log(`Reading location data from: ${locationDataPath}`);
+
+  const locationData = JSON.parse(fs.readFileSync(locationDataPath, 'utf-8'));
+  const nigeriaStates = locationData.states;
+  const nigeriaLgas = locationData.lgas;
 
   const createdStates = [];
   for (const stateData of nigeriaStates) {
@@ -320,15 +333,17 @@ async function main() {
     });
     createdStates.push(state);
 
-    for (const lgaName of stateData.lgAs) {
-      await prisma.lGA.create({
-        data: {
-          name: lgaName,
-          stateId: state.id,
-        },
-      });
-    }
-    console.log(`✅ Created ${stateData.lgAs.length} LGAs for ${stateData.name}`);
+    // Find LGAs for this state (using the ID from JSON to map)
+    const stateLgas = nigeriaLgas.filter((lga: any) => lga.stateId === stateData.id);
+
+    const createdLgas = await prisma.lGA.createMany({
+      data: stateLgas.map((lga: any) => ({
+        name: lga.name,
+        stateId: state.id,
+      })),
+    });
+
+    console.log(`✅ Created ${stateLgas.length} LGAs for ${stateData.name}`);
   }
   console.log(`✅ Created ${createdStates.length} states`);
 

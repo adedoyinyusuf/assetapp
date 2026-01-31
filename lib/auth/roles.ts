@@ -406,7 +406,13 @@ const basePermissions: Record<UserRole, Permission[]> = {
     `${Action.SEARCH}_${Resource.SEARCH}`,
     `${Action.READ}_${Resource.ANALYTICS}`,
     `${Action.READ}_${Resource.WEBSOCKET}`,
-    `${Action.APPROVE}_${Resource.ASSET_MOVEMENT}`
+    `${Action.APPROVE}_${Resource.ASSET_MOVEMENT}`,
+    `${Action.READ}_${Resource.CAMPAIGN}`,
+    `${Action.CREATE}_${Resource.CAMPAIGN}`,
+    `${Action.UPDATE}_${Resource.CAMPAIGN}`,
+    `${Action.READ}_${Resource.VERIFICATION}`,
+    `${Action.CREATE}_${Resource.VERIFICATION}`,
+    `${Action.UPDATE}_${Resource.VERIFICATION}`
   ],
   [UserRole.ADMIN]: [
     `${Action.MANAGE}_${Resource.ASSET}`,

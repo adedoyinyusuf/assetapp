@@ -5,8 +5,6 @@ import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { UserRole } from '@/lib/auth/roles';
-import { Header } from '@/components/Header';
-import { Footer } from '@/components/Footer';
 
 export default function AdminLayout({
   children,
@@ -61,13 +59,11 @@ export default function AdminLayout({
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      <Header />
-      <main className="flex-1 py-8">
+      <div className="flex-1 py-8">
         <div className="container mx-auto px-4">
           {children}
         </div>
-      </main>
-      <Footer />
+      </div>
     </div>
   );
 }
