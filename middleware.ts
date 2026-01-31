@@ -80,51 +80,48 @@ export default withAuth(
       UserRole.QUALITY_CONTROLLER,
       UserRole.OBSERVER
     ].includes(userRole)) {
-      UserRole.QUALITY_CONTROLLER,
-        UserRole.OBSERVER
+      homeUrl = '/stock-verification';
+    }
+
+    // MDM Roles -> go to MDM Dashboard
+    if ([
+      UserRole.MDM_ADMIN,
+      UserRole.MDM_OFFICER,
+      UserRole.MDM_AUDITOR
     ].includes(userRole)) {
-  homeUrl = '/stock-verification';
-}
+      homeUrl = '/mdm';
+    }
 
-// MDM Roles -> go to MDM Dashboard
-if ([
-  UserRole.MDM_ADMIN,
-  UserRole.MDM_OFFICER,
-  UserRole.MDM_AUDITOR
-].includes(userRole)) {
-  homeUrl = '/mdm';
-}
+    // Redirect to home if already authenticated and trying to access root
+    if (pathname === '/' && token) {
+      return NextResponse.redirect(new URL(homeUrl, req.url));
+    }
 
-// Redirect to home if already authenticated and trying to access root
-if (pathname === '/' && token) {
-  return NextResponse.redirect(new URL(homeUrl, req.url));
-}
+    // Super Admin has access to everything
+    if (userRole === UserRole.SUPER_ADMIN) {
+      return NextResponse.next();
+    }
 
-// Super Admin has access to everything
-if (userRole === UserRole.SUPER_ADMIN) {
-  return NextResponse.next();
-}
+    // Get allowed routes for the user's role
+    const allowedRoutes = roleBasedRoutes[userRole] || [];
 
-// Get allowed routes for the user's role
-const allowedRoutes = roleBasedRoutes[userRole] || [];
+    // Check if the current path is allowed for the user's role
+    const isAllowed = isPathAllowed(pathname, allowedRoutes);
 
-// Check if the current path is allowed for the user's role
-const isAllowed = isPathAllowed(pathname, allowedRoutes);
+    if (!isAllowed) {
+      return NextResponse.rewrite(new URL('/unauthorized', req.url));
+    }
 
-if (!isAllowed) {
-  return NextResponse.rewrite(new URL('/unauthorized', req.url));
-}
-
-return NextResponse.next();
+    return NextResponse.next();
   },
-{
-  callbacks: {
-    authorized: ({ token }) => !!token,
+  {
+    callbacks: {
+      authorized: ({ token }) => !!token,
     },
-  pages: {
-    signIn: '/auth/signin',
+    pages: {
+      signIn: '/auth/signin',
     },
-}
+  }
 );
 
 export const config = {
