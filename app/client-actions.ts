@@ -17,6 +17,7 @@ export interface Asset {
   referenceNumber?: string;
   imei1?: string;
   imei2?: string;
+  imageUrl?: string | null;
   assetCode?: string;
   category?: {
     id: number;

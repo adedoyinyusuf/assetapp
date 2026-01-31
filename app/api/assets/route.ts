@@ -3,6 +3,9 @@ import { prisma } from '@/lib/db';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { UserRole } from '@/lib/auth/roles';
+import fs from 'fs';
+import path from 'path';
+import { v4 as uuidv4 } from 'uuid'; // Assuming uuid is available or use random string
 
 export const dynamic = 'force-dynamic';
 
@@ -132,8 +135,46 @@ export async function POST(req: Request) {
     const body = await req.json();
     const {
       name, purchaseDate, purchaseValue, salvageValue, usefulLife, category_id, state_id, lga_id,
-      serialNumber, batchNumber, referenceNumber, imei1, imei2
+      serialNumber, batchNumber, referenceNumber, imei1, imei2, imageUrl
     } = body;
+
+    // Handle Image Upload if base64 provided
+    let savedImageUrl = imageUrl;
+    if (imageUrl && imageUrl.startsWith('data:image')) {
+      try {
+        // Extract base64 data
+        const matches = imageUrl.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+
+        if (matches && matches.length === 3) {
+          const imageType = matches[1];
+          const imageBuffer = Buffer.from(matches[2], 'base64');
+
+          // Determine extension
+          let extension = 'jpg';
+          if (imageType.includes('png')) extension = 'png';
+          else if (imageType.includes('jpeg')) extension = 'jpeg';
+          else if (imageType.includes('webp')) extension = 'webp';
+
+          // Create directory if not exists
+          const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'assets');
+          if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+          }
+
+          // Generate filename and save
+          const filename = `asset-${Date.now()}-${Math.floor(Math.random() * 1000)}.${extension}`;
+          const filepath = path.join(uploadDir, filename);
+
+          fs.writeFileSync(filepath, imageBuffer);
+          savedImageUrl = `/uploads/assets/${filename}`;
+        }
+      } catch (e) {
+        console.error("Error saving image:", e);
+        // Continue without saving image if it fails, or maybe throw? 
+        // We'll keep the base64 or null? Better to set null if failed.
+        savedImageUrl = null;
+      }
+    }
 
     // Validate required fields
     if (!name || !purchaseDate || purchaseValue === undefined || !category_id || !state_id || !lga_id) {
@@ -166,7 +207,9 @@ export async function POST(req: Request) {
           batchNumber: batchNumber || undefined,
           referenceNumber: referenceNumber || undefined,
           imei1: imei1 || undefined,
+
           imei2: imei2 || undefined,
+          imageUrl: savedImageUrl || undefined,
         },
         include: {
           category: true,
@@ -191,7 +234,9 @@ export async function POST(req: Request) {
       batchNumber: newAsset.batchNumber,
       referenceNumber: newAsset.referenceNumber,
       imei1: newAsset.imei1,
+
       imei2: newAsset.imei2,
+      imageUrl: newAsset.imageUrl,
       category: (newAsset as any).category,
       state: (newAsset as any).state,
       lga: (newAsset as any).lga,

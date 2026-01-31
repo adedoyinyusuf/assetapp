@@ -20,8 +20,13 @@ import {
   MapPin,
   Loader2,
   AlertCircle,
-  CheckCircle2
+  CheckCircle2,
+  Camera,
+  Upload,
+  QrCode,
+  X
 } from 'lucide-react'
+import QRScanner from '@/components/stock-verification/QRScanner';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
@@ -37,6 +42,12 @@ export default function AssetForm({ asset, categories, states, initialLgas, onDa
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Media & Scanning State
+  const [showQRScanner, setShowQRScanner] = useState(false)
+  const [imageUrl, setImageUrl] = useState<string | null>(asset?.imageUrl || null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(asset?.imageUrl || null)
+  const [imageFile, setImageFile] = useState<File | null>(null)
 
   // Form Fields
   const [name, setName] = useState(asset?.name || '')
@@ -65,9 +76,6 @@ export default function AssetForm({ asset, categories, states, initialLgas, onDa
       getLGAs(parseInt(stateId))
         .then((lgaData) => {
           setLgas(lgaData);
-          // Only reset if the current lgaId is not in the new list (or if we just switched states manually)
-          // For simplicity in edit mode, we might want to keep it if it's valid, but usually swapping state means invalidating LGA.
-          // In edit mode initialization, we rely on initialLgas so this effect shouldn't break it if logic is right.
           if (asset?.state_id?.toString() !== stateId) {
             setLgaId('');
           } else if (!lgaData.find(l => l.id.toString() === lgaId)) {
@@ -91,18 +99,48 @@ export default function AssetForm({ asset, categories, states, initialLgas, onDa
   useEffect(() => {
     if (categoryId) {
       const selectedCategory = categories.find(c => c.id === parseInt(categoryId));
-      if (selectedCategory && !asset?.id) { // Only set default useful life for new assets
+      if (selectedCategory && !asset?.id) {
         setUsefulLife(selectedCategory.defaultUsefulLifeYears?.toString() || '5');
       }
     }
   }, [categoryId, categories, asset?.id]);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Check size < 5MB
+    if (file.size > 5 * 1024 * 1024) {
+      alert("File is too large. Max 5MB.");
+      return;
+    }
+
+    setImageFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result as string;
+      setPreviewUrl(result);
+      setImageUrl(result); // Set as base64 for submission
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeImage = () => {
+    setImageFile(null);
+    setPreviewUrl(null);
+    setImageUrl(null);
+  };
+
+  const handleScan = (code: string) => {
+    setSerialNumber(code);
+    setShowQRScanner(false);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setIsSubmitting(true);
 
-    // Validation
     if (!categoryId || !stateId || !lgaId) {
       setError('Please fill in all required fields including Category, State, and LGA.');
       setIsSubmitting(false);
@@ -128,6 +166,7 @@ export default function AssetForm({ asset, categories, states, initialLgas, onDa
       referenceNumber: referenceNumber || undefined,
       imei1: imei1 || undefined,
       imei2: imei2 || undefined,
+      imageUrl: imageUrl || undefined,
     };
 
     const assetData = asset?.id
@@ -142,7 +181,6 @@ export default function AssetForm({ asset, categories, states, initialLgas, onDa
         if (!result || !result.id) throw new Error('Failed to create asset');
       }
 
-      // Success
       router.push('/assets');
       router.refresh();
     } catch (error) {
@@ -152,7 +190,6 @@ export default function AssetForm({ asset, categories, states, initialLgas, onDa
     }
   }
 
-  // Debug/Init Functionality for Dev/Admin
   const handleInitializeLocations = async () => {
     if (!confirm("This will initialize all Nigerian states and LGAs. Continue?")) return;
     try {
@@ -227,7 +264,54 @@ export default function AssetForm({ asset, categories, states, initialLgas, onDa
         </CardContent>
       </Card>
 
-      {/* Section 1.5: Identification */}
+      {/* Section 1.5: Asset Media */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-xl">
+            <Camera className="h-5 w-5 text-primary" />
+            Asset Photo
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <Label>Asset Image (Evidence/Identification)</Label>
+
+            {!previewUrl ? (
+              <div className="border-2 border-dashed rounded-lg p-6 hover:border-primary/50 transition-colors cursor-pointer bg-muted/50">
+                <input
+                  type="file"
+                  id="assetPhoto"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleImageChange}
+                />
+                <label htmlFor="assetPhoto" className="flex flex-col items-center gap-2 cursor-pointer">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Upload className="w-6 h-6 text-primary" />
+                  </div>
+                  <p className="text-sm font-medium">Click to upload photo</p>
+                  <p className="text-xs text-muted-foreground">Max 5MB (JPG, PNG)</p>
+                </label>
+              </div>
+            ) : (
+              <div className="relative w-full max-w-xs mx-auto">
+                <img src={previewUrl} alt="Asset Preview" className="rounded-lg border object-cover w-full h-64" />
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="icon"
+                  className="absolute top-2 right-2 rounded-full w-8 h-8"
+                  onClick={removeImage}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Section 1.6: Identification */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-xl">
@@ -236,8 +320,29 @@ export default function AssetForm({ asset, categories, states, initialLgas, onDa
           </CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
           <div className="space-y-2">
-            <Label htmlFor="serialNumber">Serial Number</Label>
+            <div className="flex justify-between items-center">
+              <Label htmlFor="serialNumber">Serial Number</Label>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-6 text-xs text-primary gap-1"
+                onClick={() => setShowQRScanner(!showQRScanner)}
+              >
+                <QrCode className="h-3 w-3" />
+                {showQRScanner ? 'Close Scanner' : 'Scan QR'}
+              </Button>
+            </div>
+
+            {showQRScanner && (
+              <div className="mb-4 p-4 border rounded-md bg-muted/10">
+                <QRScanner onScan={handleScan} />
+                <Button variant="ghost" size="sm" onClick={() => setShowQRScanner(false)} className="mt-2 w-full">Cancel Scan</Button>
+              </div>
+            )}
+
             <Input
               id="serialNumber"
               placeholder="e.g. SN-12345678"

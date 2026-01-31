@@ -229,6 +229,7 @@ model Asset {
   status        AssetStatus     @default(IN_STORE)
   procurementRequestId  Int?    @map("procurement_request_id")
   purchaseOrderId       Int?    @map("purchase_order_id")
+  imageUrl              String? @map("image_url")
 
   // Stock Verification relationships
   verifications AssetVerification[] @relation("AssetVerifications")
