@@ -136,9 +136,9 @@ export async function POST(req: Request) {
     } = body;
 
     // Validate required fields
-    if (!name || !purchaseDate || purchaseValue === undefined || !category_id) {
+    if (!name || !purchaseDate || purchaseValue === undefined || !category_id || !state_id || !lga_id) {
       return NextResponse.json({
-        error: 'Missing required fields. Name, purchase date, purchase value, and category are required.'
+        error: 'Missing required fields. Name, purchase date, value, category, state, and LGA are required.'
       }, { status: 400 });
     }
 
@@ -159,8 +159,8 @@ export async function POST(req: Request) {
           salvageValue: parseFloat(salvageValue) || 0,
           usefulLife: parseInt(usefulLife) || 5,
           categoryId: parseInt(category_id),
-          stateId: state_id ? parseInt(state_id) : undefined,
-          lgaId: lga_id ? parseInt(lga_id) : undefined,
+          stateId: parseInt(state_id),
+          lgaId: parseInt(lga_id),
           serialNumber: serialNumber || undefined,
           assetCode,
           batchNumber: batchNumber || undefined,
