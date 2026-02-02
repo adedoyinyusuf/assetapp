@@ -153,6 +153,7 @@ export default function UsersManagementClient({ initialUsers, roles }: UsersClie
             'TEAM_LEADER': 'default',
             'SENIOR_VERIFIER': 'secondary',
             'VERIFIER': 'secondary',
+            'AUDITOR_VERIFIER': 'secondary',
             'ASSISTANT_VERIFIER': 'outline',
             'OBSERVER': 'outline',
             'QUALITY_CONTROLLER': 'destructive'
@@ -201,11 +202,17 @@ export default function UsersManagementClient({ initialUsers, roles }: UsersClie
     // Helper to visually group roles
     const getRoleGroups = (rolesList: Role[]) => {
         const assetRoles = ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'OPERATOR', 'VIEWER', 'AUDITOR'];
-        const stockRoles = ['TEAM_LEADER', 'SENIOR_VERIFIER', 'VERIFIER', 'ASSISTANT_VERIFIER', 'QUALITY_CONTROLLER', 'OBSERVER'];
+        const stockRoles = ['TEAM_LEADER', 'SENIOR_VERIFIER', 'VERIFIER', 'ASSISTANT_VERIFIER', 'QUALITY_CONTROLLER', 'AUDITOR_VERIFIER', 'OBSERVER'];
+        const mdmRoles = ['MDM_ADMIN', 'MDM_OFFICER', 'MDM_AUDITOR'];
 
         const assetGroup = rolesList.filter(r => assetRoles.includes(r.name));
         const stockGroup = rolesList.filter(r => stockRoles.includes(r.name));
-        const otherGroup = rolesList.filter(r => !assetRoles.includes(r.name) && !stockRoles.includes(r.name));
+        // Exclude MDM roles from otherGroup
+        const otherGroup = rolesList.filter(r =>
+            !assetRoles.includes(r.name) &&
+            !stockRoles.includes(r.name) &&
+            !mdmRoles.includes(r.name)
+        );
 
         return { assetGroup, stockGroup, otherGroup };
     };
