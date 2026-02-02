@@ -87,6 +87,7 @@ export const submitVerificationSchema = z.object({
   createMaintenance: z.boolean().optional(),
   photoUrls: z.array(z.string()).optional(),
   coordinates: z.string().max(100).optional(),
+  deviceInfo: z.string().max(255).optional(),
 }).refine(data => data.assetId || data.qrCode, {
   message: "Either Asset ID or QR Code must be provided",
   path: ["assetId"]

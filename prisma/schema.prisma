@@ -371,6 +371,7 @@ model AssetVerification {
   reviewedBy            Int?                      @map("reviewed_by")
   reviewedAt            DateTime?                 @map("reviewed_at")
   reviewNotes           String?                   @map("review_notes") @db.Text
+  verificationType      VerificationType          @default(PRIMARY) @map("verification_type")
   createdAt             DateTime                  @default(now()) @map("created_at")
   updatedAt             DateTime                  @updatedAt @map("updated_at")
   
@@ -384,7 +385,7 @@ model AssetVerification {
   discrepancies         VerificationDiscrepancy[]
   
   // Constraints
-  @@unique([campaignId, assetId])
+  @@unique([campaignId, assetId, verificationType])
   @@index([campaignId])
   @@index([assetId])
   @@index([verifierId])
@@ -607,6 +608,11 @@ enum PhysicalCondition {
   UNKNOWN
 }
 
+enum VerificationType {
+  PRIMARY
+  AUDIT
+}
+
 enum DiscrepancyType {
   MISSING_ASSET
   LOCATION_MISMATCH
@@ -646,6 +652,7 @@ enum VerificationRole {
   SUPERVISOR
   OBSERVER
   QUALITY_CONTROLLER
+  AUDITOR_VERIFIER
 }
 
 enum AssignmentStatus {

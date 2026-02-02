@@ -14,6 +14,7 @@ export enum UserRole {
   VERIFIER = 'VERIFIER',
   OBSERVER = 'OBSERVER',
   QUALITY_CONTROLLER = 'QUALITY_CONTROLLER',
+  AUDITOR_VERIFIER = 'AUDITOR_VERIFIER',
 
   // MDM Roles
   MDM_ADMIN = 'MDM_ADMIN',
@@ -228,6 +229,19 @@ const taskPermissions: Record<UserRole, Task[]> = {
     Task.VIEW_AUDIT_LOGS,
     Task.ACCESS_WEBSOCKET
   ],
+  [UserRole.AUDITOR_VERIFIER]: [ // Combines Verifier and Auditor tasks
+    Task.VIEW_ASSET_DETAILS,
+    Task.CREATE_ASSET,
+    Task.UPDATE_ASSET,
+    Task.CREATE_MOVEMENT,
+    Task.VIEW_MOVEMENT_HISTORY,
+    Task.VIEW_BASIC_REPORTS,
+    Task.BASIC_SEARCH,
+    Task.VIEW_BASIC_ANALYTICS,
+    Task.ACCESS_WEBSOCKET,
+    Task.CREATE_ASSET, // Verifier task
+    Task.AUDIT_ASSET   // Auditor task
+  ],
   [UserRole.ADMIN]: [
     Task.VIEW_ASSET_DETAILS,
     Task.CREATE_ASSET,
@@ -320,6 +334,23 @@ const basePermissions: Record<UserRole, Permission[]> = {
     `${Action.READ}_${Resource.ANALYTICS}`,
     `${Action.EXPORT}_${Resource.ANALYTICS}`,
     `${Action.READ}_${Resource.USER}`
+  ],
+  [UserRole.AUDITOR_VERIFIER]: [
+    `${Action.CREATE}_${Resource.ASSET}`,
+    `${Action.UPDATE}_${Resource.ASSET}`,
+    `${Action.CREATE}_${Resource.ASSET_MOVEMENT}`,
+    `${Action.UPDATE}_${Resource.ASSET_MOVEMENT}`,
+    `${Action.READ}_${Resource.ASSET}`,
+    `${Action.READ}_${Resource.REPORT}`,
+    `${Action.READ}_${Resource.DASHBOARD}`,
+    `${Action.SEARCH}_${Resource.SEARCH}`,
+    `${Action.READ}_${Resource.ANALYTICS}`,
+    `${Action.READ}_${Resource.WEBSOCKET}`,
+    `${Action.CREATE}_${Resource.VERIFICATION}`,
+    `${Action.READ}_${Resource.VERIFICATION}`,
+    `${Action.UPDATE}_${Resource.VERIFICATION}`,
+    `${Action.AUDIT}_${Resource.ASSET}`,
+    `${Action.AUDIT}_${Resource.VERIFICATION}` // Can audit verifications
   ],
   [UserRole.OPERATOR]: [
     `${Action.CREATE}_${Resource.ASSET}`,
@@ -484,6 +515,7 @@ const defaultPermissions: Record<UserRole, Permission[]> = {
   [UserRole.ASSISTANT_VERIFIER]: getAccumulatedPermissions(UserRole.ASSISTANT_VERIFIER),
   [UserRole.OBSERVER]: getAccumulatedPermissions(UserRole.OBSERVER),
   [UserRole.QUALITY_CONTROLLER]: getAccumulatedPermissions(UserRole.QUALITY_CONTROLLER),
+  [UserRole.AUDITOR_VERIFIER]: getAccumulatedPermissions(UserRole.AUDITOR_VERIFIER),
 
   // MDM Roles
   [UserRole.MDM_ADMIN]: getAccumulatedPermissions(UserRole.MDM_ADMIN),

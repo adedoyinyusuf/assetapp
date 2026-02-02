@@ -190,6 +190,15 @@ async function main() {
         'READ_VERIFICATION'
       ],
     },
+    {
+      name: 'AUDITOR_VERIFIER',
+      description: 'Audits and verifies assets',
+      permissions: [
+        'VIEW_ASSETS',
+        'READ_CAMPAIGN',
+        'READ_VERIFICATION', 'CREATE_VERIFICATION', 'UPDATE_VERIFICATION'
+      ],
+    },
   ];
 
   // Create roles in the database
@@ -261,6 +270,13 @@ async function main() {
       lastName: 'User',
       password: 'Viewer@123',
       roleName: 'VIEWER',
+    },
+    {
+      email: 'auditor.verifier@npopc.gov.ng',
+      firstName: 'Auditor',
+      lastName: 'Verifier',
+      password: 'Auditor@123',
+      roleName: 'AUDITOR_VERIFIER',
     },
   ];
 
