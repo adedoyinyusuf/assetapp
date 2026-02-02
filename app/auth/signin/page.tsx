@@ -57,6 +57,15 @@ export default function SignInPage() {
       if (isAdminRoute && !hasAdminAccess) {
         // Redirect non-admins to home instead of the restricted page
         router.push('/');
+      } else if (callbackUrl === '/' || !callbackUrl) {
+        // Determine redirection based on role for default login
+        if (['VERIFIER', 'ASSISTANT_VERIFIER', 'SENIOR_VERIFIER', 'TEAM_LEADER', 'QUALITY_CONTROLLER', 'OBSERVER'].includes(userRole as string)) {
+          router.push('/stock-verification');
+        } else if (['MDM_ADMIN', 'MDM_OFFICER', 'MDM_AUDITOR'].includes(userRole as string)) {
+          router.push('/mdm');
+        } else {
+          router.push('/dashboard');
+        }
       } else {
         router.push(callbackUrl);
       }
