@@ -106,7 +106,9 @@ export abstract class BaseService {
       if (!user || !user.isActive) return false;
 
       // Super Admin and Admin bypass - they have all permissions
-      const roleName = user.role?.name?.toUpperCase();
+      // Normalize role name: "Super Admin" -> "SUPER_ADMIN"
+      const roleName = user.role?.name?.toUpperCase().replace(/[\s-]+/g, '_');
+
       if (roleName && ['SUPER_ADMIN', 'SUPERADMIN', 'ADMIN'].includes(roleName)) {
         return true;
       }
