@@ -298,7 +298,7 @@ export default function VerificationsPage() {
                 Export
               </Button>
 
-              <Link href="/stock-verification/verify">
+              <Link href="/stock-verification/verifications/new">
                 <Button>
                   <Plus className="mr-2 h-4 w-4" />
                   New Verification
