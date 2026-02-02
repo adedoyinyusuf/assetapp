@@ -426,7 +426,8 @@ const basePermissions: Record<UserRole, Permission[]> = {
     `${Action.MANAGE}_${Resource.WEBSOCKET}`,
     `${Action.MANAGE}_${Resource.WEBSOCKET}`,
     `${Action.MANAGE}_${Resource.SETTINGS}`,
-    `${Action.MANAGE}_${Resource.VERIFICATION}`
+    `${Action.MANAGE}_${Resource.VERIFICATION}`,
+    `${Action.MANAGE}_${Resource.CAMPAIGN}`
   ],
   [UserRole.SUPER_ADMIN]: [
     `${Action.MANAGE}_${Resource.ASSET}`,
