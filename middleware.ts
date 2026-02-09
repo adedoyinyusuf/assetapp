@@ -27,6 +27,7 @@ const roleBasedRoutes: Record<string, string[]> = {
   [UserRole.TEAM_LEADER]: ['/stock-verification', '/settings/profile'],
   [UserRole.QUALITY_CONTROLLER]: ['/stock-verification', '/settings/profile'],
   [UserRole.OBSERVER]: ['/stock-verification', '/settings/profile'],
+  [UserRole.AUDITOR_VERIFIER]: ['/stock-verification', '/dashboard', '/assets', '/reports', '/settings/profile'],
 
   // --- ADMIN / MDM MODULE ---
   [UserRole.ADMIN]: ['/dashboard', '/assets', '/operations', '/reports', '/team', '/settings', '/admin', '/mdm', '/stock-verification'],
@@ -82,6 +83,8 @@ export default withAuth(
     ].includes(userRole)) {
       homeUrl = '/stock-verification';
     }
+
+    // AUDITOR_VERIFIER defaults to /dashboard (already set) since they have dual access
 
     // MDM Roles -> go to MDM Dashboard
     if ([
