@@ -2,27 +2,33 @@
 
 This guide explains how to add the Auditor Verifier user to your Railway production database.
 
-## Option 1: Run via Railway CLI (Recommended)
+## Option 1: Using Railway's Public Database URL (Recommended)
 
-1. **Install Railway CLI** (if not already installed):
+Since Railway's internal database hostname (`postgres.railway.internal`) isn't accessible from your local machine, you need to use the public connection string:
+
+1. **Go to your Railway Dashboard** (https://railway.app)
+2. **Select your project** and **database service** (PostgreSQL)
+3. **Click on the "Connect" tab**
+4. **Copy the "Public URL"** (it will look like: `postgresql://postgres:xxxxx@xxxxx.railway.app:5432/railway`)
+5. **Run the script locally with the public URL**:
+   
+   **Windows (PowerShell)**:
+   ```powershell
+   $env:DATABASE_URL="your_public_database_url_here"
+   npm run seed:auditor-verifier
+   ```
+   
+   **Windows (CMD)**:
+   ```cmd
+   set DATABASE_URL=your_public_database_url_here && npm run seed:auditor-verifier
+   ```
+   
+   **Linux/Mac**:
    ```bash
-   npm install -g @railway/cli
+   DATABASE_URL="your_public_database_url_here" npm run seed:auditor-verifier
    ```
 
-2. **Login to Railway**:
-   ```bash
-   railway login
-   ```
-
-3. **Link to your project**:
-   ```bash
-   railway link
-   ```
-
-4. **Run the seed script on Railway**:
-   ```bash
-   railway run npm run seed:auditor-verifier
-   ```
+   Replace `your_public_database_url_here` with the actual public URL from Railway.
 
 ## Option 2: Run via Railway Dashboard
 

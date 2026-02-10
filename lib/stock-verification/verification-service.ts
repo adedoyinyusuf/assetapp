@@ -228,7 +228,9 @@ export class VerificationService extends BaseService {
       });
 
       if (!campaign) throw new NotFoundError('Campaign not found');
-      if (campaign.status !== 'ACTIVE') throw new ValidationError('Campaign is not active');
+      if (!['ACTIVE', 'PLANNED'].includes(campaign.status)) {
+        throw new ValidationError('Campaign must be active or planned to accept verifications');
+      }
 
       // Strict assignment check can be optional depending on requirements, but generally good
       if (campaign.assignments.length === 0) {
