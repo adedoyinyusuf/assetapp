@@ -72,6 +72,8 @@ export default function CampaignDetailClient({ campaignId }: CampaignDetailClien
     const [error, setError] = useState<string | null>(null);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [assignmentDialogOpen, setAssignmentDialogOpen] = useState(false);
+    const [users, setUsers] = useState<any[]>([]);
+    const [usersLoading, setUsersLoading] = useState(false);
 
     useEffect(() => {
         fetchCampaign();
@@ -137,6 +139,24 @@ export default function CampaignDetailClient({ campaignId }: CampaignDetailClien
             ],
         };
         return actions[status] || [];
+    };
+
+    const fetchUsers = async () => {
+        try {
+            setUsersLoading(true);
+            const response = await fetch('/api/users?role=verification');
+            const result = await response.json();
+
+            if (result.success) {
+                setUsers(result.data);
+            } else {
+                console.error('Failed to fetch users:', result.error);
+            }
+        } catch (error) {
+            console.error('Error fetching users:', error);
+        } finally {
+            setUsersLoading(false);
+        }
     };
 
     const handleAssignMember = async (userId: number, role: string) => {
@@ -426,7 +446,14 @@ export default function CampaignDetailClient({ campaignId }: CampaignDetailClien
                             Coverage & Team
                         </CardTitle>
                         {isManagerial && (
-                            <Button size="sm" variant="outline" onClick={() => setAssignmentDialogOpen(true)}>
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                    setAssignmentDialogOpen(true);
+                                    fetchUsers();
+                                }}
+                            >
                                 <UserPlus className="w-4 h-4 mr-2" />
                                 Manage Team
                             </Button>
@@ -568,7 +595,7 @@ export default function CampaignDetailClient({ campaignId }: CampaignDetailClien
                 open={assignmentDialogOpen}
                 onOpenChange={setAssignmentDialogOpen}
                 campaignId={campaign.id}
-                users={[]} // TODO: Fetch users list
+                users={users}
                 onAssign={handleAssignMember}
             />
         </div>
