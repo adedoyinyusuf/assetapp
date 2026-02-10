@@ -164,10 +164,20 @@ export default function CampaignDetailClient({ campaignId }: CampaignDetailClien
             const res = await fetch(`/api/stock-verification/campaigns/${campaignId}/assignments`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, role })
+                body: JSON.stringify({
+                    userId,
+                    role,
+                    stateIds: campaign?.assignedStates || [],
+                    lgaIds: campaign?.assignedLgas || [],
+                    categoryIds: campaign?.assignedCategories || []
+                })
             });
 
-            if (!res.ok) throw new Error('Failed to assign member');
+            if (!res.ok) {
+                const errorData = await res.json();
+                console.error('Assignment error:', errorData);
+                throw new Error(errorData.error || 'Failed to assign member');
+            }
 
             // Refresh campaign data
             fetchCampaign();
