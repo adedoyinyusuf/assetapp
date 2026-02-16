@@ -1,4 +1,6 @@
 import Link from 'next/link';
+
+export const dynamic = 'force-dynamic';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {

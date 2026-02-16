@@ -1,4 +1,6 @@
 import Link from 'next/link';
+
+export const dynamic = 'force-dynamic';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Users, Mail, Phone, MapPin } from 'lucide-react';
